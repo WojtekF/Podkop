@@ -1,0 +1,46 @@
+{
+  "version": 2,
+  "dgSpecHash": "bVv9ERfv6iM=",
+  "success": true,
+  "projectFilePath": "D:\\repo\\Podkop\\Podkop.Server\\Podkop.Server.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.8\\microsoft.aspnetcore.openapi.10.0.8.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.ambientmetadata.application\\10.6.0\\microsoft.extensions.ambientmetadata.application.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.compliance.abstractions\\10.6.0\\microsoft.extensions.compliance.abstractions.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.dependencyinjection.autoactivation\\10.6.0\\microsoft.extensions.dependencyinjection.autoactivation.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.diagnostics.exceptionsummarization\\10.6.0\\microsoft.extensions.diagnostics.exceptionsummarization.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.http.diagnostics\\10.6.0\\microsoft.extensions.http.diagnostics.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.http.resilience\\10.6.0\\microsoft.extensions.http.resilience.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.resilience\\10.6.0\\microsoft.extensions.resilience.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.servicediscovery\\10.6.0\\microsoft.extensions.servicediscovery.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.servicediscovery.abstractions\\10.6.0\\microsoft.extensions.servicediscovery.abstractions.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.telemetry\\10.6.0\\microsoft.extensions.telemetry.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.extensions.telemetry.abstractions\\10.6.0\\microsoft.extensions.telemetry.abstractions.10.6.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\opentelemetry\\1.15.3\\opentelemetry.1.15.3.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\opentelemetry.api\\1.15.3\\opentelemetry.api.1.15.3.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\opentelemetry.api.providerbuilderextensions\\1.15.3\\opentelemetry.api.providerbuilderextensions.1.15.3.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\opentelemetry.exporter.opentelemetryprotocol\\1.15.3\\opentelemetry.exporter.opentelemetryprotocol.1.15.3.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\opentelemetry.extensions.hosting\\1.15.3\\opentelemetry.extensions.hosting.1.15.3.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\opentelemetry.instrumentation.aspnetcore\\1.15.2\\opentelemetry.instrumentation.aspnetcore.1.15.2.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\opentelemetry.instrumentation.http\\1.15.1\\opentelemetry.instrumentation.http.1.15.1.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\opentelemetry.instrumentation.runtime\\1.15.1\\opentelemetry.instrumentation.runtime.1.15.1.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\polly.core\\8.4.2\\polly.core.8.4.2.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\polly.extensions\\8.4.2\\polly.extensions.8.4.2.nupkg.sha512",
+    "C:\\Users\\Wojtek\\.nuget\\packages\\polly.ratelimiting\\8.4.2\\polly.ratelimiting.8.4.2.nupkg.sha512"
+  ],
+  "logs": [
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'Microsoft.OpenApi' 2.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-v5pm-xwqc-g5wc",
+      "projectPath": "D:\\repo\\Podkop\\Podkop.Server\\Podkop.Server.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\repo\\Podkop\\Podkop.Server\\Podkop.Server.csproj",
+      "libraryId": "Microsoft.OpenApi",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    }
+  ]
+}

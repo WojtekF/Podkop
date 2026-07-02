@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Podkop.AppHost/Podkop.AppHost.csproj" />
+  <Project Path="Podkop.Server/Podkop.Server.csproj" />
+</Solution>

@@ -1,0 +1,6 @@
+@Server_HostAddress = http://localhost:5381
+
+GET {{Server_HostAddress}}/api/sink/
+Accept: application/json
+
+###
