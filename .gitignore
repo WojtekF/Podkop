@@ -1,0 +1,25 @@
+# C# / .NET build artifacts
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+.vs/
+TestResults/
+artifacts/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Frontend build artifacts
+frontend/dist/
+frontend/.angular/
+frontend/out-tsc/
+frontend/coverage/
+
+# OS
+.DS_Store
+Thumbs.db
