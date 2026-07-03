@@ -1,0 +1,28 @@
+.post-card {
+  .post-card-content {
+    display: grid;
+    grid-template-columns: 5cqw 1fr auto;
+
+    img {
+      max-width: 20cqw;
+      height: auto;
+    }
+
+    .content {
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      line-clamp: 3;
+      overflow: hidden;
+    }
+  }
+
+  .post-card-footer {
+    display: flex;
+    justify-content: space-between;
+
+    .tag {
+      margin-right: 0.5em;
+    }
+  }
+}

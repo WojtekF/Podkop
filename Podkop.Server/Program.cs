@@ -23,13 +23,34 @@ if (app.Environment.IsDevelopment())
 var api = app.MapGroup("/api");
 api.MapGet("sink", () =>
     {
-        var items = Enumerable.Range(1, 5).Select(index =>
-                new SinkItem
+        string[] authors = ["ada_lovelace", "grace_hopper", "linus_t", "margaret_h", "dennis_r"];
+        string[] domains = ["github.com", "news.ycombinator.com", "dev.to", "medium.com", "stackoverflow.blog"];
+        string[] allTags = ["dotnet", "angular", "webdev", "csharp", "typescript", "aspire", "performance", "ui"];
+        string[] sentences =
+        [
+            "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+            "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+            "Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+            "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.",
+            "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.",
+            "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos.",
+            "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.",
+            "At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque.",
+        ];
+
+        var items = Enumerable.Range(1, 15).Select(index =>
+                new MainPostDto
                 (
                     index,
                     $"Card {index}",
-                    $"Content of card {index}",
-                    $"https://picsum.photos/id/{index * 10}/220/142"
+                    string.Join(" ", Random.Shared.GetItems(sentences, Random.Shared.Next(1, 9))),
+                    $"https://picsum.photos/id/{index * 10}/220/142",
+                    DateTime.UtcNow.AddHours(-Random.Shared.Next(1, 72)),
+                    Random.Shared.GetItems(allTags, Random.Shared.Next(1, 4)).Distinct().ToArray(),
+                    authors[Random.Shared.Next(authors.Length)],
+                    Random.Shared.Next(0, 250),
+                    Random.Shared.Next(0, 1500),
+                    domains[Random.Shared.Next(domains.Length)]
                 ))
             .ToArray();
         return items;
@@ -42,4 +63,4 @@ app.UseFileServer();
 
 app.Run();
 
-record SinkItem(int Id, string Title, string Content, string Image);
+record MainPostDto(int Id, string Title, string Content, string Image, DateTime  CreatedAt, string[] Tags, string Author, int CommentCount, int UpvoteCount, string Domain);

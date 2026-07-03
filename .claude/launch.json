@@ -2,10 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "frontend",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
-      "cwd": "frontend",
+      "name": "apphost",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "Podkop.AppHost", "--launch-profile", "https"],
       "port": 4200
     }
   ]

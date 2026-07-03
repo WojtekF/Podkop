@@ -1,0 +1,27 @@
+<mat-card class="post-card">
+  <mat-card-content class="post-card-content">
+    <div>&#9650; {{ mainPost().upvoteCount }}</div>
+    <div>
+      <h3>
+        {{ mainPost().title }}
+      </h3>
+      <div class="content">
+        {{ mainPost().content }}
+      </div>
+      <span>
+        {{ mainPost().author }} &middot; {{ mainPost().domain }} &middot;
+        {{ mainPost().createdAt | date: 'medium' }}
+      </span>
+      <div class="tags"></div>
+
+      <span class="stats">
+        &middot; {{ mainPost().commentCount }} *
+        @for (tag of mainPost().tags; track tag) {
+          <span class="tag">#{{ tag }} </span>
+        }
+      </span>
+    </div>
+    <img matCardImage [src]="mainPost().image" />
+  </mat-card-content>
+  <mat-card-footer class="post-card-footer"> </mat-card-footer>
+</mat-card>

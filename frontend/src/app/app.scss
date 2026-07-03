@@ -1,0 +1,41 @@
+:host {
+  --topbar-height: 56px;
+  display: block;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  height: var(--topbar-height);
+  padding: 0 16px;
+  box-sizing: border-box;
+  background: var(--mat-sys-surface-container);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 10vw 1fr 10vw;
+  // Without this, grid stretches the sticky sidebar to full track height
+  // and position: sticky has no room to work.
+  align-items: start;
+}
+
+.sidebar-left {
+  position: sticky;
+  top: var(--topbar-height);
+  height: calc(100vh - var(--topbar-height));
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 16px;
+}
+
+.content {
+  min-width: 0;
+}
+
+.sidebar-right {
+  padding: 16px;
+}

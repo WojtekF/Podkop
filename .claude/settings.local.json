@@ -5,21 +5,20 @@
       "Bash(xargs -0 grep -l \"constructor.*\\(\")",
       "Bash(npm test *)",
       "Bash(npx ng *)",
-      "Bash(dotnet build *)",
-      "Bash(ASPNETCORE_URLS=http://localhost:5381 dotnet run --no-build)",
-      "Bash(curl -s -m 2 http://localhost:5381/api/sink)",
       "Bash(break)",
       "Bash(dotnet run *)",
       "Bash(tasklist //FI \"IMAGENAME eq Podkop.Server.exe\")",
-      "Bash(curl -s -m 3 http://127.0.0.1:62336/api/sink)",
-      "Bash(curl -sk -m 3 https://127.0.0.1:62337/api/sink)",
-      "Bash(curl -sk -m 3 https://127.0.0.1:62336/api/sink)",
-      "Bash(curl -s -m 3 http://127.0.0.1:62337/api/sink)",
       "Bash(tasklist //FI \"IMAGENAME eq dcp.exe\")",
       "Bash(netstat -ano)",
-      "Bash(curl -s -m 2 -o /dev/null -w \"%{http_code}\" http://localhost:5381/api/sink)",
       "mcp__claude-in-chrome__navigate",
-      "mcp__claude-in-chrome__tabs_context_mcp"
-    ]
+      "mcp__claude-in-chrome__tabs_context_mcp",
+      "Bash(ls ~/.ssh 2>/dev/null || echo \"no .ssh dir\")",
+      "Bash(gh auth *)",
+      "Bash(git config *)",
+      "Bash(ssh -T -o BatchMode=yes -o ConnectTimeout=10 git@github.com)",
+      "Bash(git branch *)",
+      "Bash(tasklist)"
+    ],
+    "deny": ["mcp__Claude_Preview"]
   }
 }
