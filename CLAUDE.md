@@ -112,8 +112,8 @@ Write or update tests with every change, on both ends:
 ## Git Conventions
 
 - **Conventional Commits**: `feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:` etc.
-- **Never commit or push directly to `master`.** All work happens on branches named after the commit type and topic (`feat/post-voting`, `fix/vote-count`, `docs/readme`). Changes reach `master` only via merge after review. If asked to commit while on `master`, create an appropriately named branch first.
-- **Keep branches small and focused** — one feature slice, fix, or concern per branch — so reviews (`/code-review`, the `arch-review` and `security-scan` agents) run on small, meaningful diffs.
+- **Never commit or push directly to `master`.** All work happens on branches named after the commit type and topic (`feat/post-voting`, `fix/vote-count`, `docs/readme`). Changes reach `master` only via merge after review, and the **user** performs the merge — Claude never merges into `master` itself. If asked to commit while on `master`, create an appropriately named branch first.
+- **Keep branches small and focused** — one feature slice, fix, or concern per branch — so per-diff reviews (`/code-review`, the `arch-review` agent) stay small and meaningful. (The `security-scan` agent is different: it audits the whole codebase, not the branch diff.)
 
 ## Known Issues
 
