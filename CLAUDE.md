@@ -112,7 +112,8 @@ Write or update tests with every change, on both ends:
 ## Git Conventions
 
 - **Conventional Commits**: `feat:`, `fix:`, `chore:`, `refactor:`, `test:`, `docs:` etc.
-- Work happens on `master` (no branch workflow enforced yet)
+- **Never commit or push directly to `master`.** All work happens on branches named after the commit type and topic (`feat/post-voting`, `fix/vote-count`, `docs/readme`). Changes reach `master` only via merge after review. If asked to commit while on `master`, create an appropriately named branch first.
+- **Keep branches small and focused** — one feature slice, fix, or concern per branch — so reviews (`/code-review`, the `arch-review` and `security-scan` agents) run on small, meaningful diffs.
 
 ## Known Issues
 
