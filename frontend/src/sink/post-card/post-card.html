@@ -1,7 +1,15 @@
 <mat-card class="post-card">
   <mat-card-content class="post-card-content">
-    <div>&#9650; {{ mainPost().upvoteCount }}</div>
-    <div>
+    <div class="vote">
+      <button mat-icon-button aria-label="Upvote" (click)="upvote.emit()">
+        <mat-icon>thumb_up</mat-icon>
+      </button>
+      <span class="vote-count">{{ mainPost().upvoteCount }}</span>
+      <button mat-icon-button aria-label="Downvote" (click)="downvote.emit()">
+        <mat-icon>thumb_down</mat-icon>
+      </button>
+    </div>
+    <div class="post-body">
       <h3>
         {{ mainPost().title }}
       </h3>
@@ -23,5 +31,4 @@
     </div>
     <img matCardImage [src]="mainPost().image" />
   </mat-card-content>
-  <mat-card-footer class="post-card-footer"> </mat-card-footer>
 </mat-card>
