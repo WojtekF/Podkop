@@ -1,0 +1,25 @@
+# Podkop — TODO
+
+A running backlog of planned work. Not a special Claude file — just a human-readable
+list. (For durable project conventions/instructions that Claude auto-loads each
+session, use `CLAUDE.md` instead.)
+
+## In progress / planned
+
+- [ ] _(add items here)_
+
+## Done
+
+- [x] Add **Scalar** API reference UI backed by OpenAPI (`Podkop.Server`)
+      - Package: `Scalar.AspNetCore` 2.16.10
+      - Wired in `Program.cs`: `app.MapScalarApiReference()` (Development only)
+      - UI: `/scalar/v1` · OpenAPI doc: `/openapi/v1.json`
+
+## Notes / follow-ups
+
+- [ ] **Security warning (pre-existing):** `Microsoft.OpenApi` 2.0.0 is pulled
+      transitively by `Microsoft.AspNetCore.OpenApi` 10.0.8 and has a known
+      high-severity advisory (GHSA-v5pm-xwqc-g5wc / NU1903). Options: pin an
+      explicit `<PackageReference Include="Microsoft.OpenApi" Version="2.9.0" />`
+      (verify compat with ASP.NET Core 10.0.8), or wait for a patched
+      `Microsoft.AspNetCore.OpenApi`.
