@@ -20,6 +20,9 @@ frontend/.angular/
 frontend/out-tsc/
 frontend/coverage/
 
+# Agent skill symlinks (regenerated per machine by `npx skills@latest add`)
+.claude/skills/
+
 # OS
 .DS_Store
 Thumbs.db
