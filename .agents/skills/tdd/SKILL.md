@@ -5,6 +5,14 @@ description: Test-driven development. Use when the user wants to build features 
 
 # Test-Driven Development
 
+## Project override (Podkop) — red only
+
+This project's CLAUDE.md "Feature Development Workflow" overrides the loop below wherever they conflict: **Claude writes structure and tests only; the user writes the implementation.** Concretely:
+
+- Claude scaffolds compiling skeletons (`throw new NotImplementedException()` or equivalent) and writes the failing tests that specify the agreed behavior.
+- The **green step belongs to the user** — never implement business/domain logic to make a test pass unless explicitly asked.
+- Everything else in this skill (seams, anti-patterns, what a good test is) applies unchanged to the tests Claude writes.
+
 TDD is the red → green loop. This skill is the reference that makes that loop produce tests worth keeping: what a good test is, where tests go, the anti-patterns, and the rules of the loop. Every section applies on every cycle — consult them before and during the loop, not after.
 
 When exploring the codebase, read `CONTEXT.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
@@ -31,6 +39,6 @@ Ask: "What's the public interface, and which seams should we test?"
 
 ## Rules of the loop
 
-- **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
-- **One slice at a time.** One seam, one test, one minimal implementation per cycle.
+- **Red before green.** Write the failing test first. In this project the green step is the user's (see the project override above) — stop at the failing test and skeleton; don't anticipate future tests or add speculative features.
+- **One slice at a time.** One seam, one test, one minimal implementation per cycle (the implementation done by the user, per the override).
 - **Refactoring is not part of the loop.** It belongs to the review stage (see the `code-review` skill), not the red → green implementation cycle.
