@@ -20,10 +20,8 @@ frontend/.angular/
 frontend/out-tsc/
 frontend/coverage/
 
-# Installed agent skills (machine-local; reinstall with `npx skills add mattpocock/skills`)
-.agents/
+# Agent skill symlinks (regenerated per machine by `npx skills@latest add`)
 .claude/skills/
-skills-lock.json
 
 # OS
 .DS_Store
