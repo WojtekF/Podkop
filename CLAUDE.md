@@ -123,7 +123,7 @@ Write or update tests with every change, on both ends:
 
 ### Issue tracker
 
-Issues are tracked as GitHub Issues (WojtekF/AngularLearning) via the `gh` CLI; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+Issues are tracked as GitHub Issues in this repo's `origin` remote, via the `gh` CLI (which infers the repo automatically); external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
@@ -131,4 +131,8 @@ Canonical defaults: needs-triage, needs-info, ready-for-agent, ready-for-human, 
 
 ### Domain docs
 
-Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root (created lazily by `/domain-modeling`; they may not exist yet). See `docs/agents/domain.md`.
+
+### Skill overrides
+
+- **tdd — red only.** Regardless of what `.agents/skills/tdd/SKILL.md` says, Claude writes compiling skeletons and failing tests only; the green (implementation) step belongs to the user, per the Feature Development Workflow above. This section is authoritative even if a skills update reverts the override text inside the vendored file — after running `npx skills add/update`, check `git diff .agents/skills/tdd/SKILL.md` and restore the "Project override (Podkop)" section if it was overwritten.
