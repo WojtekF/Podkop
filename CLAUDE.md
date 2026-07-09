@@ -118,21 +118,3 @@ Write or update tests with every change, on both ends:
 ## Known Issues
 
 - `Microsoft.OpenApi` 2.0.0 (transitive) has a high-severity advisory (GHSA-v5pm-xwqc-g5wc) — see TODO.md; pin to a patched version or wait for the ASP.NET Core fix
-
-## Agent skills
-
-### Issue tracker
-
-Issues are tracked as GitHub Issues in this repo's `origin` remote, via the `gh` CLI (which infers the repo automatically); external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Canonical defaults: needs-triage, needs-info, ready-for-agent, ready-for-human, wontfix. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root (created lazily by `/domain-modeling`; they may not exist yet). See `docs/agents/domain.md`.
-
-### Skill overrides
-
-- **tdd — red only.** Regardless of what `.agents/skills/tdd/SKILL.md` says, Claude writes compiling skeletons and failing tests only; the green (implementation) step belongs to the user, per the Feature Development Workflow above. This section is authoritative even if a skills update reverts the override text inside the vendored file — after running `npx skills add/update`, check `git diff .agents/skills/tdd/SKILL.md` and restore the "Project override (Podkop)" section if it was overwritten.
