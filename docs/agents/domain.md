@@ -2,6 +2,8 @@
 
 How the engineering skills should consume this repo's domain documentation when exploring the codebase.
 
+**This repo is single-context**: one `CONTEXT.md` and `docs/adr/` at the repo root, shared by the backend and the Angular frontend.
+
 ## Before exploring, read these
 
 - **`CONTEXT.md`** at the repo root, or
@@ -12,7 +14,7 @@ If any of these files don't exist, **proceed silently**. Don't flag their absenc
 
 ## File structure
 
-Single-context repo (most repos):
+Single-context repo (this repo):
 
 ```
 /
