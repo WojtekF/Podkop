@@ -4,6 +4,4 @@ Each backend feature (Findings, Votes, Comments, …) is a self-contained vertic
 
 ## Consequences
 
-- Features never reference each other's internals; cross-feature communication goes through contracts/events. The promotion mechanic, for example, reacts to vote events rather than the Findings slice reading vote tables.
-- Adding a feature means scaffolding four projects plus tests — deliberate overhead accepted for isolation; trivial features don't get to shortcut into `Program.cs`.
-- Project count grows fast; the `Podkop.slnx` solution manifest and CLAUDE.md's scaffolding workflow exist to keep that manageable.
+- Features never reference each other's internals; cross-feature communication goes through contracts/events.
