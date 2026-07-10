@@ -20,7 +20,10 @@ All code, comments, commit messages, and UI text are in **English**.
 ```
 Podkop.slnx                  # Solution manifest
 Podkop.AppHost/              # Aspire orchestration — wires server + frontend
-Podkop.Server/               # ASP.NET Core API (minimal APIs in Program.cs for now)
+Podkop.Server/               # ASP.NET Core API host / composition root
+Features/
+  Findings/                  # Findings feature slice (Domain/Application/Infrastructure/Server projects)
+Podkop.Tests/                # xUnit tests (backend)
 frontend/                    # Angular 22 app
   src/app/                   # Root component, routing, app config
   src/sink/                  # Feature: main post feed (component, service, post-card/)
@@ -100,7 +103,7 @@ When developing a new feature, follow this division of labor:
 
 Write or update tests with every change, on both ends:
 
-- **Backend:** xUnit. Prefer integration-style tests via `WebApplicationFactory` for endpoints, unit tests for handlers/domain logic. (The test project doesn't exist yet — create `Podkop.Tests` alongside the other projects when first needed.)
+- **Backend:** xUnit in `Podkop.Tests`. Prefer integration-style tests via `WebApplicationFactory` for endpoints, unit tests for handlers/domain logic.
 - **Frontend:** Vitest specs colocated with components/services
 
 ## Verification Workflow
