@@ -56,15 +56,15 @@ Run a single frontend test file: `npx vitest run src/sink/sink.service.spec.ts`
 
 ### Backend — Vertical Slices × Clean Architecture (Milan Jovanović style)
 
-The backend is evolving from inline endpoints in `Program.cs` toward a **feature-first modular structure**: each feature (Posts, Votes, Comments, …) lives in its own folder containing its own set of Clean Architecture **layer projects**:
+The backend is evolving from inline endpoints in `Program.cs` toward a **feature-first modular structure**: each feature (Findings, Votes, Comments, …) lives in its own folder containing its own set of Clean Architecture **layer projects**. The decision record and rationale live in `docs/adr/0003-vertical-slices-clean-architecture.md`; this section is the operational reference. (Domain vocabulary is defined in `CONTEXT.md` and is canonical in code identifiers as well as prose and UI copy — e.g. "Finding", never "Post".)
 
 ```
 Features/
-  Posts/
-    Podkop.Posts.Domain/            # entities, value objects, domain events; no dependencies
-    Podkop.Posts.Application/       # commands/queries + handlers + validators for this feature
-    Podkop.Posts.Infrastructure/    # EF Core (PostgreSQL), persistence, external services
-    Podkop.Posts.Server/            # minimal API endpoints (MapGroup), thin HTTP layer
+  Findings/
+    Podkop.Findings.Domain/         # entities, value objects, domain events; no dependencies
+    Podkop.Findings.Application/    # commands/queries + handlers + validators for this feature
+    Podkop.Findings.Infrastructure/ # EF Core (PostgreSQL), persistence, external services
+    Podkop.Findings.Server/         # minimal API endpoints (MapGroup), thin HTTP layer
   Votes/
     Podkop.Votes.Domain/
     ...
