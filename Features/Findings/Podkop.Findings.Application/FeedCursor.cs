@@ -36,9 +36,8 @@ public static class FeedCursor
             var split = decoded.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (split.Length != 2)
             {
-                promotedAt = default;
-                id = default;
-                throw new InvalidFeedCursorException("Invalid section count.");
+                ApplyDefaultOutput(out promotedAt, out id);
+                return false;
             }
 
             promotedAt = DateTimeOffset.FromUnixTimeSeconds(long.Parse(split[0]));
@@ -48,7 +47,7 @@ public static class FeedCursor
         }
         catch (Exception ex)
         {
-            throw new InvalidFeedCursorException("Invalid section count.", ex);
+            throw new InvalidFeedCursorException(cursor, ex);
         }
     }
 }

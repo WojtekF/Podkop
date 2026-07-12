@@ -29,12 +29,12 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
 {
     public async Task<FeedPage> Handle(GetMainPageFeed request, CancellationToken cancellationToken)
     {
-        if (!FeedCursor.TryDecode(request.Cursor!, out var dateTimeOffset, out var lastFindingGuid))
+        if (!FeedCursor.TryDecode(request.Cursor!, out var lastPromotedAt, out var lastFindingGuid))
             return new FeedPage(Array.Empty<FindingSummary>(), null);
         var findings = await GetPromotedFindings(cancellationToken);
         var lastItemIndexed = findings
             .Index()
-            .Where(t => t.Item.Id == lastFindingGuid);
+            .Where(t => t.Item.Id == lastFindingGuid && t.Item.PromotedAt == lastPromotedAt);
 
         if (lastFindingGuid != Guid.Empty)
         {
