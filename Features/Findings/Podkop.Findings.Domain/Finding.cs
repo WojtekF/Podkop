@@ -57,6 +57,8 @@ public sealed class Finding
     /// </summary>
     public void Promote(DateTimeOffset promotedAt)
     {
-        throw new NotImplementedException("Domain logic is implemented by the user (CLAUDE.md Feature Development Workflow).");
+        if (IsPromoted) return;
+        PromotedAt = promotedAt;
+        _domainEvents.Add(new FindingPromoted(Id, promotedAt));
     }
 }
