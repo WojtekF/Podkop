@@ -1,7 +1,7 @@
 using System.Globalization;
 using Podkop.Findings.Domain;
 
-namespace Podkop.Tests.Findings;
+namespace Podkop.Findings.Tests;
 
 public class FindingTests
 {

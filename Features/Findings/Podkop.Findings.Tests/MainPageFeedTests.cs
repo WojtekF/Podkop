@@ -7,7 +7,7 @@ using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 
-namespace Podkop.Tests.Findings;
+namespace Podkop.Findings.Tests;
 
 public class MainPageFeedTests
 {

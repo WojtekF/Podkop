@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Podkop.Server\Podkop.Server.csproj" />
-    <ProjectReference Include="..\Features\Findings\Podkop.Findings.Domain\Podkop.Findings.Domain.csproj" />
-    <ProjectReference Include="..\Features\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\Podkop.Server\Podkop.Server.csproj" />
+    <ProjectReference Include="..\Podkop.Findings.Domain\Podkop.Findings.Domain.csproj" />
+    <ProjectReference Include="..\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
