@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace Podkop.Findings.Application;
@@ -13,7 +14,7 @@ public static class FeedCursor
         return Convert.ToBase64String(Encoding.UTF8.GetBytes(id.ToString()));
     }
 
-    public static bool TryDecode(string? cursor, out Guid id)
+    public static bool TryDecode([NotNullWhen(false)] string? cursor, out Guid id)
     {
         void ApplyDefaultOutput(out Guid id)
         {

@@ -210,13 +210,15 @@ public class MainPageFeedTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Fact]
-    public async Task Main_feed_rejects_a_malformed_cursor()
+    [Theory]
+    [InlineData("not-a-cursor")] // not valid base64
+    [InlineData("YWJj")] // valid base64 ("abc"), but not a finding id
+    public async Task Main_feed_rejects_a_malformed_cursor(string cursor)
     {
         using var factory = CreateFactory(FivePromotedFindings());
         using var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/findings?feed=main&cursor=not-a-cursor");
+        var response = await client.GetAsync($"/api/findings?feed=main&cursor={cursor}");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }

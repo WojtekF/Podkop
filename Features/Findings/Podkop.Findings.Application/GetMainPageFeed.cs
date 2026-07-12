@@ -30,7 +30,7 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
     public async Task<FeedPage> Handle(GetMainPageFeed request, CancellationToken cancellationToken)
     {
         if (!FeedCursor.TryDecode(request.Cursor, out var lastFindingGuid))
-            return new FeedPage(Array.Empty<FindingSummary>(), null);
+            throw new InvalidFeedCursorException(request.Cursor);
         var findings = await GetPromotedFindings(cancellationToken);
 
         if (lastFindingGuid != Guid.Empty)
