@@ -20,7 +20,9 @@ All code, comments, commit messages, and UI text are in **English**.
 ```
 Podkop.slnx                  # Solution manifest
 Podkop.AppHost/              # Aspire orchestration — wires server + frontend
-Podkop.Server/               # ASP.NET Core API (minimal APIs in Program.cs for now)
+Podkop.Server/               # ASP.NET Core API host / composition root
+Features/
+  Findings/                  # Findings feature slice (Domain/Application/Infrastructure/Server/Tests projects)
 frontend/                    # Angular 22 app
   src/app/                   # Root component, routing, app config
   src/sink/                  # Feature: main post feed (component, service, post-card/)
@@ -65,6 +67,7 @@ Features/
     Podkop.Findings.Application/    # commands/queries + handlers + validators for this feature
     Podkop.Findings.Infrastructure/ # EF Core (PostgreSQL), persistence, external services
     Podkop.Findings.Server/         # minimal API endpoints (MapGroup), thin HTTP layer
+    Podkop.Findings.Tests/          # xUnit tests for this slice (domain unit + endpoint integration)
   Votes/
     Podkop.Votes.Domain/
     ...
@@ -78,7 +81,7 @@ Conventions:
 - Dependency direction always points inward within a feature (Server → Application → Domain; Infrastructure implements Application/Domain abstractions); features don't reference each other's internals — cross-feature communication goes through contracts/events
 - Keep the service-defaults pattern (`Extensions.cs`: OpenTelemetry, health checks, resilience) intact when restructuring
 
-When adding a new feature, scaffold the full slice — its four layer projects plus command/query, handler, endpoint, and tests — rather than expanding `Program.cs`.
+When adding a new feature, scaffold the full slice — its four layer projects plus a `Podkop.<Feature>.Tests` project with command/query, handler, endpoint, and tests — rather than expanding `Program.cs`.
 
 ### Frontend — Feature folders, signals-first
 
@@ -100,7 +103,7 @@ When developing a new feature, follow this division of labor:
 
 Write or update tests with every change, on both ends:
 
-- **Backend:** xUnit. Prefer integration-style tests via `WebApplicationFactory` for endpoints, unit tests for handlers/domain logic. (The test project doesn't exist yet — create `Podkop.Tests` alongside the other projects when first needed.)
+- **Backend:** xUnit in the feature's own `Podkop.<Feature>.Tests` project inside its slice (e.g. `Features/Findings/Podkop.Findings.Tests`) — tests are part of the slice, not a shared root project. Prefer integration-style tests via `WebApplicationFactory` for endpoints, unit tests for handlers/domain logic.
 - **Frontend:** Vitest specs colocated with components/services
 
 ## Verification Workflow

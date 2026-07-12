@@ -1,3 +1,5 @@
+using Podkop.Findings.Infrastructure;
+using Podkop.Findings.Server;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,6 +9,7 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 builder.Services.AddProblemDetails();
+builder.Services.AddFindings();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -23,6 +26,10 @@ if (app.Environment.IsDevelopment())
 }
 
 
+app.MapFindings();
+
+// Legacy mock feed — the frontend still consumes it; removed once the frontend
+// switches to /api/findings.
 var api = app.MapGroup("/api");
 api.MapGet("sink", () =>
     {
@@ -67,3 +74,6 @@ app.UseFileServer();
 app.Run();
 
 record MainPostDto(int Id, string Title, string Content, string Image, DateTime  CreatedAt, string[] Tags, string Author, int CommentCount, int UpvoteCount, string Domain);
+
+// Exposes the entry point to WebApplicationFactory-based integration tests.
+public partial class Program;

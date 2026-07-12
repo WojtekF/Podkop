@@ -17,4 +17,9 @@
         <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
         <PackageReference Include="Scalar.AspNetCore" Version="2.16.10" />
     </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Features\Findings\Podkop.Findings.Server\Podkop.Findings.Server.csproj" />
+      <ProjectReference Include="..\Features\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
+    </ItemGroup>
 </Project>
