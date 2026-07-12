@@ -29,15 +29,16 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
 {
     public async Task<FeedPage> Handle(GetMainPageFeed request, CancellationToken cancellationToken)
     {
-        if (!FeedCursor.TryDecode(request.Cursor!, out var lastPromotedAt, out var lastFindingGuid))
+        if (!FeedCursor.TryDecode(request.Cursor, out var lastFindingGuid))
             return new FeedPage(Array.Empty<FindingSummary>(), null);
         var findings = await GetPromotedFindings(cancellationToken);
-        var lastItemIndexed = findings
-            .Index()
-            .Where(t => t.Item.Id == lastFindingGuid && t.Item.PromotedAt == lastPromotedAt);
 
         if (lastFindingGuid != Guid.Empty)
         {
+            var lastItemIndexed = findings
+                .Index()
+                .Where(t => t.Item.Id == lastFindingGuid);
+
             var lastItemIndex = lastItemIndexed.First().Index + 1;
             findings = findings
                 .Skip(lastItemIndex).ToList();
@@ -62,7 +63,7 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
         var newLastItem = nextBatch.LastOrDefault();
         string? newCursor = null;
         if (nextBatch.Count == request.Limit && newLastItem is not null)
-            newCursor = FeedCursor.Encode(newLastItem.PromotedAt, newLastItem.Id);
+            newCursor = FeedCursor.Encode(newLastItem.Id);
 
         return new FeedPage(nextBatch, newCursor);
     }
@@ -70,6 +71,10 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
     private async Task<IReadOnlyList<Finding>> GetPromotedFindings(CancellationToken cancellationToken)
     {
         var findings = await findingsRepository.GetAllAsync(cancellationToken);
-        return findings.Where(x => x.IsPromoted).OrderByDescending(x => x.PromotedAt).ToList();
+        return findings
+            .Where(x => x.IsPromoted)
+            .OrderByDescending(x => x.PromotedAt)
+            .ThenByDescending(x => x.CreatedAt)
+            .ThenByDescending(x => x.Id).ToList();
     }
 }
