@@ -93,8 +93,8 @@ When adding a new feature, scaffold the full slice — its four layer projects p
 When developing a new feature, follow this division of labor:
 
 1. **Discovery first — ask exhaustively.** Before writing anything, interview the user in depth about the domain and intended behavior: entities and their invariants, use cases, edge cases, validation rules, error behavior, API shape. Don't fill gaps with assumptions — keep asking until the behavior is unambiguous.
-2. **Claude implements structure and tests only.** Scaffold the feature slice (layer projects, endpoint/handler/entity skeletons, DI wiring) and write the unit and integration tests that specify the agreed behavior. Skeletons should compile but leave domain logic unimplemented (e.g. `throw new NotImplementedException()`), so the new tests fail until the logic is written.
-3. **The user writes the domain logic.** Do not implement business/domain logic unless explicitly asked to. The failing tests define what the user's implementation must satisfy.
+2. **Claude implements structure and tests only — on both ends of the stack.** Scaffold the backend slice (layer projects, endpoint/handler/entity skeletons, DI wiring) and the frontend feature (component/store/service files with templates, styles, and routing) and write the tests that specify the agreed behavior. Skeletons must compile but leave all logic unimplemented — backend method bodies `throw new NotImplementedException()`, frontend method bodies `throw new Error('not implemented')` — so the new xUnit tests **and** Vitest specs fail until the logic is written.
+3. **The user writes the logic — backend and frontend alike.** "Logic" is not just C# domain code: Angular store methods, component behavior, and service bodies count too. Do not implement any of it unless explicitly asked to, and do not propose a split where Claude builds the frontend fully. The failing tests on both ends define what the user's implementation must satisfy.
 
 ## Testing Expectations
 
