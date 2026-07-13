@@ -1,3 +1,4 @@
+using System.Globalization;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -15,12 +16,22 @@ public static class FindingsEndpoints
     {
         var group = routes.MapGroup("/api/findings");
 
-        group.MapGet("/", async (ISender sender, string? feed, string? cursor, int? limit, CancellationToken cancellationToken) =>
+        group.MapGet("/", async (ISender sender, string? feed, string? page, int? limit, CancellationToken cancellationToken) =>
             {
                 if (feed != "main")
                 {
                     return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
                         detail: "Only the 'main' feed is available.");
+                }
+
+                // page binds as a string: int binding failures throw in Development
+                // (ThrowOnBadRequest) and would surface as 500 instead of the contract's 400.
+                var pageNumber = 1;
+                if (page is not null &&
+                    (!int.TryParse(page, NumberStyles.None, CultureInfo.InvariantCulture, out pageNumber) || pageNumber < 1))
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+                        detail: "page must be a positive integer.");
                 }
 
                 var pageSize = limit ?? DefaultLimit;
@@ -30,16 +41,8 @@ public static class FindingsEndpoints
                         detail: $"limit must be between 1 and {MaxLimit}.");
                 }
 
-                try
-                {
-                    var page = await sender.Send(new GetMainPageFeed(cursor, pageSize), cancellationToken);
-                    return Results.Ok(page);
-                }
-                catch (InvalidFeedCursorException)
-                {
-                    return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
-                        detail: "cursor is not valid.");
-                }
+                var result = await sender.Send(new GetMainPageFeed(pageNumber, pageSize), cancellationToken);
+                return Results.Ok(result);
             })
             .WithName("GetFindingsFeed");
 

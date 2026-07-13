@@ -1,0 +1,45 @@
+<section class="main-page">
+  @if (store.status() === 'loading') {
+    <div class="feed-state loading">
+      <mat-spinner aria-label="Loading the Main Page feed" />
+    </div>
+  } @else if (store.status() === 'error') {
+    <div class="feed-state error">
+      <p>Something went wrong while loading the feed.</p>
+      <button mat-stroked-button class="retry-button" (click)="retry()">Retry</button>
+    </div>
+  } @else if (store.isEmpty()) {
+    <div class="feed-state empty">
+      <p>No findings have been promoted yet.</p>
+      @if (store.hasPreviousPage()) {
+        <button mat-stroked-button class="first-page-button" (click)="goToFirstPage()">
+          Go to first page
+        </button>
+      }
+    </div>
+  } @else {
+    <div class="findings">
+      @for (finding of store.items(); track finding.id) {
+        <main-page-finding-card [finding]="finding" />
+      }
+    </div>
+    <nav class="pager" aria-label="Feed pages">
+      <button
+        mat-stroked-button
+        class="previous-page-button"
+        [disabled]="!store.hasPreviousPage()"
+        (click)="goToPreviousPage()"
+      >
+        Previous
+      </button>
+      <button
+        mat-stroked-button
+        class="next-page-button"
+        [disabled]="!store.hasNextPage()"
+        (click)="goToNextPage()"
+      >
+        Next
+      </button>
+    </nav>
+  }
+</section>
