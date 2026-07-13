@@ -1,45 +1,34 @@
-<section class="main-page">
-  @if (store.status() === 'loading') {
-    <div class="feed-state loading">
-      <mat-spinner aria-label="Loading the Main Page feed" />
-    </div>
-  } @else if (store.status() === 'error') {
-    <div class="feed-state error">
-      <p>Something went wrong while loading the feed.</p>
-      <button mat-stroked-button class="retry-button" (click)="retry()">Retry</button>
-    </div>
-  } @else if (store.isEmpty()) {
-    <div class="feed-state empty">
-      <p>No findings have been promoted yet.</p>
-      @if (store.hasPreviousPage()) {
-        <button mat-stroked-button class="first-page-button" (click)="goToFirstPage()">
-          Go to first page
-        </button>
-      }
-    </div>
-  } @else {
-    <div class="findings">
-      @for (finding of store.items(); track finding.id) {
-        <main-page-finding-card [finding]="finding" />
-      }
-    </div>
-    <nav class="pager" aria-label="Feed pages">
-      <button
-        mat-stroked-button
-        class="previous-page-button"
-        [disabled]="!store.hasPreviousPage()"
-        (click)="goToPreviousPage()"
-      >
-        Previous
-      </button>
-      <button
-        mat-stroked-button
-        class="next-page-button"
-        [disabled]="!store.hasNextPage()"
-        (click)="goToNextPage()"
-      >
-        Next
-      </button>
-    </nav>
-  }
-</section>
+<!--
+  MainPage template — write the markup yourself. The colocated specs
+  (main-page.spec.ts) are the contract. Four mutually exclusive states,
+  branched on the store's signals with @if / @else if / @else:
+
+  1. store.status() === 'loading'
+     - .feed-state.loading containing a centered <mat-spinner />
+       (MatProgressSpinnerModule in main-page.ts `imports`)
+
+  2. store.status() === 'error'
+     - .feed-state.error with a short message and a
+       <button class="retry-button" (click)="retry()">Retry</button>
+
+  3. loaded but store.isEmpty()
+     - .feed-state.empty with the exact copy:
+         No findings have been promoted yet.
+     - and, only when store.hasPreviousPage() (i.e. a stale deep link on
+       page > 1): <button class="first-page-button" (click)="goToFirstPage()">
+       Go to first page</button>
+
+  4. loaded with items
+     - a list of cards:
+         @for (finding of store.items(); track finding.id) {
+           <main-page-finding-card [finding]="finding" />
+         }
+       (FindingCard in main-page.ts `imports`)
+     - a .pager <nav> with exactly two buttons (no page-number indicator):
+         button.previous-page-button — [disabled]="!store.hasPreviousPage()",
+                                       (click)="goToPreviousPage()"
+         button.next-page-button     — [disabled]="!store.hasNextPage()",
+                                       (click)="goToNextPage()"
+
+  Material buttons: <button mat-stroked-button ...> (MatButtonModule).
+-->

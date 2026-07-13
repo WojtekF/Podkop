@@ -31,6 +31,11 @@ export interface FeedPage {
 export class MainPageFeedService {
   private readonly http = inject(HttpClient);
 
+  /**
+   * One GET per call; the specs check the query string, not how you build it —
+   * `this.http.get<FeedPage>(url, { params: ... })` and a hand-built URL both
+   * pass. Always send feed=main and page=N (page 1 included), never limit.
+   */
   getPage(page: number): Observable<FeedPage> {
     throw new Error('not implemented');
   }
