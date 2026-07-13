@@ -8,6 +8,10 @@ A Wykop-style social link-aggregation platform: users submit findings, vote on t
 A link (or content) submitted by a user for the community to vote on. The central content unit of the platform.
 _Avoid_: Post, sink item
 
+**Feed**:
+An ordered, pageable listing of findings selected by a rule. The platform has two: the Main Page (promoted findings) and Upcoming (fresh findings).
+_Avoid_: Stream, timeline, list
+
 **Main Page**:
 The feed showing only Promoted findings. This is the site's front page.
 _Avoid_: Home feed, all-posts feed
