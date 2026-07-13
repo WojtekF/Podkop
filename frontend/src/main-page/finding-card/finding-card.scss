@@ -1,0 +1,57 @@
+.finding-card {
+  margin-bottom: 1rem;
+}
+
+.finding-card-content {
+  display: flex;
+  gap: 1rem;
+}
+
+.finding-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  margin: 0 0 0.5rem;
+
+  .domain {
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: normal;
+    color: rgba(0, 0, 0, 0.6);
+  }
+}
+
+.description {
+  margin: 0 0 0.5rem;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.6);
+
+  .tag {
+    margin-left: 0.35rem;
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+// Placeholder shares the thumbnail box so every card keeps the same shape.
+.thumbnail {
+  width: 220px;
+  height: 142px;
+  flex-shrink: 0;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.thumbnail-placeholder {
+  background: #e0e0e0;
+}

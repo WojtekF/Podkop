@@ -1,0 +1,13 @@
+.feed-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem 1rem;
+}
+
+.pager {
+  display: flex;
+  justify-content: space-between;
+  margin: 1rem 0;
+}
