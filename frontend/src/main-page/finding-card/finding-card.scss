@@ -1,57 +1,15 @@
-.finding-card {
-  margin-bottom: 1rem;
-}
-
-.finding-card-content {
-  display: flex;
-  gap: 1rem;
-}
-
-.finding-body {
-  flex: 1;
-  min-width: 0;
-}
-
-.title {
-  margin: 0 0 0.5rem;
-
-  .domain {
-    margin-left: 0.5rem;
-    font-size: 0.8rem;
-    font-weight: normal;
-    color: rgba(0, 0, 0, 0.6);
-  }
-}
-
-.description {
-  margin: 0 0 0.5rem;
-}
-
-.meta {
-  font-size: 0.85rem;
-  color: rgba(0, 0, 0, 0.6);
-
-  .tag {
-    margin-left: 0.35rem;
-  }
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-// Placeholder shares the thumbnail box so every card keeps the same shape.
-.thumbnail {
-  width: 220px;
-  height: 142px;
-  flex-shrink: 0;
-  object-fit: cover;
-  border-radius: 4px;
-}
-
-.thumbnail-placeholder {
-  background: #e0e0e0;
-}
+// FindingCard styles — write them yourself. Suggestions from the agreed design:
+//
+// - lay the card content out as a horizontal flexbox:
+//   text column grows (flex: 1; min-width: 0), thumbnail fixed on the right
+//   (flex-shrink: 0)
+// - thumbnail box around 220px × 142px; object-fit: cover for real images
+// - .thumbnail-placeholder: the same box with a neutral grey background
+//   (e.g. #e0e0e0) so cards without a thumbnail keep the same shape
+// - muted secondary text for .domain and .meta, e.g. color: rgba(0, 0, 0, 0.6)
+//
+// SCSS 101: it's CSS plus nesting and `//` comments. Example:
+//   .meta {
+//     color: rgba(0, 0, 0, 0.6);
+//     .tag { margin-left: 0.35rem; }   // matches ".meta .tag"
+//   }

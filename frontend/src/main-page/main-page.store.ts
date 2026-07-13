@@ -27,18 +27,30 @@ const initialState: MainPageState = {
  */
 export const MainPageStore = signalStore(
   withState(initialState),
+  // withComputed receives the state as signals (destructured here); derive
+  // with computed(() => ...) reading them, e.g. page() > 1.
   withComputed(({ items, page, status }) => ({
+    /** True beyond page 1 — drives the Previous button and the stale-deep-link action. */
     hasPreviousPage: computed<boolean>(() => {
       throw new Error('not implemented');
     }),
+    /** True only when a *loaded* page has no items (never while loading/error). */
     isEmpty: computed<boolean>(() => {
       throw new Error('not implemented');
     }),
   })),
+  // Update state with patchState(store, { ... }) (from '@ngrx/signals').
+  // For loadPage's cancel-the-previous-request rule, the idiomatic tool is
+  // rxMethod (from '@ngrx/signals/rxjs-interop') with switchMap over
+  // feedService.getPage(...) — switchMap unsubscribes the in-flight HTTP call
+  // when a new page number arrives. A manually managed Subscription you
+  // .unsubscribe() before each new call works too.
   withMethods((store, feedService = inject(MainPageFeedService)) => ({
+    /** Fetch one page; on success status='loaded' + replace items; on failure status='error'. */
     loadPage(page: number): void {
       throw new Error('not implemented');
     },
+    /** Re-request the page the store is currently on (after an error). */
     retry(): void {
       throw new Error('not implemented');
     },
