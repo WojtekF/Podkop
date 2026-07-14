@@ -6,7 +6,7 @@
     "start": "ng serve podkop --hmr",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "vitest"
   },
   "private": true,
   "packageManager": "npm@11.17.0",
@@ -23,6 +23,8 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
+    "@analogjs/vite-plugin-angular": "^2.6.3",
+    "@analogjs/vitest-angular": "^2.6.3",
     "@angular/build": "^22.0.5",
     "@angular/cli": "^22.0.5",
     "@angular/compiler-cli": "^22.0.0",
