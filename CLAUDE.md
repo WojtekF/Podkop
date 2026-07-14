@@ -121,6 +121,7 @@ Write or update tests with every change, on both ends:
 ## Known Issues
 
 - `Microsoft.OpenApi` 2.0.0 (transitive) has a high-severity advisory (GHSA-v5pm-xwqc-g5wc) — see TODO.md; pin to a patched version or wait for the ASP.NET Core fix
+- Installing new frontend packages may fail on an optional-peer conflict from `@analogjs/vite-plugin-angular` (it optionally peers on `@angular-devkit/build-angular`, whose latest release peers Angular 21). Retry with `npm install --legacy-peer-deps`; remove this note once Analog resolves the peer range.
 
 ## Agent skills
 
