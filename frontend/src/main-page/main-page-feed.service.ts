@@ -37,6 +37,11 @@ export class MainPageFeedService {
    * pass. Always send feed=main and page=N (page 1 included), never limit.
    */
   getPage(page: number): Observable<FeedPage> {
-    throw new Error('not implemented');
+    return this.http.get<FeedPage>(`/api/findings`, {
+      params: {
+        page,
+        feed: 'main',
+      },
+    });
   }
 }
