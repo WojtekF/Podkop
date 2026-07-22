@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Application;
 
@@ -27,9 +28,33 @@ public sealed record FindingSummary(
 public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository)
     : IRequestHandler<GetMainPageFeed, FeedPage>
 {
-    public Task<FeedPage> Handle(GetMainPageFeed request, CancellationToken cancellationToken)
+    public async Task<FeedPage> Handle(GetMainPageFeed request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException(
-            "Feed paging logic is implemented by the user (CLAUDE.md Feature Development Workflow).");
+        var findings = await findingsRepository.GetAllAsync(cancellationToken);
+        var findingSummary = findings
+            .Where(f => f.IsPromoted)
+            .OrderByDescending(f => f.PromotedAt)
+            .Skip((request.Page - 1) * request.Limit)
+            .Take(request.Limit + 1)
+            .Select(MapFindingToFindingSummary)
+            .ToList();
+        return new FeedPage(findingSummary.Take(request.Limit).ToList(),
+            findingSummary.Count > request.Limit);
+    }
+
+    private static FindingSummary MapFindingToFindingSummary(Finding finding)
+    {
+        return new FindingSummary(
+            finding.Id,
+            finding.Title,
+            finding.Description,
+            finding.Source.AbsoluteUri,
+            finding.Source.Host,
+            finding.Thumbnail?.AbsoluteUri,
+            finding.Author,
+            finding.Tags,
+            finding.DigCount,
+            finding.CommentCount,
+            finding.PromotedAt!.Value);
     }
 }

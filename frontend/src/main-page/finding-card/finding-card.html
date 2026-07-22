@@ -1,28 +1,46 @@
-<!--
-  FindingCard template — write the markup yourself. The colocated specs
-  (finding-card.spec.ts) are the contract; they query these hooks:
+<mat-card class="finding-card">
+  <mat-card-content class="finding-card-content">
+    <div class="finding-body">
+      <div class="actions">
+        <button mat-stroked-button class="dig-button" aria-label="Dig" (click)="onDig()">
+          <mat-icon>keyboard_double_arrow_up</mat-icon>
+          Dig
+        </button>
+        <span class="dig-count">{{ finding().digCount }}</span>
+      </div>
+      <div class="content">
+        <h3 class="title">
+          <a
+            class="source-link"
+            [href]="finding().sourceUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ finding().title }}</a
+          >
+        </h3>
 
-  - a.source-link            anchor around the title: [href]="finding().sourceUrl",
-                             target="_blank", rel="noopener noreferrer"
-  - .domain                  the source's domain, shown beside the title
-  - a description paragraph  {{ finding().description }}
-  - .meta                    footer with author · promotedAt · "N comments" · #tags;
-                             format the date with the date pipe:
-                             {{ finding().promotedAt | date: 'medium' }}
-                             (needs DatePipe in the component's `imports`)
-  - .dig-button              the Dig button — no Bury on Main Page cards;
-                             (click) should call onDig()
-  - .dig-count               the dig count next to the button
-  - img.thumbnail            shown when hasThumbnail(): [src]="finding().thumbnailUrl"
-  - .thumbnail-placeholder   shown otherwise: a neutral grey box with the same
-                             dimensions, so every card keeps the same shape
+        <p class="description">{{ finding().description }}</p>
+        <footer class="meta">
+          <span>
+            <span class="author">{{ finding().author }}</span> from
+            <span class="domain">{{ finding().domain }}</span>
+          </span>
+          &middot;
+          <span class="promoted-at">{{ finding().promotedAt | date: 'medium' }}</span>
+          &middot;
+          <span class="comment-count">{{ finding().commentCount }} comments</span>
+          &middot;
+          @for (tag of finding().tags; track tag) {
+            <span class="tag">#{{ tag }}</span>
+          }
+        </footer>
+      </div>
+    </div>
 
-  Angular syntax you'll need:
-  - read a signal input with parentheses: {{ finding().title }}
-  - control flow:  @if (cond) { ... } @else { ... }
-                   @for (tag of finding().tags; track tag) { ... }
-  - Angular Material (add each module to `imports` in finding-card.ts):
-    <mat-card>, <mat-card-content>            — MatCardModule
-    <button mat-stroked-button ...>           — MatButtonModule
-    <mat-icon>keyboard_double_arrow_up</mat-icon> — MatIconModule
--->
+    @if (hasThumbnail()) {
+      <img class="thumbnail" [src]="finding().thumbnailUrl" alt="" />
+    } @else {
+      <div class="thumbnail thumbnail-placeholder" aria-hidden="true"></div>
+    }
+  </mat-card-content>
+</mat-card>

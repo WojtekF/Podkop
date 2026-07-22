@@ -1,8 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { Location } from '@angular/common';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { FeedPage, FindingSummary } from './main-page-feed.service';
 import { MainPage } from './main-page';
@@ -10,7 +9,7 @@ import { MainPage } from './main-page';
 describe('MainPage', () => {
   let harness: RouterTestingHarness;
   let httpMock: HttpTestingController;
-  let location: Location;
+  let router: Router;
 
   const summary = (title: string): FindingSummary => ({
     id: crypto.randomUUID(),
@@ -49,7 +48,7 @@ describe('MainPage', () => {
       ],
     });
     httpMock = TestBed.inject(HttpTestingController);
-    location = TestBed.inject(Location);
+    router = TestBed.inject(Router);
     harness = await RouterTestingHarness.create();
   });
 
@@ -113,7 +112,7 @@ describe('MainPage', () => {
     button('.next-page-button')?.click();
     await harness.fixture.whenStable();
 
-    expect(location.path()).toBe('/?page=2');
+    expect(router.url).toBe('/?page=2');
     expectFeedRequest(2);
   });
 
@@ -125,7 +124,7 @@ describe('MainPage', () => {
     button('.previous-page-button')?.click();
     await harness.fixture.whenStable();
 
-    expect(location.path()).toBe('/');
+    expect(router.url).toBe('/');
     expectFeedRequest(1);
   });
 
@@ -161,7 +160,7 @@ describe('MainPage', () => {
     firstPageButton?.click();
     await harness.fixture.whenStable();
 
-    expect(location.path()).toBe('/');
+    expect(router.url).toBe('/');
     expectFeedRequest(1);
   });
 });

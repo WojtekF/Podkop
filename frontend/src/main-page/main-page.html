@@ -1,34 +1,44 @@
-<!--
-  MainPage template — write the markup yourself. The colocated specs
-  (main-page.spec.ts) are the contract. Four mutually exclusive states,
-  branched on the store's signals with @if / @else if / @else:
-
-  1. store.status() === 'loading'
-     - .feed-state.loading containing a centered <mat-spinner />
-       (MatProgressSpinnerModule in main-page.ts `imports`)
-
-  2. store.status() === 'error'
-     - .feed-state.error with a short message and a
-       <button class="retry-button" (click)="retry()">Retry</button>
-
-  3. loaded but store.isEmpty()
-     - .feed-state.empty with the exact copy:
-         No findings have been promoted yet.
-     - and, only when store.hasPreviousPage() (i.e. a stale deep link on
-       page > 1): <button class="first-page-button" (click)="goToFirstPage()">
-       Go to first page</button>
-
-  4. loaded with items
-     - a list of cards:
-         @for (finding of store.items(); track finding.id) {
-           <main-page-finding-card [finding]="finding" />
-         }
-       (FindingCard in main-page.ts `imports`)
-     - a .pager <nav> with exactly two buttons (no page-number indicator):
-         button.previous-page-button — [disabled]="!store.hasPreviousPage()",
-                                       (click)="goToPreviousPage()"
-         button.next-page-button     — [disabled]="!store.hasNextPage()",
-                                       (click)="goToNextPage()"
-
-  Material buttons: <button mat-stroked-button ...> (MatButtonModule).
--->
+@if (store.status() === 'loading') {
+  <div class="feed-state loading">
+    <mat-spinner />
+  </div>
+} @else if (store.status() === 'error') {
+  <div class="feed-state error">
+    <button mat-button class="retry-button" (click)="retry()">Retry</button>
+  </div>
+} @else {
+  @if (store.isEmpty()) {
+    <div class="feed-state empty">No findings have been promoted yet.</div>
+    <nav class="pager">
+      @if (store.page() > 1) {
+        <button matButton="outlined" class="first-page-button" (click)="goToFirstPage()">
+          Go to first page
+        </button>
+      }
+    </nav>
+  } @else {
+    <div class="feed-state">
+      @for (finding of store.items(); track finding.id) {
+        <main-page-finding-card [finding]="finding" />
+      }
+    </div>
+    <nav class="pager">
+      <button
+        matButton="outlined"
+        class="previous-page-button"
+        [disabled]="!store.hasPreviousPage()"
+        (click)="goToPreviousPage()"
+      >
+        Previous
+      </button>
+      <button
+        matButton="outlined"
+        class="next-page-button"
+        [disabled]="!store.hasNextPage()"
+        (click)="goToNextPage()"
+      >
+        Next
+      </button>
+    </nav>
+  }
+}

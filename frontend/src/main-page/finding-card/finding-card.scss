@@ -1,15 +1,41 @@
-// FindingCard styles — write them yourself. Suggestions from the agreed design:
-//
-// - lay the card content out as a horizontal flexbox:
-//   text column grows (flex: 1; min-width: 0), thumbnail fixed on the right
-//   (flex-shrink: 0)
-// - thumbnail box around 220px × 142px; object-fit: cover for real images
-// - .thumbnail-placeholder: the same box with a neutral grey background
-//   (e.g. #e0e0e0) so cards without a thumbnail keep the same shape
-// - muted secondary text for .domain and .meta, e.g. color: rgba(0, 0, 0, 0.6)
-//
-// SCSS 101: it's CSS plus nesting and `//` comments. Example:
-//   .meta {
-//     color: rgba(0, 0, 0, 0.6);
-//     .tag { margin-left: 0.35rem; }   // matches ".meta .tag"
-//   }
+.finding-card {
+  &-content {
+    display: inline-flex;
+    gap: 1rem;
+    .thumbnail {
+      flex-shrink: 0;
+      min-width: 0;
+      width: 220px;
+      height: 142px;
+      object-fit: cover;
+      &.thumbnail-placeholder {
+        background-color: rgba($color: #e0e0e0, $alpha: 1);
+        object-fit: unset;
+      }
+    }
+
+    .finding-body {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+      flex-direction: row;
+      gap: 1rem;
+      .actions {
+        flex: 1;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        flex-grow: 0;
+      }
+      .content {
+        display: flex;
+        flex-direction: column;
+        .meta {
+          display: flex;
+          gap: 1rem;
+        }
+      }
+    }
+  }
+}
