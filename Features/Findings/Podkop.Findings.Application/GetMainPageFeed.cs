@@ -1,5 +1,4 @@
 using MediatR;
-using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Application;
 
