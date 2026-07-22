@@ -4,7 +4,7 @@
   </div>
 } @else if (store.status() === 'error') {
   <div class="feed-state error">
-    <button mat-button class="retry-button" (click)="retry()">Retry</button>
+    <button matButton="outlined" class="retry-button" (click)="retry()">Retry</button>
   </div>
 } @else {
   @if (store.isEmpty()) {

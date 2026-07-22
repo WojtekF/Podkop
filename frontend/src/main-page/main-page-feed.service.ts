@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 
 export interface FindingSummary {
   id: string;
@@ -28,11 +28,13 @@ export class MainPageFeedService {
   private readonly http = inject(HttpClient);
 
   getPage(page: number): Observable<FeedPage> {
-    return this.http.get<FeedPage>(`/api/findings`, {
-      params: {
-        page,
-        feed: 'main',
-      },
-    });
+    return this.http
+      .get<FeedPage>(`/api/findings`, {
+        params: {
+          page,
+          feed: 'main',
+        },
+      })
+      .pipe(timeout(5000));
   }
 }
