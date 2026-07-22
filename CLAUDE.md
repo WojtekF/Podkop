@@ -67,6 +67,7 @@ Features/
     Podkop.Findings.Application/    # commands/queries + handlers + validators for this feature
     Podkop.Findings.Infrastructure/ # EF Core (PostgreSQL), persistence, external services
     Podkop.Findings.Server/         # minimal API endpoints (MapGroup), thin HTTP layer
+    Podkop.Findings.Contracts/      # optional: public cross-feature event records (INotification)
     Podkop.Findings.Tests/          # xUnit tests for this slice (domain unit + endpoint integration)
   Votes/
     Podkop.Votes.Domain/
@@ -79,6 +80,7 @@ Conventions:
 
 - **CQRS with MediatR**: `IRequest`/`IRequestHandler` per use case; endpoints dispatch through MediatR rather than calling services directly
 - Dependency direction always points inward within a feature (Server → Application → Domain; Infrastructure implements Application/Domain abstractions); features don't reference each other's internals — cross-feature communication goes through contracts/events
+- **Cross-feature events**: a slice that publishes events other slices consume adds a `Podkop.<Feature>.Contracts` project containing only public event records (MediatR `INotification`s with primitive facts). Domain events stay internal to the slice; Infrastructure translates them into contract events after persistence, and consumers reference only the Contracts project (see ADR 0003)
 - Keep the service-defaults pattern (`Extensions.cs`: OpenTelemetry, health checks, resilience) intact when restructuring
 
 When adding a new feature, scaffold the full slice — its four layer projects plus a `Podkop.<Feature>.Tests` project with command/query, handler, endpoint, and tests — rather than expanding `Program.cs`.

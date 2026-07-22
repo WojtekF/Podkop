@@ -6,7 +6,9 @@ session, use `CLAUDE.md` instead.)
 
 ## In progress / planned
 
-- [ ] _(add items here)_
+- [ ] Finding detail page with comments — spec agreed, see `docs/specs/finding-detail-page.md`
+- [ ] Comment paging/lazy-loading on the finding detail page (`GET .../comments` currently
+      specced to return all threads at once; revisit when comment volumes justify it)
 
 ## Done
 

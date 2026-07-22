@@ -39,3 +39,19 @@ _Avoid_: Downvote (in UI copy), dislike
 **Net Score**:
 A finding's digs minus its buries.
 _Avoid_: Rating, karma
+
+**Bury Reason**:
+The mandatory justification attached to a bury, chosen from a closed list: Duplicate, Spam, False information, Inappropriate content, Unsuitable. Not shown publicly.
+_Avoid_: Report reason, downvote reason, flag
+
+**Comment**:
+A user-authored plain-text response attached to a finding. Top-level comments are ordered best-first; a finding's comment count includes replies.
+_Avoid_: Reply (for top-level), discussion entry
+
+**Upvote / Downvote**:
+A vote for or against a comment. Reserved for comments — findings use Dig/Bury. Both counts are public; no reason is attached.
+_Avoid_: Dig/bury (for comments), plus/minus, like/dislike
+
+**Reply**:
+A comment attached to a top-level comment. Threads are exactly one level deep — a reply can never have replies; answering a reply produces a sibling reply under the same top-level comment, addressed with an @mention.
+_Avoid_: Nested comment, sub-comment, thread
