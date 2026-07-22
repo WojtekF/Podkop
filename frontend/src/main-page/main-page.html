@@ -1,0 +1,46 @@
+@if (store.status() === 'loading') {
+  <div class="feed-state loading">
+    <mat-spinner />
+  </div>
+} @else if (store.status() === 'error') {
+  <div class="feed-state error">
+    Couldn't load the feed.
+
+    <button matButton="outlined" class="retry-button" (click)="retry()">Retry</button>
+  </div>
+} @else {
+  @if (store.isEmpty()) {
+    <div class="feed-state empty">No findings have been promoted yet.</div>
+    <nav class="pager">
+      @if (store.page() > 1) {
+        <button matButton="outlined" class="first-page-button" (click)="goToFirstPage()">
+          Go to first page
+        </button>
+      }
+    </nav>
+  } @else {
+    <div class="feed-state">
+      @for (finding of store.items(); track finding.id) {
+        <main-page-finding-card [finding]="finding" />
+      }
+    </div>
+    <nav class="pager">
+      <button
+        matButton="outlined"
+        class="previous-page-button"
+        [disabled]="!store.hasPreviousPage()"
+        (click)="goToPreviousPage()"
+      >
+        Previous
+      </button>
+      <button
+        matButton="outlined"
+        class="next-page-button"
+        [disabled]="!store.hasNextPage()"
+        (click)="goToNextPage()"
+      >
+        Next
+      </button>
+    </nav>
+  }
+}

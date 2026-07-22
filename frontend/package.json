@@ -19,8 +19,16 @@
     "@angular/material": "^22.0.2",
     "@angular/platform-browser": "^22.0.0",
     "@angular/router": "^22.0.0",
+    "@ngrx/operators": "^21.1.1",
+    "@ngrx/signals": "~21.1.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
+  },
+  "overrides": {
+    "@ngrx/signals": {
+      "@angular/core": "$@angular/core",
+      "@angular/common": "$@angular/common"
+    }
   },
   "devDependencies": {
     "@analogjs/vite-plugin-angular": "^2.6.3",

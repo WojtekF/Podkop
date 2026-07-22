@@ -1,0 +1,28 @@
+@mixin viewport-center($bottom-gap: 3rem) {
+  min-height: calc(100vh - var(--topbar-height) - #{$bottom-gap});
+  align-items: center;
+  justify-content: center;
+}
+
+.feed-state {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  &.empty,
+  &.error {
+    @include viewport-center();
+    font-size: 2rem;
+  }
+  &.loading {
+    @include viewport-center;
+  }
+  &.error {
+    .retry-button {
+      align-self: center;
+    }
+  }
+}
+.pager {
+  display: flex;
+  justify-content: space-between;
+}

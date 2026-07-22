@@ -1,0 +1,46 @@
+<mat-card class="finding-card">
+  <mat-card-content class="finding-card-content">
+    <div class="finding-body">
+      <div class="actions">
+        <button mat-stroked-button class="dig-button" aria-label="Dig" (click)="onDig()">
+          <mat-icon>keyboard_double_arrow_up</mat-icon>
+          Dig
+        </button>
+        <span class="dig-count">{{ finding().digCount }}</span>
+      </div>
+      <div class="content">
+        <h3 class="title">
+          <a
+            class="source-link"
+            [href]="finding().sourceUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            >{{ finding().title }}</a
+          >
+        </h3>
+
+        <p class="description">{{ finding().description }}</p>
+        <footer class="meta">
+          <span>
+            <span class="author">{{ finding().author }}</span> from
+            <span class="domain">{{ finding().domain }}</span>
+          </span>
+          &middot;
+          <span class="promoted-at">{{ finding().promotedAt | date: 'medium' }}</span>
+          &middot;
+          <span class="comment-count">{{ finding().commentCount }} comments</span>
+          &middot;
+          @for (tag of finding().tags; track tag) {
+            <span class="tag">#{{ tag }}</span>
+          }
+        </footer>
+      </div>
+    </div>
+
+    @if (hasThumbnail()) {
+      <img class="thumbnail" [src]="finding().thumbnailUrl" alt="" />
+    } @else {
+      <div class="thumbnail thumbnail-placeholder" aria-hidden="true"></div>
+    }
+  </mat-card-content>
+</mat-card>
