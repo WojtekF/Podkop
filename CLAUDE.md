@@ -67,7 +67,7 @@ Features/
     Podkop.Findings.Application/    # commands/queries + handlers + validators for this feature
     Podkop.Findings.Infrastructure/ # EF Core (PostgreSQL), persistence, external services
     Podkop.Findings.Server/         # minimal API endpoints (MapGroup), thin HTTP layer
-    Podkop.Findings.Contracts/      # optional: public cross-feature event records (INotification)
+    Podkop.Findings.Contracts/      # optional: cross-feature contract events (ADR 0003)
     Podkop.Findings.Tests/          # xUnit tests for this slice (domain unit + endpoint integration)
   Votes/
     Podkop.Votes.Domain/
@@ -80,7 +80,7 @@ Conventions:
 
 - **CQRS with MediatR**: `IRequest`/`IRequestHandler` per use case; endpoints dispatch through MediatR rather than calling services directly
 - Dependency direction always points inward within a feature (Server → Application → Domain; Infrastructure implements Application/Domain abstractions); features don't reference each other's internals — cross-feature communication goes through contracts/events
-- **Cross-feature events**: a slice that publishes events other slices consume adds a `Podkop.<Feature>.Contracts` project containing only public event records (MediatR `INotification`s with primitive facts). Domain events stay internal to the slice; Infrastructure translates them into contract events after persistence, and consumers reference only the Contracts project (see ADR 0003)
+- **Cross-feature events** go through an optional `Podkop.<Feature>.Contracts` project — ADR 0003 is the canonical statement of the pattern's rules
 - Keep the service-defaults pattern (`Extensions.cs`: OpenTelemetry, health checks, resilience) intact when restructuring
 
 When adding a new feature, scaffold the full slice — its four layer projects plus a `Podkop.<Feature>.Tests` project with command/query, handler, endpoint, and tests — rather than expanding `Program.cs`.
@@ -99,7 +99,7 @@ When developing a new feature, follow this division of labor:
 
 1. **Discovery first — ask exhaustively.** Before writing anything, interview the user in depth about the domain and intended behavior: entities and their invariants, use cases, edge cases, validation rules, error behavior, API shape. Don't fill gaps with assumptions — keep asking until the behavior is unambiguous.
 2. **Claude implements structure and tests only — on both ends of the stack.** Scaffold the backend slice (per the Target Architecture section above) and the frontend feature folder (component/store/service files with styles and routing), and write the unit and integration tests that specify the agreed behavior. Skeletons must compile but leave all logic unimplemented — backend method bodies `throw new NotImplementedException()`, frontend method bodies `throw new Error('not implemented')` — so the new xUnit tests **and** Vitest specs fail until the logic is written.
-3. **Templates and stylesheets are the user's to write.** Scaffolded `.html` and `.scss` files must be **empty except for a guidance comment block** — no markup, no CSS rules, not even "structurally complete" skeleton markup. TS files keep only what the specs need to compile (inputs/outputs, injected dependencies, state shape, throwing bodies); leave `imports: []` empty with a comment listing what the template will likely need.
+3. **Templates and stylesheets are the user's to write.** Scaffolded `.html` and `.scss` files must be **empty except for a guidance comment block** — no markup, no CSS rules, not even "structurally complete" skeleton markup. TS files keep only what the specs need to compile (inputs/outputs, injected dependencies, state shape, throwing bodies); leave `imports: []` empty for the user to fill as their template takes shape.
 4. **Guidance comments describe the _what_, never the _how_.** The user is learning by discovering implementations themselves, so each scaffolded file's comment block states what the finished file must contain and do — the states and behaviors to cover, the CSS hooks/classes and exact UI copy the colocated specs assert — but must **not** name the language constructs, framework APIs, or libraries to reach for (no `@if`/`@for`, no `patchState`/`switchMap`, no "use Material module X", no SCSS technique hints). Choosing the right tool is the learning exercise; the failing specs define done.
 5. **The user writes the logic — backend and frontend alike.** "Logic" is not just C# domain code: Angular store methods, component behavior, service bodies, templates, and styles count too. Do not implement any of it unless explicitly asked to, and do not propose a split where Claude builds the frontend fully. The failing tests on both ends define what the user's implementation must satisfy.
 

@@ -37,21 +37,25 @@ A downvote on a finding, counting against its promotion (Wykop's *zakop*).
 _Avoid_: Downvote (in UI copy), dislike
 
 **Net Score**:
-A finding's digs minus its buries.
+The votes for minus the votes against — a finding's digs minus its buries, or a comment's upvotes minus its downvotes.
 _Avoid_: Rating, karma
 
 **Bury Reason**:
-The mandatory justification attached to a bury, chosen from a closed list: Duplicate, Spam, False information, Inappropriate content, Unsuitable. Not shown publicly.
+The justification every bury carries, one of a closed list: Duplicate, Spam, False information, Inappropriate content, Unsuitable.
 _Avoid_: Report reason, downvote reason, flag
 
 **Comment**:
-A user-authored plain-text response attached to a finding. Top-level comments are ordered best-first; a finding's comment count includes replies.
+A user-authored text response attached to a finding; the unit of discussion.
 _Avoid_: Reply (for top-level), discussion entry
 
-**Upvote / Downvote**:
-A vote for or against a comment. Reserved for comments — findings use Dig/Bury. Both counts are public; no reason is attached.
-_Avoid_: Dig/bury (for comments), plus/minus, like/dislike
+**Upvote**:
+A vote for a comment (comments only — findings use Dig).
+_Avoid_: Dig (for comments), plus, like
+
+**Downvote**:
+A vote against a comment (comments only — findings use Bury).
+_Avoid_: Bury (for comments), minus, dislike
 
 **Reply**:
-A comment attached to a top-level comment. Threads are exactly one level deep — a reply can never have replies; answering a reply produces a sibling reply under the same top-level comment, addressed with an @mention.
+A comment attached to a top-level comment rather than directly to the finding. A reply can never have replies — threads are exactly one level deep.
 _Avoid_: Nested comment, sub-comment, thread
