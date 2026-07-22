@@ -26,7 +26,7 @@ export class MainPage {
       let page = 1;
       if (rawPage !== null) {
         page = Number.parseInt(rawPage, 10);
-        if (!Number.isInteger(page) || page < 0) {
+        if (!Number.isInteger(page) || page < 1) {
           page = 1;
         }
       }

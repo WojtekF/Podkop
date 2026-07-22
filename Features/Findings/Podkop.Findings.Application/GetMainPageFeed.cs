@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Application;
 
@@ -33,6 +34,7 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
         var findingSummary = findings
             .Where(f => f.IsPromoted)
             .OrderByDescending(f => f.PromotedAt)
+            .ThenByDescending(f => f.Id)
             .Skip((request.Page - 1) * request.Limit)
             .Take(request.Limit + 1)
             .Select(MapFindingToFindingSummary)

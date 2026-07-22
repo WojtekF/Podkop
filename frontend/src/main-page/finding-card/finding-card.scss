@@ -1,6 +1,7 @@
 .finding-card {
   &-content {
-    display: inline-flex;
+    display: flex;
+    justify-content: space-between;
     gap: 1rem;
     .thumbnail {
       flex-shrink: 0;
@@ -9,7 +10,7 @@
       height: 142px;
       object-fit: cover;
       &.thumbnail-placeholder {
-        background-color: rgba($color: #e0e0e0, $alpha: 1);
+        background-color: #e0e0e0;
         object-fit: unset;
       }
     }
@@ -21,18 +22,19 @@
       flex-direction: row;
       gap: 1rem;
       .actions {
-        flex: 1;
+        flex: 0 0 auto;
         display: inline-flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        flex-grow: 0;
       }
       .content {
+        min-width: 0;
         display: flex;
         flex-direction: column;
         .meta {
           display: flex;
+          flex-wrap: wrap;
           gap: 1rem;
         }
       }
