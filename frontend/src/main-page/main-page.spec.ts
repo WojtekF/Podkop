@@ -71,6 +71,12 @@ describe('MainPage', () => {
     expectFeedRequest(1);
   });
 
+  it('a non-positive page param falls back to page 1', async () => {
+    await harness.navigateByUrl('/?page=0', MainPage);
+
+    expectFeedRequest(1);
+  });
+
   it('shows a centered spinner while the page is loading', async () => {
     await harness.navigateByUrl('/', MainPage);
 

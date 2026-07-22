@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController, TestRequest } from '@angular/common/http/testing';
+import { TimeoutError } from 'rxjs';
 import { FeedPage, MainPageFeedService } from './main-page-feed.service';
 
 describe('MainPageFeedService', () => {
@@ -52,5 +53,23 @@ describe('MainPageFeedService', () => {
     const req = httpMock.expectOne((r) => r.url.startsWith('/api/findings'));
     expect(feedParams(req).has('limit')).toBe(false);
     req.flush({ items: [], hasNextPage: false });
+  });
+
+  it('fails and cancels the request when no response arrives within 5 seconds', () => {
+    vi.useFakeTimers();
+    try {
+      let error: unknown;
+      service.getPage(1).subscribe({ error: (e) => (error = e) });
+
+      const req = httpMock.expectOne((r) => r.url.startsWith('/api/findings'));
+      vi.advanceTimersByTime(4999);
+      expect(req.cancelled).toBe(false);
+
+      vi.advanceTimersByTime(1);
+      expect(error).toBeInstanceOf(TimeoutError);
+      expect(req.cancelled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
