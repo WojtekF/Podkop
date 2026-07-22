@@ -37,5 +37,25 @@ A downvote on a finding, counting against its promotion (Wykop's *zakop*).
 _Avoid_: Downvote (in UI copy), dislike
 
 **Net Score**:
-A finding's digs minus its buries.
+The votes for minus the votes against — a finding's digs minus its buries, or a comment's upvotes minus its downvotes.
 _Avoid_: Rating, karma
+
+**Bury Reason**:
+The justification every bury carries, one of a closed list: Duplicate, Spam, False information, Inappropriate content, Unsuitable.
+_Avoid_: Report reason, downvote reason, flag
+
+**Comment**:
+A user-authored text response attached to a finding; the unit of discussion.
+_Avoid_: Reply (for top-level), discussion entry
+
+**Upvote**:
+A vote for a comment (comments only — findings use Dig).
+_Avoid_: Dig (for comments), plus, like
+
+**Downvote**:
+A vote against a comment (comments only — findings use Bury).
+_Avoid_: Bury (for comments), minus, dislike
+
+**Reply**:
+A comment attached to a top-level comment rather than directly to the finding. A reply can never have replies — threads are exactly one level deep.
+_Avoid_: Nested comment, sub-comment, thread

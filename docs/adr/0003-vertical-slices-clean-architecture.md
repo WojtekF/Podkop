@@ -5,3 +5,4 @@ Each backend feature (Findings, Votes, Comments, …) is a self-contained vertic
 ## Consequences
 
 - Features never reference each other's internals; cross-feature communication goes through contracts/events.
+- A slice that publishes cross-feature events adds an optional fifth layer project, `Podkop.<Feature>.Contracts`, holding only public event records (MediatR `INotification`s carrying primitive facts). Domain events stay internal to the slice's Domain project; the Infrastructure layer translates them into contract events after persistence. Consuming slices reference only the producer's Contracts project.
