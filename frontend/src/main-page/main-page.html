@@ -3,9 +3,10 @@
     <mat-spinner />
   </div>
 } @else if (store.status() === 'error') {
-  <div class="feed-state error">
+  <div class="feed-state error">Couldn't load the feed.</div>
+  <nav class="pager">
     <button matButton="outlined" class="retry-button" (click)="retry()">Retry</button>
-  </div>
+  </nav>
 } @else {
   @if (store.isEmpty()) {
     <div class="feed-state empty">No findings have been promoted yet.</div>

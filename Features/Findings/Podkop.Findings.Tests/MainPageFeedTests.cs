@@ -19,9 +19,10 @@ public class MainPageFeedTests
         string source = "https://example.com/articles/1",
         string? thumbnail = "https://example.com/thumb.jpg",
         int digCount = 100,
-        int commentCount = 10)
+        int commentCount = 10,
+        Guid? id = null)
         => new(
-            id: Guid.NewGuid(),
+            id: id ?? Guid.NewGuid(),
             title: title,
             description: $"{title} — description",
             source: new Uri(source),
@@ -168,6 +169,23 @@ public class MainPageFeedTests
         Assert.Equal(4, page);
         Assert.Equal(5, seenIds.Count);
         Assert.Equal(5, seenIds.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Main_feed_breaks_promotion_time_ties_by_id_descending()
+    {
+        // Findings promoted at the same instant need a deterministic secondary
+        // order, or items could repeat or vanish across page boundaries.
+        var promotedAt = At("2026-07-08T10:00:00Z");
+        using var factory = CreateFactory(
+            CreateFinding("Tied low id", promotedAt, id: Guid.Parse("00000000-0000-0000-0000-000000000001")),
+            CreateFinding("Tied high id", promotedAt, id: Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
+        using var client = factory.CreateClient();
+
+        var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main");
+
+        Assert.NotNull(page);
+        Assert.Equal(["Tied high id", "Tied low id"], page.Items.Select(i => i.Title).ToArray());
     }
 
     [Fact]
