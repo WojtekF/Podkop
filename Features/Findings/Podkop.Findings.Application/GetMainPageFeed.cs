@@ -5,11 +5,12 @@ namespace Podkop.Findings.Application;
 
 /// <summary>
 ///     Query for one page of the Main Page feed: promoted findings only, ordered by
-///     promotion time (newest first), positioned by an opaque <see cref="FeedCursor" />.
+///     promotion time (newest first), addressed by a 1-based page number (ADR 0004).
+///     A page past the end of the feed yields an empty page, not an error.
 /// </summary>
-public sealed record GetMainPageFeed(string? Cursor, int Limit) : IRequest<FeedPage>;
+public sealed record GetMainPageFeed(int Page, int Limit) : IRequest<FeedPage>;
 
-public sealed record FeedPage(IReadOnlyList<FindingSummary> Items, string? NextCursor);
+public sealed record FeedPage(IReadOnlyList<FindingSummary> Items, bool HasNextPage);
 
 public sealed record FindingSummary(
     Guid Id,
@@ -29,52 +30,32 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
 {
     public async Task<FeedPage> Handle(GetMainPageFeed request, CancellationToken cancellationToken)
     {
-        if (!FeedCursor.TryDecode(request.Cursor, out var lastFindingGuid))
-            throw new InvalidFeedCursorException(request.Cursor);
-        var findings = await GetPromotedFindings(cancellationToken);
-
-        if (lastFindingGuid != Guid.Empty)
-        {
-            var lastItemIndexed = findings
-                .Index()
-                .Where(t => t.Item.Id == lastFindingGuid);
-
-            var lastItemIndex = lastItemIndexed.First().Index + 1;
-            findings = findings
-                .Skip(lastItemIndex).ToList();
-        }
-
-        var nextBatch = findings
-            .Take(request.Limit)
-            .Select(x =>
-                new FindingSummary(x.Id,
-                    x.Title,
-                    x.Description,
-                    x.Source.AbsoluteUri,
-                    x.Source.Host,
-                    x.Thumbnail?.AbsoluteUri,
-                    x.Author,
-                    x.Tags,
-                    x.DigCount,
-                    x.CommentCount,
-                    x.PromotedAt!.Value))
+        var findings = await findingsRepository.GetAllAsync(cancellationToken);
+        var findingSummary = findings
+            .Where(f => f.IsPromoted)
+            .OrderByDescending(f => f.PromotedAt)
+            .ThenByDescending(f => f.Id)
+            .Skip((request.Page - 1) * request.Limit)
+            .Take(request.Limit + 1)
+            .Select(MapFindingToFindingSummary)
             .ToList();
-
-        var newLastItem = nextBatch.LastOrDefault();
-        string? newCursor = null;
-        if (nextBatch.Count == request.Limit && newLastItem is not null)
-            newCursor = FeedCursor.Encode(newLastItem.Id);
-
-        return new FeedPage(nextBatch, newCursor);
+        return new FeedPage(findingSummary.Take(request.Limit).ToList(),
+            findingSummary.Count > request.Limit);
     }
 
-    private async Task<IReadOnlyList<Finding>> GetPromotedFindings(CancellationToken cancellationToken)
+    private static FindingSummary MapFindingToFindingSummary(Finding finding)
     {
-        var findings = await findingsRepository.GetAllAsync(cancellationToken);
-        return findings
-            .Where(x => x.IsPromoted)
-            .OrderByDescending(x => x.PromotedAt)
-            .ThenByDescending(x => x.CreatedAt)
-            .ThenByDescending(x => x.Id).ToList();
+        return new FindingSummary(
+            finding.Id,
+            finding.Title,
+            finding.Description,
+            finding.Source.AbsoluteUri,
+            finding.Source.Host,
+            finding.Thumbnail?.AbsoluteUri,
+            finding.Author,
+            finding.Tags,
+            finding.DigCount,
+            finding.CommentCount,
+            finding.PromotedAt!.Value);
     }
 }

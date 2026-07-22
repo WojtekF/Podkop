@@ -6,7 +6,9 @@ session, use `CLAUDE.md` instead.)
 
 ## In progress / planned
 
-- [ ] _(add items here)_
+- [ ] Remove the `@ngrx/signals` override block in `frontend/package.json` (pins its
+      `@angular/core`/`@angular/common` peers to the workspace Angular 22) once NgRx
+      ships an Angular 22-compatible release, and bump `@ngrx/signals` to that release.
 
 ## Done
 

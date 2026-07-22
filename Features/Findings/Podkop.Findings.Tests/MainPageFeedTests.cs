@@ -19,9 +19,10 @@ public class MainPageFeedTests
         string source = "https://example.com/articles/1",
         string? thumbnail = "https://example.com/thumb.jpg",
         int digCount = 100,
-        int commentCount = 10)
+        int commentCount = 10,
+        Guid? id = null)
         => new(
-            id: Guid.NewGuid(),
+            id: id ?? Guid.NewGuid(),
             title: title,
             description: $"{title} — description",
             source: new Uri(source),
@@ -31,8 +32,8 @@ public class MainPageFeedTests
             createdAt: (promotedAt ?? At("2026-07-01T00:00:00Z")).AddHours(-6),
             promotedAt: promotedAt,
             digCount: digCount,
-            buryCount: 3,
-            commentCount: commentCount);
+            commentCount: commentCount,
+            buryCount: 3);
 
     private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
         => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -40,7 +41,7 @@ public class MainPageFeedTests
                 services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings))));
 
     [Fact]
-    public async Task Main_feed_returns_the_items_and_cursor_envelope()
+    public async Task Main_feed_returns_the_items_and_has_next_page_envelope()
     {
         using var factory = CreateFactory(CreateFinding("Only finding", At("2026-07-08T10:00:00Z")));
         using var client = factory.CreateClient();
@@ -51,7 +52,7 @@ public class MainPageFeedTests
         var page = await response.Content.ReadFromJsonAsync<FeedResponse>();
         Assert.NotNull(page);
         Assert.Single(page.Items);
-        Assert.Null(page.NextCursor);
+        Assert.False(page.HasNextPage);
     }
 
     [Fact]
@@ -88,46 +89,118 @@ public class MainPageFeedTests
     }
 
     [Fact]
-    public async Task Main_feed_caps_the_page_at_limit_and_returns_a_continuation_cursor()
+    public async Task Main_feed_defaults_to_the_first_page()
     {
         using var factory = CreateFactory(FivePromotedFindings());
         using var client = factory.CreateClient();
 
-        var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2");
+        var withoutPage = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2");
+        var pageOne = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2&page=1");
 
-        Assert.NotNull(page);
-        Assert.Equal(2, page.Items.Count);
-        Assert.NotNull(page.NextCursor);
+        Assert.NotNull(withoutPage);
+        Assert.NotNull(pageOne);
+        Assert.Equal(
+            pageOne.Items.Select(i => i.Id).ToArray(),
+            withoutPage.Items.Select(i => i.Id).ToArray());
     }
 
     [Fact]
-    public async Task Main_feed_cursor_pages_through_the_whole_feed_without_gaps_or_repeats()
+    public async Task Main_feed_first_page_is_capped_at_limit_and_flags_a_next_page()
+    {
+        using var factory = CreateFactory(FivePromotedFindings());
+        using var client = factory.CreateClient();
+
+        var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2&page=1");
+
+        Assert.NotNull(page);
+        Assert.Equal(["Promoted 5", "Promoted 4"], page.Items.Select(i => i.Title).ToArray());
+        Assert.True(page.HasNextPage);
+    }
+
+    [Fact]
+    public async Task Main_feed_middle_page_continues_the_ordering_and_flags_a_next_page()
+    {
+        using var factory = CreateFactory(FivePromotedFindings());
+        using var client = factory.CreateClient();
+
+        var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2&page=2");
+
+        Assert.NotNull(page);
+        Assert.Equal(["Promoted 3", "Promoted 2"], page.Items.Select(i => i.Title).ToArray());
+        Assert.True(page.HasNextPage);
+    }
+
+    [Fact]
+    public async Task Main_feed_last_page_holds_the_remainder_and_flags_no_next_page()
+    {
+        using var factory = CreateFactory(FivePromotedFindings());
+        using var client = factory.CreateClient();
+
+        var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2&page=3");
+
+        Assert.NotNull(page);
+        Assert.Equal(["Promoted 1"], page.Items.Select(i => i.Title).ToArray());
+        Assert.False(page.HasNextPage);
+    }
+
+    [Fact]
+    public async Task Main_feed_pages_through_the_whole_feed_without_gaps_or_repeats()
     {
         using var factory = CreateFactory(FivePromotedFindings());
         using var client = factory.CreateClient();
 
         var seenIds = new List<Guid>();
-        string? cursor = null;
-        var pages = 0;
+        var page = 1;
+        bool hasNextPage;
 
         do
         {
-            var url = cursor is null
-                ? "/api/findings?feed=main&limit=2"
-                : $"/api/findings?feed=main&limit=2&cursor={Uri.EscapeDataString(cursor)}";
-            var page = await client.GetFromJsonAsync<FeedResponse>(url);
+            var feedPage = await client.GetFromJsonAsync<FeedResponse>(
+                $"/api/findings?feed=main&limit=2&page={page}");
 
-            Assert.NotNull(page);
-            seenIds.AddRange(page.Items.Select(i => i.Id));
-            cursor = page.NextCursor;
-            pages++;
+            Assert.NotNull(feedPage);
+            seenIds.AddRange(feedPage.Items.Select(i => i.Id));
+            hasNextPage = feedPage.HasNextPage;
+            page++;
 
-            Assert.True(pages <= 5, "cursor never reached the end of the feed");
-        } while (cursor is not null);
+            Assert.True(page <= 5, "paging never reached the end of the feed");
+        } while (hasNextPage);
 
-        Assert.Equal(3, pages);
+        Assert.Equal(4, page);
         Assert.Equal(5, seenIds.Count);
         Assert.Equal(5, seenIds.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task Main_feed_breaks_promotion_time_ties_by_id_descending()
+    {
+        // Findings promoted at the same instant need a deterministic secondary
+        // order, or items could repeat or vanish across page boundaries.
+        var promotedAt = At("2026-07-08T10:00:00Z");
+        using var factory = CreateFactory(
+            CreateFinding("Tied low id", promotedAt, id: Guid.Parse("00000000-0000-0000-0000-000000000001")),
+            CreateFinding("Tied high id", promotedAt, id: Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
+        using var client = factory.CreateClient();
+
+        var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main");
+
+        Assert.NotNull(page);
+        Assert.Equal(["Tied high id", "Tied low id"], page.Items.Select(i => i.Title).ToArray());
+    }
+
+    [Fact]
+    public async Task Main_feed_page_past_the_end_is_an_empty_ok_page()
+    {
+        using var factory = CreateFactory(FivePromotedFindings());
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync("/api/findings?feed=main&limit=2&page=4");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var page = await response.Content.ReadFromJsonAsync<FeedResponse>();
+        Assert.NotNull(page);
+        Assert.Empty(page.Items);
+        Assert.False(page.HasNextPage);
     }
 
     [Fact]
@@ -144,7 +217,7 @@ public class MainPageFeedTests
         var page = await response.Content.ReadFromJsonAsync<FeedResponse>();
         Assert.NotNull(page);
         Assert.Empty(page.Items);
-        Assert.Null(page.NextCursor);
+        Assert.False(page.HasNextPage);
     }
 
     [Fact]
@@ -198,6 +271,20 @@ public class MainPageFeedTests
     }
 
     [Theory]
+    [InlineData("0")]
+    [InlineData("-1")]
+    [InlineData("not-a-page")]
+    public async Task Main_feed_rejects_malformed_or_non_positive_pages(string page)
+    {
+        using var factory = CreateFactory(FivePromotedFindings());
+        using var client = factory.CreateClient();
+
+        var response = await client.GetAsync($"/api/findings?feed=main&page={page}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Theory]
     [InlineData(0)]
     [InlineData(101)]
     public async Task Main_feed_rejects_out_of_range_limits(int limit)
@@ -210,25 +297,12 @@ public class MainPageFeedTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    [Theory]
-    [InlineData("not-a-cursor")] // not valid base64
-    [InlineData("YWJj")] // valid base64 ("abc"), but not a finding id
-    public async Task Main_feed_rejects_a_malformed_cursor(string cursor)
-    {
-        using var factory = CreateFactory(FivePromotedFindings());
-        using var client = factory.CreateClient();
-
-        var response = await client.GetAsync($"/api/findings?feed=main&cursor={cursor}");
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-    }
-
     private static Finding[] FivePromotedFindings() =>
         Enumerable.Range(1, 5)
             .Select(hour => CreateFinding($"Promoted {hour}", At($"2026-07-08T{hour:00}:00:00Z")))
             .ToArray();
 
-    private sealed record FeedResponse(List<FeedItem> Items, string? NextCursor);
+    private sealed record FeedResponse(List<FeedItem> Items, bool HasNextPage);
 
     private sealed record FeedItem(
         Guid Id,
