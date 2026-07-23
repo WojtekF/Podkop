@@ -64,15 +64,20 @@ describe('FindingCard', () => {
     }).compileComponents();
   });
 
-  it('links the title to the Source in a new tab, with the domain beside it', async () => {
+  it('links the domain to the Source in a new tab; the title is not an external link', async () => {
     await createCard(summary);
 
     const link = element().querySelector<HTMLAnchorElement>('.source-link');
-    expect(link?.textContent).toContain('A remarkable finding');
+    expect(link?.textContent).toContain('blog.example.org');
     expect(link?.getAttribute('href')).toBe('https://blog.example.org/posts/42');
     expect(link?.getAttribute('target')).toBe('_blank');
     expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
     expect(element().querySelector('.domain')?.textContent).toContain('blog.example.org');
+
+    const titleLink = element().querySelector<HTMLElement>('.title-link');
+    expect(titleLink?.textContent).toContain('A remarkable finding');
+    expect(titleLink?.getAttribute('href')).not.toBe('https://blog.example.org/posts/42');
+    expect(titleLink?.getAttribute('target')).toBeNull();
   });
 
   it('shows the footer facts: author, promotedAt, comment count, tags', async () => {
@@ -168,7 +173,16 @@ describe('FindingCard — navigation to the finding', () => {
     expect(router.url).toBe(`/finding/${navSummary.id}#comments`);
   });
 
-  it('keeps the title pointing at the external Source, not the finding page', async () => {
+  it('clicking the title opens the finding page, like the description', async () => {
+    const card = await renderCard();
+
+    card.querySelector<HTMLElement>('.title-link')?.click();
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe(`/finding/${navSummary.id}`);
+  });
+
+  it('keeps the domain pointing at the external Source, not the finding page', async () => {
     const card = await renderCard();
 
     const link = card.querySelector<HTMLAnchorElement>('.source-link');

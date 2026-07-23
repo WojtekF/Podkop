@@ -4,10 +4,11 @@ import { MatCardModule } from '@angular/material/card';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'main-page-finding-card',
-  imports: [MatCardModule, DatePipe, MatButtonModule, MatIconModule],
+  imports: [MatCardModule, DatePipe, MatButtonModule, MatIconModule, RouterLink],
   templateUrl: './finding-card.html',
   styleUrl: './finding-card.scss',
 })
