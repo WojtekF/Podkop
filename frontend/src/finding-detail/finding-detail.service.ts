@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 
 export interface FindingDetail {
   id: string;
@@ -28,6 +28,6 @@ export class FindingDetailService {
   // other failure is a plain load error. Mirror the feed service's client-side timeout.
   // See finding-detail.service.spec.ts for the request shape and timeout behaviour.
   getFinding(id: string): Observable<FindingDetail> {
-    throw new Error('not implemented');
+    return this.http.get<FindingDetail>(`/api/findings/${id}`).pipe(timeout(5000));
   }
 }
