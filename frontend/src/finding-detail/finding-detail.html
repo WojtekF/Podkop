@@ -1,0 +1,37 @@
+<!--
+  Finding detail — read-only view of a single finding. The template renders exactly ONE of
+  four states, chosen from the detail store's status. The class hooks and copy below are what
+  the colocated finding-detail.spec.ts asserts; how you structure and render them is yours
+  to choose.
+
+  LOADING (status 'loading'):
+    A container carrying the classes `detail-state loading`, holding a centered loading
+    spinner (the spec pins the exact spinner element).
+
+  LOADED (status 'loaded' — the store holds the finding):
+    The finding shown in full:
+      - the title as a link to the finding's Source, marked `source-link`, opening in a new
+        tab with the same safe link attributes the finding card already uses; its text is the
+        finding's title.
+      - the Source domain, marked `domain`.
+      - the full, untruncated description, marked `description`.
+      - the author, marked `author`.
+      - every tag, each marked `tag`, shown as `#` followed by the tag (e.g. `#angular`).
+      - the thumbnail when the finding has one: an image element marked `thumbnail` whose
+        source is the finding's thumbnail URL. When it has none, render a neutral placeholder
+        of the same shape, marked `thumbnail thumbnail-placeholder` — never an empty image.
+      - both timestamps shown human-readably: the creation time marked `created-at` and the
+        promotion time marked `promoted-at`.
+      (No vote controls and no comments yet — those arrive in later tickets. A `#comments`
+      landing target for the card's comment-count link also arrives with the comments ticket.)
+
+  NOT FOUND (status 'notFound' — the id matched no finding / the fetch 404'd):
+    A container carrying the classes `detail-state not-found` whose text includes exactly
+    `Finding not found`, plus a link back to the Main Page, marked `back-link`, whose text
+    includes `Main Page` and which navigates to the Main Page route. No retry control here.
+
+  ERROR (status 'error' — any other load failure):
+    A container carrying the classes `detail-state error` whose text includes exactly
+    `Couldn't load the finding.`, plus a control marked `retry-button` that re-requests the
+    finding (the component exposes retry() for this).
+-->

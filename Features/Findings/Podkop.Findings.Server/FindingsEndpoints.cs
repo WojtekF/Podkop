@@ -46,6 +46,13 @@ public static class FindingsEndpoints
             })
             .WithName("GetFindingsFeed");
 
+        group.MapGet("/{id:guid}", async (Guid id, ISender sender, CancellationToken cancellationToken) =>
+            {
+                var detail = await sender.Send(new GetFindingDetail(id), cancellationToken);
+                return detail is null ? Results.NotFound() : Results.Ok(detail);
+            })
+            .WithName("GetFindingById");
+
         return routes;
     }
 }
