@@ -28,8 +28,28 @@ public sealed record FindingDetail(
 public sealed class GetFindingDetailHandler(IFindingRepository findingsRepository)
     : IRequestHandler<GetFindingDetail, FindingDetail?>
 {
-    public Task<FindingDetail?> Handle(GetFindingDetail request, CancellationToken cancellationToken)
+    public async Task<FindingDetail?> Handle(GetFindingDetail request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var finding = await findingsRepository.GetByIdAsync(request.Id, cancellationToken);
+        return MapToFindingDetail(finding);
+    }
+
+    private static FindingDetail? MapToFindingDetail(Finding? finding)
+    {
+        return finding is null
+            ? null
+            : new FindingDetail(
+                finding.Id,
+                finding.Title,
+                finding.Description,
+                finding.Source.AbsoluteUri,
+                finding.Source.Host,
+                finding.Thumbnail?.AbsoluteUri,
+                finding.Author,
+                finding.Tags,
+                finding.DigCount,
+                finding.CommentCount,
+                finding.CreatedAt,
+                finding.PromotedAt);
     }
 }
