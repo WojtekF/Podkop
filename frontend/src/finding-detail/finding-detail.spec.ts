@@ -2,9 +2,9 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { FindingDetail as FindingDetailData } from './finding-detail.service';
+import { findingDetail as detail, findingId as id } from './finding-detail.fixtures';
 import { FindingDetail } from './finding-detail';
 
 @Component({ template: 'main page' })
@@ -15,24 +15,6 @@ describe('FindingDetail', () => {
   let httpMock: HttpTestingController;
   let router: Router;
 
-  const id = '0d4f9a3e-1111-4222-8333-444455556666';
-
-  const detail = (overrides: Partial<FindingDetailData> = {}): FindingDetailData => ({
-    id,
-    title: 'A remarkable finding',
-    description: 'The full, untruncated description of the finding.',
-    sourceUrl: 'https://blog.example.org/posts/42',
-    domain: 'blog.example.org',
-    thumbnailUrl: 'https://example.com/thumb.jpg',
-    author: 'ada_lovelace',
-    tags: ['angular', 'webdev'],
-    digCount: 123,
-    commentCount: 9,
-    createdAt: '2026-07-08T03:30:00Z',
-    promotedAt: '2026-07-08T09:30:00Z',
-    ...overrides,
-  });
-
   const expectDetailRequest = (findingId: string) => httpMock.expectOne(`/api/findings/${findingId}`);
 
   const element = (): HTMLElement => harness.routeNativeElement!;
@@ -40,10 +22,13 @@ describe('FindingDetail', () => {
   beforeEach(async () => {
     TestBed.configureTestingModule({
       providers: [
-        provideRouter([
-          { path: '', component: MainPageStub },
-          { path: 'finding/:id', component: FindingDetail },
-        ]),
+        provideRouter(
+          [
+            { path: '', component: MainPageStub },
+            { path: 'finding/:id', component: FindingDetail },
+          ],
+          withComponentInputBinding(),
+        ),
         provideHttpClient(),
         provideHttpClientTesting(),
       ],

@@ -3,27 +3,11 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TimeoutError } from 'rxjs';
 import { FindingDetail, FindingDetailService } from './finding-detail.service';
+import { findingDetail as detail, findingId as id } from './finding-detail.fixtures';
 
 describe('FindingDetailService', () => {
   let service: FindingDetailService;
   let httpMock: HttpTestingController;
-
-  const id = '0d4f9a3e-1111-4222-8333-444455556666';
-
-  const detail = (): FindingDetail => ({
-    id,
-    title: 'A remarkable finding',
-    description: 'The full, untruncated description.',
-    sourceUrl: 'https://blog.example.org/posts/42',
-    domain: 'blog.example.org',
-    thumbnailUrl: 'https://example.com/thumb.jpg',
-    author: 'ada_lovelace',
-    tags: ['angular', 'webdev'],
-    digCount: 123,
-    commentCount: 9,
-    createdAt: '2026-07-08T03:30:00Z',
-    promotedAt: '2026-07-08T09:30:00Z',
-  });
 
   beforeEach(() => {
     TestBed.configureTestingModule({

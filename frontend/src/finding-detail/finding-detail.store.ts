@@ -41,7 +41,7 @@ export const FindingDetailStore = signalStore(
                 patchState(store, { status: 'loaded', finding });
               },
               error: (error: HttpErrorResponse) => {
-                const status = error instanceof HttpErrorResponse ? error.status : null;
+                const status = error.status;
                 patchState(store, { status: status === 404 ? 'notFound' : 'error' });
               },
             }),
@@ -51,8 +51,8 @@ export const FindingDetailStore = signalStore(
     );
 
     const retry = (): void => {
-      const id = store.id() as string;
-      load(id);
+      const id = store.id();
+      if (id !== null) load(id);
     };
 
     return {

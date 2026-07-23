@@ -1,31 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { FindingDetail } from './finding-detail.service';
+import { findingDetail as detail, findingId as id } from './finding-detail.fixtures';
 import { FindingDetailStore } from './finding-detail.store';
 
 describe('FindingDetailStore', () => {
   let store: InstanceType<typeof FindingDetailStore>;
   let httpMock: HttpTestingController;
 
-  const id = '0d4f9a3e-1111-4222-8333-444455556666';
   const otherId = '0d4f9a3e-2222-4222-8333-444455556666';
-
-  const detail = (overrides: Partial<FindingDetail> = {}): FindingDetail => ({
-    id,
-    title: 'A remarkable finding',
-    description: 'The full, untruncated description.',
-    sourceUrl: 'https://blog.example.org/posts/42',
-    domain: 'blog.example.org',
-    thumbnailUrl: 'https://example.com/thumb.jpg',
-    author: 'ada_lovelace',
-    tags: ['angular', 'webdev'],
-    digCount: 123,
-    commentCount: 9,
-    createdAt: '2026-07-08T03:30:00Z',
-    promotedAt: '2026-07-08T09:30:00Z',
-    ...overrides,
-  });
 
   const expectDetailRequest = (findingId: string) => httpMock.expectOne(`/api/findings/${findingId}`);
 
