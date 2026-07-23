@@ -71,8 +71,13 @@ describe('FindingDetail', () => {
     expectDetailRequest(id).flush(detail());
     harness.detectChanges();
 
+    const title = element().querySelector<HTMLElement>('.title');
+    expect(title?.textContent).toContain('A remarkable finding');
+    expect(title?.closest('a')).toBeNull();
+
     const link = element().querySelector<HTMLAnchorElement>('.source-link');
-    expect(link?.textContent).toContain('A remarkable finding');
+    expect(link?.textContent).toContain('blog.example.org');
+    expect(link?.textContent).not.toContain('A remarkable finding');
     expect(link?.getAttribute('href')).toBe('https://blog.example.org/posts/42');
     expect(link?.getAttribute('target')).toBe('_blank');
     expect(link?.getAttribute('rel')).toBe('noopener noreferrer');

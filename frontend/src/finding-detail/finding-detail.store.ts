@@ -51,7 +51,8 @@ export const FindingDetailStore = signalStore(
     );
 
     const retry = (): void => {
-      load(store.id());
+      const id = store.id() as string;
+      load(id);
     };
 
     return {

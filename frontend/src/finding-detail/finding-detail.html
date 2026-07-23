@@ -4,16 +4,13 @@
   the colocated finding-detail.spec.ts asserts; how you structure and render them is yours
   to choose.
 
-  LOADING (status 'loading'):
-    A container carrying the classes `detail-state loading`, holding a centered loading
-    spinner (the spec pins the exact spinner element).
-
   LOADED (status 'loaded' — the store holds the finding):
     The finding shown in full:
-      - the title as a link to the finding's Source, marked `source-link`, opening in a new
-        tab with the same safe link attributes the finding card already uses; its text is the
-        finding's title.
-      - the Source domain, marked `domain`.
+      - the title, marked `title` — plain text, not a link (per Wykop, the title never leads
+        to the Source).
+      - the Source domain, marked `domain`, as a link to the finding's Source marked
+        `source-link`, opening in a new tab with the same safe link attributes the finding
+        card uses. Only this domain link leads to the Source.
       - the full, untruncated description, marked `description`.
       - the author, marked `author`.
       - every tag, each marked `tag`, shown as `#` followed by the tag (e.g. `#angular`).
@@ -25,13 +22,23 @@
       (No vote controls and no comments yet — those arrive in later tickets. A `#comments`
       landing target for the card's comment-count link also arrives with the comments ticket.)
 
-  NOT FOUND (status 'notFound' — the id matched no finding / the fetch 404'd):
-    A container carrying the classes `detail-state not-found` whose text includes exactly
-    `Finding not found`, plus a link back to the Main Page, marked `back-link`, whose text
-    includes `Main Page` and which navigates to the Main Page route. No retry control here.
-
   ERROR (status 'error' — any other load failure):
     A container carrying the classes `detail-state error` whose text includes exactly
     `Couldn't load the finding.`, plus a control marked `retry-button` that re-requests the
     finding (the component exposes retry() for this).
 -->
+@if (store.status() === 'loading') {
+  <div class="detail-state loading">
+    <mat-spinner />
+  </div>
+} @else if (store.status() === 'notFound') {
+  <div class="detail-state not-found">
+    Finding not found.
+    <a routerLink="/" class="back-link">Main Page</a>
+  </div>
+} @else if (store.status() === 'error') {
+  <div class="detail-state error">
+    Couldn't load the finding.
+    <button matButton="outlined" class="retry-button" (click)="retry()">Retry</button>
+  </div>
+}
