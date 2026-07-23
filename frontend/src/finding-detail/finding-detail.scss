@@ -7,3 +7,31 @@
   best centered in the viewport, and the loaded finding wants a readable single-column
   layout with the thumbnail and its placeholder sharing one fixed shape (as on the card).
 */
+@use 'mixins';
+
+.detail-state {
+  display: flex;
+  &.loading {
+    @include mixins.viewport-center;
+  }
+
+  &.not-found {
+    display: flex;
+    flex-direction: column;
+    @include mixins.in-container-message;
+    a {
+      margin-top: 1rem;
+      font-size: 1rem;
+    }
+  }
+
+  &.error {
+    @include mixins.in-container-message;
+    flex-direction: column;
+
+    .retry-button {
+      margin-top: 1rem;
+      align-self: center;
+    }
+  }
+}

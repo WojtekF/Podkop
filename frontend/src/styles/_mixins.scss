@@ -1,0 +1,10 @@
+@mixin viewport-center($bottom-gap: 3rem) {
+  min-height: calc(100vh - var(--topbar-height) - #{$bottom-gap});
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin in-container-message() {
+  @include viewport-center();
+  font-size: 2rem;
+}

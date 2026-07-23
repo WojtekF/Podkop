@@ -1,8 +1,4 @@
-@mixin viewport-center($bottom-gap: 3rem) {
-  min-height: calc(100vh - var(--topbar-height) - #{$bottom-gap});
-  align-items: center;
-  justify-content: center;
-}
+@use 'mixins';
 
 .feed-state {
   display: flex;
@@ -10,11 +6,10 @@
   gap: 1rem;
   &.empty,
   &.error {
-    @include viewport-center();
-    font-size: 2rem;
+    @include mixins.in-container-message;
   }
   &.loading {
-    @include viewport-center;
+    @include mixins.viewport-center;
   }
   &.error {
     .retry-button {
