@@ -1,4 +1,4 @@
-import { Component, input, output } from '@angular/core';
+import { Component, computed, input, output } from '@angular/core';
 import { FindingSummary } from '../main-page-feed.service';
 import { MatCardModule } from '@angular/material/card';
 import { DatePipe } from '@angular/common';
@@ -16,6 +16,7 @@ export class FindingCard {
   finding = input.required<FindingSummary>();
 
   dig = output<void>();
+  protected readonly findingLink = computed(() => ['/finding', this.finding().id]);
 
   protected hasThumbnail(): boolean {
     return this.finding().thumbnailUrl !== null;

@@ -10,10 +10,10 @@
       </div>
       <div class="content">
         <h3 class="title">
-          <a class="title-link" [routerLink]="['/finding', finding().id]">{{ finding().title }}</a>
+          <a class="title-link" [routerLink]="findingLink()">{{ finding().title }}</a>
         </h3>
 
-        <p [routerLink]="['/finding', finding().id]" class="description">
+        <p [routerLink]="findingLink()" class="description">
           {{ finding().description }}
         </p>
         <footer class="meta">
@@ -30,7 +30,7 @@
           &middot;
           <span class="promoted-at">{{ finding().promotedAt | date: 'medium' }}</span>
           &middot;
-          <span [routerLink]="['/finding', finding().id]" fragment="comments" class="comment-count"
+          <span [routerLink]="findingLink()" fragment="comments" class="comment-count"
             >{{ finding().commentCount }} comments</span
           >
           &middot;
