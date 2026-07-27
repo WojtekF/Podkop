@@ -1,90 +1,62 @@
-<!--
-  Finding detail — read-only view of a single finding. The template renders exactly ONE of
-  four states, chosen from the detail store's status. The class hooks and copy below are what
-  the colocated finding-detail.spec.ts asserts; how you structure and render them is yours
-  to choose.
+@let finding = store.finding();
 
-  LOADED (status 'loaded' — the store holds the finding):
-    The finding shown in full:
-      - the title, marked `title`, as a link to the finding's Source, opening in a new tab
-        with the same safe link attributes the finding card's domain link uses. (This differs
-        from the card, where the title navigates to this detail page.)
-      - the Source domain, marked `domain`, as plain text, not a link — the title is the
-        only way to the Source here; nothing on this page carries the card's `source-link`
-        marker.
-      - the full, untruncated description, marked `description`.
-      - the author, marked `author`.
-      - every tag, each marked `tag`, shown as `#` followed by the tag (e.g. `#angular`).
-      - the thumbnail when the finding has one: an image element marked `thumbnail` whose
-        source is the finding's thumbnail URL. When it has none, render a neutral placeholder
-        of the same shape, marked `thumbnail thumbnail-placeholder` — never an empty image.
-      - both timestamps shown human-readably: the creation time marked `created-at` and the
-        promotion time marked `promoted-at`.
-      (No vote controls and no comments yet — those arrive in later tickets. A `#comments`
-      landing target for the card's comment-count link also arrives with the comments ticket.)
-
-  ERROR (status 'error' — any other load failure):
-    A container carrying the classes `detail-state error` whose text includes exactly
-    `Couldn't load the finding.`, plus a control marked `retry-button` that re-requests the
-    finding (the component exposes retry() for this).
--->
 @if (store.status() === 'loading') {
   <div class="detail-state loading">
     <mat-spinner />
   </div>
-} @else if (store.status() === 'notFound') {
-  <div class="detail-state not-found">
-    Finding not found.
-    <a routerLink="/" class="back-link">Main Page</a>
-  </div>
 } @else if (store.status() === 'error') {
   <div class="detail-state error">
     Couldn't load the finding.
-    <button matButton="outlined" class="retry-button" (click)="retry()">Retry</button>
+    <button matButton="outlined" class="retry-button" (click)="store.retry()">Retry</button>
   </div>
-} @else {
+} @else if (finding) {
   <mat-card class="detail-state">
     <mat-card-content class="content">
       <h2 class="title">
         <a
           class="title-link"
-          [href]="store.finding()?.sourceUrl"
+          [href]="finding.sourceUrl"
           target="_blank"
           rel="noopener noreferrer"
-          >{{ store.finding()?.title }}</a
+          >{{ finding.title }}</a
         >
       </h2>
       <div class="description">
-        {{ store.finding()?.description }}
+        {{ finding.description }}
       </div>
       <div class="tags">
         <ul>
-          @for (tag of store.finding()?.tags; track $index) {
+          @for (tag of finding.tags; track $index) {
             <li class="tag">#{{ tag }}</li>
           }
         </ul>
       </div>
       <div class="meta">
         <span class="author">
-          {{ store.finding()?.author }}
+          {{ finding.author }}
         </span>
         <span> from </span>
         <span class="domain">
-          {{ store.finding()?.domain }}
+          {{ finding.domain }}
         </span>
         <br />
         <div class="dates">
-          <span class="created-at">Created: {{ store.finding()?.createdAt | date: 'medium' }}</span>
-          <span class="promoted-at"
-            >Promoted: {{ store.finding()?.promotedAt | date: 'medium' }}</span
-          >
+          <span class="created-at">Created: {{ finding.createdAt | date: 'medium' }}</span>
+          @if (finding.promotedAt !== null) {
+            <span class="promoted-at">Promoted: {{ finding.promotedAt | date: 'medium' }}</span>
+          }
         </div>
       </div>
     </mat-card-content>
     @if (hasThumbnail()) {
-      <img class="thumbnail" [src]="store.finding()?.thumbnailUrl" alt="" />
+      <img class="thumbnail" [src]="finding.thumbnailUrl" alt="" />
     } @else {
       <div class="thumbnail thumbnail-placeholder" aria-hidden="true"></div>
     }
   </mat-card>
+} @else {
+  <div class="detail-state not-found">
+    Finding not found.
+    <a routerLink="/" class="back-link">Main Page</a>
+  </div>
 }

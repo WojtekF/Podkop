@@ -14,7 +14,7 @@ import { MatCard, MatCardContent } from '@angular/material/card';
   styleUrl: './finding-detail.scss',
 })
 export class FindingDetail {
-  hasThumbnail() {
+  protected hasThumbnail() {
     return !!this.store.finding()?.thumbnailUrl;
   }
   protected readonly store = inject(FindingDetailStore);
@@ -24,9 +24,5 @@ export class FindingDetail {
     effect(() => {
       this.store.load(this.id());
     });
-  }
-
-  protected retry(): void {
-    this.store.retry();
   }
 }

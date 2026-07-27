@@ -82,6 +82,15 @@ describe('FindingDetail', () => {
     expect(element().querySelector('.detail-state.loading')).toBeNull();
   });
 
+  it('omits the promoted timestamp for a finding that was never promoted', async () => {
+    await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
+    expectDetailRequest(id).flush(detail({ promotedAt: null }));
+    harness.detectChanges();
+
+    expect(element().querySelector('.promoted-at')).toBeNull();
+    expect(element().querySelector('.created-at')?.textContent).toContain('2026');
+  });
+
   it('renders the thumbnail when the finding has one', async () => {
     await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
     expectDetailRequest(id).flush(detail());

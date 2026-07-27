@@ -1,6 +1,6 @@
 import { computed, inject } from '@angular/core';
 import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
-import { FeedPage, FindingSummary, MainPageFeedService } from './main-page-feed.service';
+import { FeedPageDto, FindingSummaryDto, MainPageFeedService } from './main-page-feed.service';
 import { pipe, switchMap, tap } from 'rxjs';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { tapResponse } from '@ngrx/operators';
@@ -8,7 +8,7 @@ import { tapResponse } from '@ngrx/operators';
 export type MainPageStatus = 'loading' | 'loaded' | 'error';
 
 export interface MainPageState {
-  items: FindingSummary[];
+  items: FindingSummaryDto[];
   page: number;
   hasNextPage: boolean;
   status: MainPageStatus;
@@ -41,7 +41,7 @@ export const MainPageStore = signalStore(
         switchMap((page: number) =>
           feedService.getPage(page).pipe(
             tapResponse({
-              next: ({ hasNextPage, items }: FeedPage) => {
+              next: ({ hasNextPage, items }: FeedPageDto) => {
                 patchState(store, {
                   status: 'loaded',
                   hasNextPage,

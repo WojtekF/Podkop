@@ -2,11 +2,11 @@ import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { FindingSummary } from '../main-page-feed.service';
+import { FindingSummaryDto } from '../main-page-feed.service';
 import { FindingCard } from './finding-card';
 
 // A finding whose id the navigation affordances must route to.
-const navSummary: FindingSummary = {
+const navSummary: FindingSummaryDto = {
   id: '0d4f9a3e-1111-4222-8333-444455556666',
   title: 'A remarkable finding',
   description: 'Worth reading in full.',
@@ -34,7 +34,7 @@ class DetailStub {}
 describe('FindingCard', () => {
   let fixture: ComponentFixture<FindingCard>;
 
-  const summary: FindingSummary = {
+  const summary: FindingSummaryDto = {
     id: '0d4f9a3e-1111-4222-8333-444455556666',
     title: 'A remarkable finding',
     description: 'Worth digging.',
@@ -48,7 +48,7 @@ describe('FindingCard', () => {
     promotedAt: '2026-07-08T09:30:00Z',
   };
 
-  const createCard = async (finding: FindingSummary) => {
+  const createCard = async (finding: FindingSummaryDto) => {
     fixture = TestBed.createComponent(FindingCard);
     fixture.componentRef.setInput('finding', finding);
     await fixture.whenStable();

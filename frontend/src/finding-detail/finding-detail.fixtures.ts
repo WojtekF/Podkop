@@ -1,9 +1,9 @@
-import { FindingDetail } from './finding-detail.service';
+import { FindingDetailDto } from './finding-detail.service';
 
 // Shared test data for the finding-detail specs (component, store, service).
 export const findingId = '0d4f9a3e-1111-4222-8333-444455556666';
 
-export const findingDetail = (overrides: Partial<FindingDetail> = {}): FindingDetail => ({
+export const findingDetail = (overrides: Partial<FindingDetailDto> = {}): FindingDetailDto => ({
   id: findingId,
   title: 'A remarkable finding',
   description: 'The full, untruncated description of the finding.',

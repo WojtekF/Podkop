@@ -1,8 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController, TestRequest } from '@angular/common/http/testing';
+import {
+  provideHttpClientTesting,
+  HttpTestingController,
+  TestRequest,
+} from '@angular/common/http/testing';
 import { TimeoutError } from 'rxjs';
-import { FeedPage, MainPageFeedService } from './main-page-feed.service';
+import { FeedPageDto, MainPageFeedService } from './main-page-feed.service';
 
 describe('MainPageFeedService', () => {
   let service: MainPageFeedService;
@@ -24,7 +28,7 @@ describe('MainPageFeedService', () => {
   });
 
   it('GETs the requested page of the main feed', () => {
-    let received: FeedPage | undefined;
+    let received: FeedPageDto | undefined;
     service.getPage(3).subscribe((page) => (received = page));
 
     const req = httpMock.expectOne((r) => r.url.startsWith('/api/findings'));
@@ -34,7 +38,7 @@ describe('MainPageFeedService', () => {
     expect(params.get('feed')).toBe('main');
     expect(params.get('page')).toBe('3');
 
-    const body: FeedPage = { items: [], hasNextPage: false };
+    const body: FeedPageDto = { items: [], hasNextPage: false };
     req.flush(body);
     expect(received).toEqual(body);
   });

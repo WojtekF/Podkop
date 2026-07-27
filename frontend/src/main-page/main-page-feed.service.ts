@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, timeout } from 'rxjs';
 
-export interface FindingSummary {
+export interface FindingSummaryDto {
   id: string;
   title: string;
   description: string;
@@ -16,8 +16,8 @@ export interface FindingSummary {
   promotedAt: string;
 }
 
-export interface FeedPage {
-  items: FindingSummary[];
+export interface FeedPageDto {
+  items: FindingSummaryDto[];
   hasNextPage: boolean;
 }
 
@@ -27,9 +27,9 @@ export interface FeedPage {
 export class MainPageFeedService {
   private readonly http = inject(HttpClient);
 
-  getPage(page: number): Observable<FeedPage> {
+  getPage(page: number): Observable<FeedPageDto> {
     return this.http
-      .get<FeedPage>(`/api/findings`, {
+      .get<FeedPageDto>(`/api/findings`, {
         params: {
           page,
           feed: 'main',

@@ -1,12 +1,3 @@
-/*
-  Styles for the finding detail page — empty by design; the CSS is yours to write.
-  Nothing here is required for the specs to pass.
-
-  For reference, mirror the main-page feed's approach: the loading, not-found, and error
-  states (`.detail-state.loading`, `.detail-state.not-found`, `.detail-state.error`) read
-  best centered in the viewport, and the loaded finding wants a readable single-column
-  layout with the thumbnail and its placeholder sharing one fixed shape (as on the card).
-*/
 @use 'mixins';
 
 .detail-state {

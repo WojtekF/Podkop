@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, timeout } from 'rxjs';
 
-export interface FindingDetail {
+export interface FindingDetailDto {
   id: string;
   title: string;
   description: string;
@@ -23,11 +23,7 @@ export interface FindingDetail {
 export class FindingDetailService {
   private readonly http = inject(HttpClient);
 
-  // Fetch one finding by id from the detail endpoint. A missing finding must surface as
-  // a 404 the caller can distinguish (the store maps it to a "not found" state); every
-  // other failure is a plain load error. Mirror the feed service's client-side timeout.
-  // See finding-detail.service.spec.ts for the request shape and timeout behaviour.
-  getFinding(id: string): Observable<FindingDetail> {
-    return this.http.get<FindingDetail>(`/api/findings/${id}`).pipe(timeout(5000));
+  getFinding(id: string): Observable<FindingDetailDto> {
+    return this.http.get<FindingDetailDto>(`/api/findings/${id}`).pipe(timeout(5000));
   }
 }

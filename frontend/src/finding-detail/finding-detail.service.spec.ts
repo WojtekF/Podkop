@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TimeoutError } from 'rxjs';
-import { FindingDetail, FindingDetailService } from './finding-detail.service';
+import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
 import { findingDetail as detail, findingId as id } from './finding-detail.fixtures';
 
 describe('FindingDetailService', () => {
@@ -22,7 +22,7 @@ describe('FindingDetailService', () => {
   });
 
   it('GETs the finding by id from the detail endpoint', () => {
-    let received: FindingDetail | undefined;
+    let received: FindingDetailDto | undefined;
     service.getFinding(id).subscribe((finding) => (received = finding));
 
     const req = httpMock.expectOne(`/api/findings/${id}`);

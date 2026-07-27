@@ -1,5 +1,5 @@
 import { Component, computed, input, output } from '@angular/core';
-import { FindingSummary } from '../main-page-feed.service';
+import { FindingSummaryDto } from '../main-page-feed.service';
 import { MatCardModule } from '@angular/material/card';
 import { DatePipe } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
@@ -13,7 +13,7 @@ import { RouterLink } from '@angular/router';
   styleUrl: './finding-card.scss',
 })
 export class FindingCard {
-  finding = input.required<FindingSummary>();
+  finding = input.required<FindingSummaryDto>();
 
   dig = output<void>();
   protected readonly findingLink = computed(() => ['/finding', this.finding().id]);
