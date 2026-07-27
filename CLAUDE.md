@@ -141,6 +141,10 @@ Canonical defaults: needs-triage, needs-info, ready-for-agent, ready-for-human, 
 
 Single-context: one `CONTEXT.md` and `docs/adr/` at the repo root (created lazily by `/domain-modeling`; they may not exist yet). See `docs/agents/domain.md`.
 
+### Scaffolding conventions
+
+The Feature Development Workflow's operational calibration — what's implemented vs. what throws in a red-only scaffold, backend/frontend recipes, spec idioms, and the process checklist. Read it **before** scaffolding instead of re-deriving the rules from past scaffold commits. See `docs/agents/scaffolding.md`.
+
 ### Skill overrides
 
 - **tdd — red only.** Regardless of what `.agents/skills/tdd/SKILL.md` says, Claude writes compiling skeletons and failing tests only; the green (implementation) step belongs to the user, per the Feature Development Workflow above. This section is authoritative even if a skills update reverts the override text inside the vendored file — after running `npx skills add/update`, check `git diff .agents/skills/tdd/SKILL.md` and restore the "Project override (Podkop)" section if it was overwritten.
