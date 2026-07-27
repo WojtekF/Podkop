@@ -6,11 +6,12 @@
 
   LOADED (status 'loaded' — the store holds the finding):
     The finding shown in full:
-      - the title, marked `title` — plain text, not a link (per Wykop, the title never leads
-        to the Source).
-      - the Source domain, marked `domain`, as a link to the finding's Source marked
-        `source-link`, opening in a new tab with the same safe link attributes the finding
-        card uses. Only this domain link leads to the Source.
+      - the title, marked `title`, as a link to the finding's Source, opening in a new tab
+        with the same safe link attributes the finding card's domain link uses. (This differs
+        from the card, where the title navigates to this detail page.)
+      - the Source domain, marked `domain`, as plain text, not a link — the title is the
+        only way to the Source here; nothing on this page carries the card's `source-link`
+        marker.
       - the full, untruncated description, marked `description`.
       - the author, marked `author`.
       - every tag, each marked `tag`, shown as `#` followed by the tag (e.g. `#angular`).
@@ -41,4 +42,49 @@
     Couldn't load the finding.
     <button matButton="outlined" class="retry-button" (click)="retry()">Retry</button>
   </div>
+} @else {
+  <mat-card class="detail-state">
+    <mat-card-content class="content">
+      <h2 class="title">
+        <a
+          class="title-link"
+          [href]="store.finding()?.sourceUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          >{{ store.finding()?.title }}</a
+        >
+      </h2>
+      <div class="description">
+        {{ store.finding()?.description }}
+      </div>
+      <div class="tags">
+        <ul>
+          @for (tag of store.finding()?.tags; track $index) {
+            <li class="tag">#{{ tag }}</li>
+          }
+        </ul>
+      </div>
+      <div class="meta">
+        <span class="author">
+          {{ store.finding()?.author }}
+        </span>
+        <span> from </span>
+        <span class="domain">
+          {{ store.finding()?.domain }}
+        </span>
+        <br />
+        <div class="dates">
+          <span class="created-at">Created: {{ store.finding()?.createdAt | date: 'medium' }}</span>
+          <span class="promoted-at"
+            >Promoted: {{ store.finding()?.promotedAt | date: 'medium' }}</span
+          >
+        </div>
+      </div>
+    </mat-card-content>
+    @if (hasThumbnail()) {
+      <img class="thumbnail" [src]="store.finding()?.thumbnailUrl" alt="" />
+    } @else {
+      <div class="thumbnail thumbnail-placeholder" aria-hidden="true"></div>
+    }
+  </mat-card>
 }

@@ -8,3 +8,17 @@
   @include viewport-center();
   font-size: 2rem;
 }
+
+@mixin thumbnail($width, $heigth) {
+  .thumbnail {
+    flex-shrink: 0;
+    min-width: 0;
+    width: $width;
+    height: $heigth;
+    object-fit: cover;
+    &.thumbnail-placeholder {
+      background-color: #e0e0e0;
+      object-fit: unset;
+    }
+  }
+}

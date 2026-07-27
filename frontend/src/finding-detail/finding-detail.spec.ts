@@ -58,16 +58,15 @@ describe('FindingDetail', () => {
 
     const title = element().querySelector<HTMLElement>('.title');
     expect(title?.textContent).toContain('A remarkable finding');
-    expect(title?.closest('a')).toBeNull();
+    const titleLink = title?.closest('a') ?? title?.querySelector('a');
+    expect(titleLink?.getAttribute('href')).toBe('https://blog.example.org/posts/42');
+    expect(titleLink?.getAttribute('target')).toBe('_blank');
+    expect(titleLink?.getAttribute('rel')).toBe('noopener noreferrer');
 
-    const link = element().querySelector<HTMLAnchorElement>('.source-link');
-    expect(link?.textContent).toContain('blog.example.org');
-    expect(link?.textContent).not.toContain('A remarkable finding');
-    expect(link?.getAttribute('href')).toBe('https://blog.example.org/posts/42');
-    expect(link?.getAttribute('target')).toBe('_blank');
-    expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
-
-    expect(element().querySelector('.domain')?.textContent).toContain('blog.example.org');
+    expect(element().querySelector('.source-link')).toBeNull();
+    const domain = element().querySelector<HTMLElement>('.domain');
+    expect(domain?.textContent).toContain('blog.example.org');
+    expect(domain?.closest('a')).toBeNull();
     expect(element().querySelector('.description')?.textContent).toContain(
       'The full, untruncated description of the finding.',
     );

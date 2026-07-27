@@ -11,6 +11,8 @@
 
 .detail-state {
   display: flex;
+  flex-direction: row;
+  padding: 1rem;
   &.loading {
     @include mixins.viewport-center;
   }
@@ -34,4 +36,28 @@
       align-self: center;
     }
   }
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    .tags {
+      ul {
+        display: flex;
+        flex-direction: row;
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+        li {
+          padding-right: 15px;
+        }
+      }
+    }
+    .meta {
+      .dates {
+        margin-top: 0.5rem;
+      }
+    }
+  }
+  @include mixins.thumbnail(300px, 192px);
 }

@@ -1,19 +1,11 @@
+@use 'mixins';
+
 .finding-card {
   &-content {
     display: flex;
     justify-content: space-between;
     gap: 1rem;
-    .thumbnail {
-      flex-shrink: 0;
-      min-width: 0;
-      width: 220px;
-      height: 142px;
-      object-fit: cover;
-      &.thumbnail-placeholder {
-        background-color: #e0e0e0;
-        object-fit: unset;
-      }
-    }
+    @include mixins.thumbnail(220px, 142px);
 
     .finding-body {
       display: flex;
