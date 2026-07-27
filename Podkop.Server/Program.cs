@@ -1,5 +1,9 @@
+using Podkop.FindingComments.Application;
+using Podkop.FindingComments.Infrastructure;
+using Podkop.FindingComments.Server;
 using Podkop.Findings.Infrastructure;
 using Podkop.Findings.Server;
+using Podkop.Server;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -9,7 +13,10 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 builder.Services.AddProblemDetails();
-builder.Services.AddFindings();
+// Both slices seed from SampleSeed so the sample data stays coherent across them (issue #16).
+builder.Services.AddFindings(() => SampleSeed.Findings);
+builder.Services.AddFindingComments(() => SampleSeed.Comments);
+builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -27,6 +34,7 @@ if (app.Environment.IsDevelopment())
 
 
 app.MapFindings();
+app.MapFindingComments();
 
 app.MapDefaultEndpoints();
 

@@ -1,3 +1,4 @@
+import { CommentThreadDto } from './finding-comments.service';
 import { FindingDetailDto } from './finding-detail.service';
 
 // Shared test data for the finding-detail specs (component, store, service).
@@ -18,3 +19,43 @@ export const findingDetail = (overrides: Partial<FindingDetailDto> = {}): Findin
   promotedAt: '2026-07-08T09:30:00Z',
   ...overrides,
 });
+
+// The discussion the comments endpoint returns for the finding: already ordered by the
+// server — threads best-first, replies chronological. The frontend renders this order as-is.
+export const commentThreads = (): CommentThreadDto[] => [
+  {
+    id: 'c0000000-0000-4000-8000-000000000001',
+    author: 'grace_hopper',
+    text: 'Best take in the thread.',
+    upvoteCount: 12,
+    downvoteCount: 2,
+    createdAt: '2026-07-08T10:00:00Z',
+    replies: [
+      {
+        id: 'c0000000-0000-4000-8000-000000000011',
+        author: 'linus_t',
+        text: 'Agreed — with a caveat.',
+        upvoteCount: 1,
+        downvoteCount: 0,
+        createdAt: '2026-07-08T10:30:00Z',
+      },
+      {
+        id: 'c0000000-0000-4000-8000-000000000012',
+        author: 'ada_lovelace',
+        text: 'The caveat does not hold up.',
+        upvoteCount: 5,
+        downvoteCount: 1,
+        createdAt: '2026-07-08T11:00:00Z',
+      },
+    ],
+  },
+  {
+    id: 'c0000000-0000-4000-8000-000000000002',
+    author: 'margaret_h',
+    text: 'A dissenting view, sitting lower.',
+    upvoteCount: 3,
+    downvoteCount: 4,
+    createdAt: '2026-07-07T09:00:00Z',
+    replies: [],
+  },
+];

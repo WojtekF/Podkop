@@ -19,6 +19,8 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Features\FindingComments\Podkop.FindingComments.Server\Podkop.FindingComments.Server.csproj" />
+      <ProjectReference Include="..\Features\FindingComments\Podkop.FindingComments.Infrastructure\Podkop.FindingComments.Infrastructure.csproj" />
       <ProjectReference Include="..\Features\Findings\Podkop.Findings.Server\Podkop.Findings.Server.csproj" />
       <ProjectReference Include="..\Features\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
     </ItemGroup>

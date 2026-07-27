@@ -1,0 +1,14 @@
+<!--
+  One discussion thread: a top-level comment and the replies under it. The colocated
+  comment-thread.spec.ts is the contract.
+
+  Must render:
+    - the thread's own (top-level) comment as a comment row, outside any replies container,
+    - a `replies` container holding one comment row per reply, in exactly the order the
+      thread delivers them (chronological, oldest first — the server ordered them; never
+      re-sort here),
+    - nothing deeper: a reply never has replies of its own — threads are one level deep.
+
+  A thread with no replies renders no reply rows. The scaffolded comment-row component
+  renders a single row; wire it in for both levels.
+-->

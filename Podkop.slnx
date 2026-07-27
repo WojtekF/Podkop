@@ -1,5 +1,12 @@
 <Solution>
   <Folder Name="/Features/" />
+  <Folder Name="/Features/FindingComments/">
+    <Project Path="Features/FindingComments/Podkop.FindingComments.Application/Podkop.FindingComments.Application.csproj" />
+    <Project Path="Features/FindingComments/Podkop.FindingComments.Domain/Podkop.FindingComments.Domain.csproj" />
+    <Project Path="Features/FindingComments/Podkop.FindingComments.Infrastructure/Podkop.FindingComments.Infrastructure.csproj" />
+    <Project Path="Features/FindingComments/Podkop.FindingComments.Server/Podkop.FindingComments.Server.csproj" />
+    <Project Path="Features/FindingComments/Podkop.FindingComments.Tests/Podkop.FindingComments.Tests.csproj" />
+  </Folder>
   <Folder Name="/Features/Findings/">
     <Project Path="Features/Findings/Podkop.Findings.Application/Podkop.Findings.Application.csproj" />
     <Project Path="Features/Findings/Podkop.Findings.Domain/Podkop.Findings.Domain.csproj" />

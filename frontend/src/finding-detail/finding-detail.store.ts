@@ -4,6 +4,7 @@ import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { pipe, switchMap, tap } from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
+import { CommentThreadDto, FindingCommentsService } from './finding-comments.service';
 import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
@@ -11,18 +12,25 @@ export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
 export interface FindingDetailState {
   id: string | null;
   finding: FindingDetailDto | null;
+  comments: CommentThreadDto[] | null;
   status: FindingDetailStatus;
 }
 
 const initialState: FindingDetailState = {
   id: null,
   finding: null,
+  comments: null,
   status: 'loading',
 };
 
 export const FindingDetailStore = signalStore(
   withState(initialState),
-  withMethods((store, service = inject(FindingDetailService)) => {
+  // Issue #16: load(id) must now fetch the finding AND its discussion in parallel and land on
+  // exactly one terminal status only once BOTH answers are in — 'loaded' holding the finding
+  // and its comment threads (kept exactly in the order the server sent them), 'notFound' when
+  // either request 404s, 'error' for any other failure on either. retry() re-runs both for
+  // the id currently held. See finding-detail.store.spec.ts for the transitions to satisfy.
+  withMethods((store, service = inject(FindingDetailService), commentsService = inject(FindingCommentsService)) => {
     const load = rxMethod<string>(
       pipe(
         tap({
