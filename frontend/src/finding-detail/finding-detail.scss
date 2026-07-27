@@ -1,0 +1,54 @@
+@use 'mixins';
+
+.detail-state {
+  display: flex;
+  flex-direction: row;
+  padding: 1rem;
+  &.loading {
+    @include mixins.viewport-center;
+  }
+
+  &.not-found {
+    display: flex;
+    flex-direction: column;
+    @include mixins.in-container-message;
+    a {
+      margin-top: 1rem;
+      font-size: 1rem;
+    }
+  }
+
+  &.error {
+    @include mixins.in-container-message;
+    flex-direction: column;
+
+    .retry-button {
+      margin-top: 1rem;
+      align-self: center;
+    }
+  }
+  .content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    .tags {
+      ul {
+        display: flex;
+        flex-direction: row;
+        list-style: none;
+        padding-left: 0;
+        margin: 0;
+        li {
+          padding-right: 15px;
+        }
+      }
+    }
+    .meta {
+      .dates {
+        margin-top: 0.5rem;
+      }
+    }
+  }
+  @include mixins.thumbnail(300px, 192px);
+}

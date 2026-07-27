@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, timeout } from 'rxjs';
 
-export interface FindingSummaryDto {
+export interface FindingDetailDto {
   id: string;
   title: string;
   description: string;
@@ -13,28 +13,17 @@ export interface FindingSummaryDto {
   tags: string[];
   digCount: number;
   commentCount: number;
-  promotedAt: string;
-}
-
-export interface FeedPageDto {
-  items: FindingSummaryDto[];
-  hasNextPage: boolean;
+  createdAt: string;
+  promotedAt: string | null;
 }
 
 @Injectable({
   providedIn: 'root',
 })
-export class MainPageFeedService {
+export class FindingDetailService {
   private readonly http = inject(HttpClient);
 
-  getPage(page: number): Observable<FeedPageDto> {
-    return this.http
-      .get<FeedPageDto>(`/api/findings`, {
-        params: {
-          page,
-          feed: 'main',
-        },
-      })
-      .pipe(timeout(5000));
+  getFinding(id: string): Observable<FindingDetailDto> {
+    return this.http.get<FindingDetailDto>(`/api/findings/${id}`).pipe(timeout(5000));
   }
 }

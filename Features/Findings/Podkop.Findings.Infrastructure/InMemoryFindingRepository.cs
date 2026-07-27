@@ -9,4 +9,7 @@ public sealed class InMemoryFindingRepository(IEnumerable<Finding> findings) : I
 
     public Task<IReadOnlyList<Finding>> GetAllAsync(CancellationToken cancellationToken) =>
         Task.FromResult(_findings);
+
+    public Task<Finding?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        Task.FromResult(_findings.FirstOrDefault(finding => finding.Id == id));
 }

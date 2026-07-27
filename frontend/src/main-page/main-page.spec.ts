@@ -3,7 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { FeedPage, FindingSummary } from './main-page-feed.service';
+import { FeedPageDto, FindingSummaryDto } from './main-page-feed.service';
 import { MainPage } from './main-page';
 
 describe('MainPage', () => {
@@ -11,7 +11,7 @@ describe('MainPage', () => {
   let httpMock: HttpTestingController;
   let router: Router;
 
-  const summary = (title: string): FindingSummary => ({
+  const summary = (title: string): FindingSummaryDto => ({
     id: crypto.randomUUID(),
     title,
     description: `${title} — description`,
@@ -25,7 +25,7 @@ describe('MainPage', () => {
     promotedAt: '2026-07-08T10:00:00Z',
   });
 
-  const pageOf = (titles: string[], hasNextPage: boolean): FeedPage => ({
+  const pageOf = (titles: string[], hasNextPage: boolean): FeedPageDto => ({
     items: titles.map(summary),
     hasNextPage,
   });

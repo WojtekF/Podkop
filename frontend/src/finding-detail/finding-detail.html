@@ -1,0 +1,62 @@
+@let finding = store.finding();
+
+@if (store.status() === 'loading') {
+  <div class="detail-state loading">
+    <mat-spinner />
+  </div>
+} @else if (store.status() === 'error') {
+  <div class="detail-state error">
+    Couldn't load the finding.
+    <button matButton="outlined" class="retry-button" (click)="store.retry()">Retry</button>
+  </div>
+} @else if (finding) {
+  <mat-card class="detail-state">
+    <mat-card-content class="content">
+      <h2 class="title">
+        <a
+          class="title-link"
+          [href]="finding.sourceUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          >{{ finding.title }}</a
+        >
+      </h2>
+      <div class="description">
+        {{ finding.description }}
+      </div>
+      <div class="tags">
+        <ul>
+          @for (tag of finding.tags; track $index) {
+            <li class="tag">#{{ tag }}</li>
+          }
+        </ul>
+      </div>
+      <div class="meta">
+        <span class="author">
+          {{ finding.author }}
+        </span>
+        <span> from </span>
+        <span class="domain">
+          {{ finding.domain }}
+        </span>
+        <br />
+        <div class="dates">
+          <span class="created-at">Created: {{ finding.createdAt | date: 'medium' }}</span>
+          @if (finding.promotedAt !== null) {
+            <span class="promoted-at">Promoted: {{ finding.promotedAt | date: 'medium' }}</span>
+          }
+        </div>
+      </div>
+    </mat-card-content>
+    @if (hasThumbnail()) {
+      <img class="thumbnail" [src]="finding.thumbnailUrl" alt="" />
+    } @else {
+      <div class="thumbnail thumbnail-placeholder" aria-hidden="true"></div>
+    }
+  </mat-card>
+} @else {
+  <div class="detail-state not-found">
+    Finding not found.
+    <a routerLink="/" class="back-link">Main Page</a>
+  </div>
+}

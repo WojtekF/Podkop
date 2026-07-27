@@ -1,11 +1,40 @@
+import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FindingSummary } from '../main-page-feed.service';
+import { provideRouter, Router } from '@angular/router';
+import { RouterTestingHarness } from '@angular/router/testing';
+import { FindingSummaryDto } from '../main-page-feed.service';
 import { FindingCard } from './finding-card';
+
+// A finding whose id the navigation affordances must route to.
+const navSummary: FindingSummaryDto = {
+  id: '0d4f9a3e-1111-4222-8333-444455556666',
+  title: 'A remarkable finding',
+  description: 'Worth reading in full.',
+  sourceUrl: 'https://blog.example.org/posts/42',
+  domain: 'blog.example.org',
+  thumbnailUrl: null,
+  author: 'grace_hopper',
+  tags: ['dotnet'],
+  digCount: 123,
+  commentCount: 7,
+  promotedAt: '2026-07-08T09:30:00Z',
+};
+
+@Component({
+  template: '<main-page-finding-card [finding]="finding" />',
+  imports: [FindingCard],
+})
+class CardHost {
+  readonly finding = navSummary;
+}
+
+@Component({ template: 'finding detail' })
+class DetailStub {}
 
 describe('FindingCard', () => {
   let fixture: ComponentFixture<FindingCard>;
 
-  const summary: FindingSummary = {
+  const summary: FindingSummaryDto = {
     id: '0d4f9a3e-1111-4222-8333-444455556666',
     title: 'A remarkable finding',
     description: 'Worth digging.',
@@ -19,7 +48,7 @@ describe('FindingCard', () => {
     promotedAt: '2026-07-08T09:30:00Z',
   };
 
-  const createCard = async (finding: FindingSummary) => {
+  const createCard = async (finding: FindingSummaryDto) => {
     fixture = TestBed.createComponent(FindingCard);
     fixture.componentRef.setInput('finding', finding);
     await fixture.whenStable();
@@ -31,18 +60,24 @@ describe('FindingCard', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [FindingCard],
+      providers: [provideRouter([])],
     }).compileComponents();
   });
 
-  it('links the title to the Source in a new tab, with the domain beside it', async () => {
+  it('links the domain to the Source in a new tab; the title is not an external link', async () => {
     await createCard(summary);
 
     const link = element().querySelector<HTMLAnchorElement>('.source-link');
-    expect(link?.textContent).toContain('A remarkable finding');
+    expect(link?.textContent).toContain('blog.example.org');
     expect(link?.getAttribute('href')).toBe('https://blog.example.org/posts/42');
     expect(link?.getAttribute('target')).toBe('_blank');
     expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
     expect(element().querySelector('.domain')?.textContent).toContain('blog.example.org');
+
+    const titleLink = element().querySelector<HTMLElement>('.title-link');
+    expect(titleLink?.textContent).toContain('A remarkable finding');
+    expect(titleLink?.getAttribute('href')).not.toBe('https://blog.example.org/posts/42');
+    expect(titleLink?.getAttribute('target')).toBeNull();
   });
 
   it('shows the footer facts: author, promotedAt, comment count, tags', async () => {
@@ -95,5 +130,63 @@ describe('FindingCard', () => {
 
     expect(element().querySelector('img.thumbnail')).toBeNull();
     expect(element().querySelector('.thumbnail-placeholder')).not.toBeNull();
+  });
+});
+
+describe('FindingCard — navigation to the finding', () => {
+  let harness: RouterTestingHarness;
+  let router: Router;
+
+  beforeEach(async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([
+          { path: '', component: CardHost },
+          { path: 'finding/:id', component: DetailStub },
+        ]),
+      ],
+    });
+    router = TestBed.inject(Router);
+    harness = await RouterTestingHarness.create();
+  });
+
+  const renderCard = async (): Promise<HTMLElement> => {
+    await harness.navigateByUrl('/', CardHost);
+    return harness.routeNativeElement!;
+  };
+
+  it('clicking the description opens the finding page, scrolled to the top', async () => {
+    const card = await renderCard();
+
+    card.querySelector<HTMLElement>('.description')?.click();
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe(`/finding/${navSummary.id}`);
+  });
+
+  it('clicking the comment count opens the finding page at the comments fragment', async () => {
+    const card = await renderCard();
+
+    card.querySelector<HTMLElement>('.comment-count')?.click();
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe(`/finding/${navSummary.id}#comments`);
+  });
+
+  it('clicking the title opens the finding page, like the description', async () => {
+    const card = await renderCard();
+
+    card.querySelector<HTMLElement>('.title-link')?.click();
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe(`/finding/${navSummary.id}`);
+  });
+
+  it('keeps the domain pointing at the external Source, not the finding page', async () => {
+    const card = await renderCard();
+
+    const link = card.querySelector<HTMLAnchorElement>('.source-link');
+    expect(link?.getAttribute('href')).toBe('https://blog.example.org/posts/42');
+    expect(link?.getAttribute('target')).toBe('_blank');
   });
 });

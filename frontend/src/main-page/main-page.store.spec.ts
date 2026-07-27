@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { FeedPage, FindingSummary } from './main-page-feed.service';
+import { FeedPageDto, FindingSummaryDto } from './main-page-feed.service';
 import { MainPageStore } from './main-page.store';
 
 describe('MainPageStore', () => {
   let store: InstanceType<typeof MainPageStore>;
   let httpMock: HttpTestingController;
 
-  const summary = (title: string): FindingSummary => ({
+  const summary = (title: string): FindingSummaryDto => ({
     id: crypto.randomUUID(),
     title,
     description: `${title} — description`,
@@ -22,7 +22,7 @@ describe('MainPageStore', () => {
     promotedAt: '2026-07-08T10:00:00Z',
   });
 
-  const pageOf = (titles: string[], hasNextPage: boolean): FeedPage => ({
+  const pageOf = (titles: string[], hasNextPage: boolean): FeedPageDto => ({
     items: titles.map(summary),
     hasNextPage,
   });

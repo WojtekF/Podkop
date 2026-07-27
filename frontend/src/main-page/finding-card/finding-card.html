@@ -10,25 +10,29 @@
       </div>
       <div class="content">
         <h3 class="title">
-          <a
-            class="source-link"
-            [href]="finding().sourceUrl"
-            target="_blank"
-            rel="noopener noreferrer"
-            >{{ finding().title }}</a
-          >
+          <a class="title-link" [routerLink]="findingLink()">{{ finding().title }}</a>
         </h3>
 
-        <p class="description">{{ finding().description }}</p>
+        <p [routerLink]="findingLink()" class="description">
+          {{ finding().description }}
+        </p>
         <footer class="meta">
           <span>
             <span class="author">{{ finding().author }}</span> from
-            <span class="domain">{{ finding().domain }}</span>
+            <a
+              [href]="finding().sourceUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="source-link domain"
+              >{{ finding().domain }}</a
+            >
           </span>
           &middot;
           <span class="promoted-at">{{ finding().promotedAt | date: 'medium' }}</span>
           &middot;
-          <span class="comment-count">{{ finding().commentCount }} comments</span>
+          <span [routerLink]="findingLink()" fragment="comments" class="comment-count"
+            >{{ finding().commentCount }} comments</span
+          >
           &middot;
           @for (tag of finding().tags; track tag) {
             <span class="tag">#{{ tag }}</span>
