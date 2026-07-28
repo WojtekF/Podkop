@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.FindingComments.Domain;
 
 namespace Podkop.FindingComments.Application;
 
@@ -37,8 +38,41 @@ public sealed class GetFindingCommentsHandler(
     IFindingLookup findingLookup)
     : IRequestHandler<GetFindingComments, IReadOnlyList<CommentThread>?>
 {
-    public Task<IReadOnlyList<CommentThread>?> Handle(GetFindingComments request, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<CommentThread>?> Handle(GetFindingComments request,
+        CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (!await findingLookup.ExistsAsync(request.FindingId, cancellationToken)) return null;
+
+        var commentsFromFinding = await commentsRepository.GetByFindingIdAsync(request.FindingId, cancellationToken);
+        var commentThreads = commentsFromFinding.Where(cff => !cff.IsReply);
+        var commentRepliesByParent = commentsFromFinding
+            .Where(comment => comment.IsReply)
+            .GroupBy(comment => comment.ParentCommentId);
+
+        return commentThreads
+            .OrderByDescending(comment => comment.NetScore)
+            .ThenBy(comment => comment.CreatedAt)
+            .Select(comment => ToCommentThread(comment, commentRepliesByParent)
+            ).ToList();
+    }
+
+    private static CommentThread ToCommentThread(Comment comment, IEnumerable<IGrouping<Guid?, Comment>> groupings)
+    {
+        var grouping = groupings
+            .SingleOrDefault(kv => kv.Key == comment.Id);
+        return new CommentThread(comment.Id, comment.Author, comment.Text, comment.UpvoteCount, comment.DownvoteCount,
+            comment.CreatedAt,
+            grouping is not null
+                ? grouping.Select(reply =>
+                        new CommentReply(
+                            reply.Id,
+                            reply.Author,
+                            reply.Text,
+                            reply.UpvoteCount,
+                            reply.DownvoteCount,
+                            reply.CreatedAt))
+                    .OrderBy(cr => cr.CreatedAt)
+                    .ToList()
+                : Enumerable.Empty<CommentReply>().ToList());
     }
 }

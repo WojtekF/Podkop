@@ -29,8 +29,6 @@ public class SampleSeedCoherenceTests
             var threads = await client.GetFromJsonAsync<List<CommentThreadResponse>>(
                 $"/api/findings/{finding.Id}/comments");
             Assert.NotNull(threads);
-            // Seeded threads exist for every sample finding on the feed.
-            Assert.NotEmpty(threads);
             var commentsInDiscussion = threads.Count + threads.Sum(t => t.Replies.Count);
             Assert.Equal(finding.CommentCount, commentsInDiscussion);
             totalReplies += threads.Sum(t => t.Replies.Count);

@@ -43,7 +43,7 @@ public sealed class Finding
     public DateTimeOffset? PromotedAt { get; private set; }
     public int DigCount { get; }
     public int BuryCount { get; }
-    public int CommentCount { get; }
+    public int CommentCount { get; private set; }
 
     public bool IsPromoted => PromotedAt is not null;
     public int NetScore => DigCount - BuryCount;
@@ -51,14 +51,19 @@ public sealed class Finding
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents;
 
     /// <summary>
-    /// One-way promotion to the Main Page (ADR 0001): stamps <see cref="PromotedAt"/> and raises
-    /// <see cref="FindingPromoted"/>. Idempotent — promoting an already-promoted finding changes
-    /// nothing and raises no second event.
+    ///     One-way promotion to the Main Page (ADR 0001): stamps <see cref="PromotedAt" /> and raises
+    ///     <see cref="FindingPromoted" />. Idempotent — promoting an already-promoted finding changes
+    ///     nothing and raises no second event.
     /// </summary>
     public void Promote(DateTimeOffset promotedAt)
     {
         if (IsPromoted) return;
         PromotedAt = promotedAt;
         _domainEvents.Add(new FindingPromoted(Id, promotedAt));
+    }
+
+    public void UpdateCommentCount(int commentCount)
+    {
+        CommentCount = commentCount;
     }
 }
