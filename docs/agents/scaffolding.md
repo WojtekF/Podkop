@@ -5,8 +5,8 @@ structure and failing tests on both ends of the stack; the user implements all l
 templates, and styles. This file pins down the calibration that otherwise has to be
 re-derived from git history on every scaffolding session.
 
-Canonical examples: commit `8c12ada` (finding detail page, #14) and commit `b6839f4`
-(FindingComments read slice, #16). Canonical templates to mirror: `Features/Findings` and
+Canonical examples: PR #20 (finding detail page, issue #14) and PR #21 (FindingComments
+read slice, issue #16). Canonical templates to mirror: `Features/Findings` and
 `frontend/src/finding-detail`.
 
 ## What is implemented vs. what throws
@@ -73,12 +73,18 @@ implemented; code embodying a behavioral decision throws and is the user's to wr
 ## Frontend recipe
 
 - Feature folder under `frontend/src/` (or grow an existing one). Standalone components with
-  `imports: []` left empty; one HTTP service per backend slice; the SignalStore's state shape
+  `imports: []` left empty for the user to fill as their template takes shape; TS files keep
+  only what the specs need to compile (inputs/outputs, injected dependencies, state shape,
+  throwing bodies). One HTTP service per backend slice; the SignalStore's state shape
   extended up front (state keys and DTO types are structure).
-- `.html`/`.scss` scaffolds contain **only a guidance comment**: the states to cover, the
-  hook classes and exact UI copy the colocated specs assert — the what, never the how (see
-  CLAUDE.md). Guidance may name project seams (services, scaffolded components, the store),
-  never framework APIs or language constructs.
+- `.html`/`.scss` scaffolds are **empty except for a guidance comment block** — no markup,
+  no CSS rules, not even "structurally complete" skeleton markup. The comment describes the
+  _what_, never the _how_: the states to cover, the hook classes and exact UI copy the
+  colocated specs assert — never the language constructs, framework APIs, or libraries to
+  reach for (no `@if`/`@for`, no `patchState`/`switchMap`, no "use Material module X", no
+  SCSS technique hints). Guidance may name project seams (services, scaffolded components,
+  the store). Choosing the right tool is the user's learning exercise; the failing specs
+  define done.
 - Shared fixtures live in `<feature>.fixtures.ts`. Data the server orders is rendered as-is
   — the frontend never re-sorts — and fixtures say so in a comment.
 - Spec idioms:
@@ -93,11 +99,10 @@ implemented; code embodying a behavioral decision throws and is the user's to wr
 ## Process checklist
 
 1. Read the ticket, its parent spec, and every ADR either names; confirm blockers are closed.
-2. Branch `feat/<topic>` off `master`.
+2. Branch, commit, and hand off for merge per CLAUDE.md's **Git Conventions**.
 3. Mirror the canonical templates; write skeletons and specs on both ends.
 4. Verify: `dotnet build` and `dotnet test`; `npm run build` and `npx vitest run` from
    `frontend/` (bare vitest needs `frontend/vite.config.ts` — on older branches use
    `npm test -- --watch=false`).
-5. Confirm the red/green split is exactly new-red / untouched-green; commit with a
-   Conventional Commits message that states the split and any runtime breakage. Never merge
-   to `master` — the user reviews and merges.
+5. Confirm the red/green split is exactly new-red / untouched-green; state the split and any
+   runtime breakage in the commit message.
