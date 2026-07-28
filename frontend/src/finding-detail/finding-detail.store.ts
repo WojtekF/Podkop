@@ -1,11 +1,10 @@
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, forkJoin, of, pipe, switchMap, tap } from 'rxjs';
+import { catchError, forkJoin, of, pipe, switchMap, tap, TimeoutError } from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
 import { CommentThreadDto, FindingCommentsService } from './finding-comments.service';
 import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
-import { tapResponse } from '@ngrx/operators';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
 
@@ -75,7 +74,12 @@ function toPatch(
   comments: CommentThreadDto[] | HttpErrorResponse,
 ): Partial<FindingDetailState> {
   if (isNotFound(finding) || isNotFound(comments)) return { status: 'notFound' };
-  if (finding instanceof HttpErrorResponse || comments instanceof HttpErrorResponse)
+  if (
+    finding instanceof HttpErrorResponse ||
+    comments instanceof HttpErrorResponse ||
+    finding instanceof TimeoutError ||
+    comments instanceof TimeoutError
+  )
     return { status: 'error' };
   return { status: 'loaded', finding, comments };
 }
