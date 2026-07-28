@@ -12,3 +12,11 @@
   A thread with no replies renders no reply rows. The scaffolded comment-row component
   renders a single row; wire it in for both levels.
 -->
+<mat-card class="thread">
+  <app-comment-row [isReply]="false" [comment]="thread()" />
+  <div class="replies">
+    @for (reply of thread().replies; track reply.id) {
+      <app-comment-row [comment]="reply" />
+    }
+  </div>
+</mat-card>

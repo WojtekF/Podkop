@@ -1,3 +1,11 @@
 // Styles for one discussion thread. The visual nesting lives here: replies must read as
 // sitting exactly one level under their top-level comment (indentation, a connecting line,
 // or whatever device you choose — the look is yours).
+
+.thread {
+  width: 100%;
+  .replies {
+    margin-left: 5%;
+    width: 95%;
+  }
+}

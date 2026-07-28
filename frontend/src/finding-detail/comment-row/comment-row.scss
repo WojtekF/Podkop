@@ -1,3 +1,31 @@
 // Styles for a single comment row: author, age, text, and both vote counts laid out
 // compactly, readable at a glance in a long discussion. Keep the hook classes from the
 // template contract; the look is yours to decide.
+
+.comment {
+  margin: 0.5rem 0;
+
+  &.thread {
+    margin: 0;
+  }
+
+  display: flex;
+  flex-direction: column;
+  .header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    .meta {
+      display: flex;
+      flex-direction: row;
+    }
+    .author {
+      margin-right: 10px;
+    }
+    .counts {
+      display: flex;
+      flex-direction: row;
+      gap: 0.5rem;
+    }
+  }
+}
