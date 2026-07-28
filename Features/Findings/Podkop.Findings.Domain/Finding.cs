@@ -62,6 +62,7 @@ public sealed class Finding
         _domainEvents.Add(new FindingPromoted(Id, promotedAt));
     }
 
+    // method exposed for seeding purpose only. will be deleted in nearest future.
     public void UpdateCommentCount(int commentCount)
     {
         CommentCount = commentCount;

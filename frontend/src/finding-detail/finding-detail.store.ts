@@ -47,13 +47,9 @@ export const FindingDetailStore = signalStore(
                 .getComments(id)
                 .pipe(catchError((error: HttpErrorResponse) => of(error))),
             }).pipe(
-              tapResponse({
+              tap({
                 next: ({ finding, comments }) => {
                   patchState(store, toPatch(finding, comments));
-                },
-                error: (error: HttpErrorResponse) => {
-                  const status = error.status;
-                  patchState(store, { status: status === 404 ? 'notFound' : 'error' });
                 },
               }),
             ),
@@ -81,7 +77,7 @@ function toPatch(
   if (isNotFound(finding) || isNotFound(comments)) return { status: 'notFound' };
   if (finding instanceof HttpErrorResponse || comments instanceof HttpErrorResponse)
     return { status: 'error' };
-  return { status: 'loaded', finding, comments }; // ✅ both narrowed to DTOs here
+  return { status: 'loaded', finding, comments };
 }
 
 function isNotFound<T>(input: T | HttpErrorResponse): boolean {

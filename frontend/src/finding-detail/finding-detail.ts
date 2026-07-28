@@ -32,7 +32,7 @@ export class FindingDetail {
 
   private readonly route = inject(ActivatedRoute);
   private readonly threadElements = viewChildren(CommentThread, { read: ElementRef });
-  private scrolledToComments = false;
+  private scrolledToCommentsFor: string | undefined;
 
   constructor() {
     effect(() => {
@@ -42,13 +42,13 @@ export class FindingDetail {
     effect(() => {
       const threads = this.threadElements();
       if (
-        this.scrolledToComments ||
+        this.scrolledToCommentsFor === this.id() ||
         this.route.snapshot.fragment !== 'comments' ||
         threads.length === 0
       ) {
         return;
       }
-      this.scrolledToComments = true;
+      this.scrolledToCommentsFor = this.id();
       threads[0].nativeElement.scrollIntoView({ block: 'center' });
     });
   }

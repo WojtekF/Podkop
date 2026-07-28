@@ -1,4 +1,4 @@
-import { TimeAgoPipe } from './timeAgo.pipe';
+import { TimeAgoPipe } from './time-ago.pipe';
 
 describe('TimeAgoPipe', () => {
   const now = new Date('2026-07-28T12:00:00Z');

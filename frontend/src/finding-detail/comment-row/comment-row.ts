@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { CommentDto } from '../finding-comments.service';
-import { TimeAgoPipe } from './timeAgo.pipe';
+import { TimeAgoPipe } from './time-ago.pipe';
 import { MatCard, MatCardContent } from '@angular/material/card';
 
 @Component({

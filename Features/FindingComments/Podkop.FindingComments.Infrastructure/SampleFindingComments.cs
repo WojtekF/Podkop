@@ -4,7 +4,7 @@ namespace Podkop.FindingComments.Infrastructure;
 
 /// <summary>
 ///     Development seed data until PostgreSQL persistence lands — the discussion threads for the
-///     sample findings. Every sample finding gets at least one thread written by the sample
+///     sample findings. Every sample finding can have a thread written by the sample
 ///     authors: a handful of top-level comments, some of them carrying replies (a reply always
 ///     points at a top-level comment — never at another reply), with varied up/downvote mixes —
 ///     including net-score ties — and varied ages, so best-first ordering and chronological

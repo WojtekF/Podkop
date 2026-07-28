@@ -44,7 +44,7 @@ public sealed class GetFindingCommentsHandler(
         if (!await findingLookup.ExistsAsync(request.FindingId, cancellationToken)) return null;
 
         var commentsFromFinding = await commentsRepository.GetByFindingIdAsync(request.FindingId, cancellationToken);
-        var commentThreads = commentsFromFinding.Where(cff => !cff.IsReply);
+        var commentThreads = commentsFromFinding.Where(comment => !comment.IsReply);
         var commentRepliesByParent = commentsFromFinding
             .Where(comment => comment.IsReply)
             .GroupBy(comment => comment.ParentCommentId);
