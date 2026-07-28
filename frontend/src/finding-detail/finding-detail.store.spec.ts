@@ -105,6 +105,36 @@ describe('FindingDetailStore', () => {
     expect(store.status()).toBe('error');
   });
 
+  it('a finding request that never answers times out into the error state', () => {
+    vi.useFakeTimers();
+    try {
+      store.load(id);
+      expectCommentsRequest(id).flush(commentThreads());
+
+      vi.advanceTimersByTime(4999);
+      expect(store.status()).toBe('loading');
+
+      vi.advanceTimersByTime(1);
+      expect(store.status()).toBe('error');
+      expect(store.finding()).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a discussion timeout is a load error even when the finding arrived', () => {
+    vi.useFakeTimers();
+    try {
+      store.load(id);
+      expectDetailRequest(id).flush(detail());
+
+      vi.advanceTimersByTime(5000);
+      expect(store.status()).toBe('error');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('retry re-requests both the finding and the discussion for the id that failed', () => {
     store.load(id);
     expectDetailRequest(id).flush('boom', { status: 500, statusText: 'Server Error' });

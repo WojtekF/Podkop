@@ -1,7 +1,8 @@
+import { LoadResult, asResult } from './as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, forkJoin, of, pipe, switchMap, tap, TimeoutError } from 'rxjs';
+import { forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
 import { CommentThreadDto, FindingCommentsService } from './finding-comments.service';
 import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
@@ -39,12 +40,8 @@ export const FindingDetailStore = signalStore(
           }),
           switchMap((id) =>
             forkJoin({
-              finding: service
-                .getFinding(id)
-                .pipe(catchError((error: HttpErrorResponse) => of(error))),
-              comments: commentsService
-                .getComments(id)
-                .pipe(catchError((error: HttpErrorResponse) => of(error))),
+              finding: asResult(service.getFinding(id)),
+              comments: asResult(commentsService.getComments(id)),
             }).pipe(
               tap({
                 next: ({ finding, comments }) => {
@@ -70,8 +67,8 @@ export const FindingDetailStore = signalStore(
 );
 
 function toPatch(
-  finding: FindingDetailDto | HttpErrorResponse,
-  comments: CommentThreadDto[] | HttpErrorResponse,
+  finding: LoadResult<FindingDetailDto>,
+  comments: LoadResult<CommentThreadDto[]>,
 ): Partial<FindingDetailState> {
   if (isNotFound(finding) || isNotFound(comments)) return { status: 'notFound' };
   if (
