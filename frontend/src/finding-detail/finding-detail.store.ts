@@ -1,11 +1,11 @@
-import { tapResponse } from '@ngrx/operators';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { pipe, switchMap, tap } from 'rxjs';
+import { catchError, forkJoin, of, pipe, switchMap, tap } from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
 import { CommentThreadDto, FindingCommentsService } from './finding-comments.service';
 import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
+import { tapResponse } from '@ngrx/operators';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
 
@@ -25,43 +25,67 @@ const initialState: FindingDetailState = {
 
 export const FindingDetailStore = signalStore(
   withState(initialState),
-  // Issue #16: load(id) must now fetch the finding AND its discussion in parallel and land on
-  // exactly one terminal status only once BOTH answers are in — 'loaded' holding the finding
-  // and its comment threads (kept exactly in the order the server sent them), 'notFound' when
-  // either request 404s, 'error' for any other failure on either. retry() re-runs both for
-  // the id currently held. See finding-detail.store.spec.ts for the transitions to satisfy.
-  withMethods((store, service = inject(FindingDetailService), commentsService = inject(FindingCommentsService)) => {
-    const load = rxMethod<string>(
-      pipe(
-        tap({
-          next: (id: string) => {
-            patchState(store, { status: 'loading', id, finding: null });
-          },
-        }),
-        switchMap((id: string) =>
-          service.getFinding(id).pipe(
-            tapResponse({
-              next: (finding: FindingDetailDto) => {
-                patchState(store, { status: 'loaded', finding });
-              },
-              error: (error: HttpErrorResponse) => {
-                const status = error.status;
-                patchState(store, { status: status === 404 ? 'notFound' : 'error' });
-              },
-            }),
+  withMethods(
+    (
+      store,
+      service = inject(FindingDetailService),
+      commentsService = inject(FindingCommentsService),
+    ) => {
+      const load = rxMethod<string>(
+        pipe(
+          tap({
+            next: (id: string) => {
+              patchState(store, { status: 'loading', id, finding: null });
+            },
+          }),
+          switchMap((id) =>
+            forkJoin({
+              finding: service
+                .getFinding(id)
+                .pipe(catchError((error: HttpErrorResponse) => of(error))),
+              comments: commentsService
+                .getComments(id)
+                .pipe(catchError((error: HttpErrorResponse) => of(error))),
+            }).pipe(
+              tapResponse({
+                next: ({ finding, comments }) => {
+                  patchState(store, toPatch(finding, comments));
+                },
+                error: (error: HttpErrorResponse) => {
+                  const status = error.status;
+                  patchState(store, { status: status === 404 ? 'notFound' : 'error' });
+                },
+              }),
+            ),
           ),
         ),
-      ),
-    );
+      );
 
-    const retry = (): void => {
-      const id = store.id();
-      if (id !== null) load(id);
-    };
+      const retry = (): void => {
+        const id = store.id();
+        if (id !== null) load(id);
+      };
 
-    return {
-      load,
-      retry,
-    };
-  }),
+      return {
+        load,
+        retry,
+      };
+    },
+  ),
 );
+function toPatch(
+  finding: FindingDetailDto | HttpErrorResponse,
+  comments: CommentThreadDto[] | HttpErrorResponse,
+): Partial<FindingDetailState> {
+  if (isNotFound(finding) || isNotFound(comments)) return { status: 'notFound' };
+  if (finding instanceof HttpErrorResponse || comments instanceof HttpErrorResponse)
+    return { status: 'error' };
+  return { status: 'loaded', finding, comments }; // ✅ both narrowed to DTOs here
+}
+
+function isNotFound<T>(input: T | HttpErrorResponse): boolean {
+  if (input instanceof HttpErrorResponse) {
+    return input.status === 404;
+  }
+  return false;
+}
