@@ -34,7 +34,7 @@ export const FindingDetailStore = signalStore(
         pipe(
           tap({
             next: (id: string) => {
-              patchState(store, { status: 'loading', id, finding: null });
+              patchState(store, { status: 'loading', id, finding: null, comments: null });
             },
           }),
           switchMap((id) =>
