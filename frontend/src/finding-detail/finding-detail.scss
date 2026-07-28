@@ -47,8 +47,17 @@
     .meta {
       .dates {
         margin-top: 0.5rem;
+        .promoted-at {
+          margin: 0 10px;
+        }
       }
     }
   }
   @include mixins.thumbnail(300px, 192px);
+}
+
+#comments {
+  .comment-thread {
+    margin-bottom: 5px;
+  }
 }

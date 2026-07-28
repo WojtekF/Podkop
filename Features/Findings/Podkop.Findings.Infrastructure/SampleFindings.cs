@@ -4,7 +4,9 @@ namespace Podkop.Findings.Infrastructure;
 
 /// <summary>
 /// Development seed data until PostgreSQL persistence lands. Roughly two thirds of the
-/// findings are promoted; some have no thumbnail.
+/// findings are promoted; some have no thumbnail. Since issue #16 the seeded comment threads
+/// are the authority for comment counts: a finding's CommentCount may no longer be invented
+/// here — the composition root's SampleSeed lines this generator up with the seeded discussion.
 /// </summary>
 public static class SampleFindings
 {

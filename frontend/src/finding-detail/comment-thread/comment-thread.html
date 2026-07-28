@@ -1,0 +1,8 @@
+<mat-card class="thread">
+  <app-comment-row [isReply]="false" [comment]="thread()" />
+  <div class="replies">
+    @for (reply of thread().replies; track reply.id) {
+      <app-comment-row [comment]="reply" />
+    }
+  </div>
+</mat-card>

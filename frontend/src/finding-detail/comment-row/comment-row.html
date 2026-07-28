@@ -1,0 +1,15 @@
+<mat-card [class]="{ comment: true, thread: !isReply() }">
+  <mat-card-content>
+    <div class="header">
+      <div class="meta">
+        <div class="author">{{ comment().author }}</div>
+        <div class="age">{{ comment().createdAt | timeAgo }}</div>
+      </div>
+      <div class="counts">
+        <span class="upvote-count">{{ comment().upvoteCount }}</span>
+        <span class="downvote-count">{{ comment().downvoteCount }}</span>
+      </div>
+    </div>
+    <div class="text">{{ comment().text }}</div>
+  </mat-card-content>
+</mat-card>

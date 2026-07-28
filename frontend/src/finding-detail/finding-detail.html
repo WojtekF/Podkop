@@ -54,6 +54,13 @@
       <div class="thumbnail thumbnail-placeholder" aria-hidden="true"></div>
     }
   </mat-card>
+  <div id="comments">
+    @for (thread of store.comments(); track thread.id) {
+      <mat-card class="comment-thread">
+        <app-comment-thread [thread]="thread" />
+      </mat-card>
+    }
+  </div>
 } @else {
   <div class="detail-state not-found">
     Finding not found.
