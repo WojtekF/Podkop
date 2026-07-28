@@ -8,7 +8,9 @@ namespace Podkop.FindingComments.Application;
 ///     Yields <c>null</c> when no finding has that id so the endpoint can answer 404, and an
 ///     empty list for a finding whose discussion is empty. Top-level comments come best-first
 ///     — net score descending, ties oldest-first — and each carries its replies in
-///     chronological order. No paging yet (TODO.md).
+///     chronological order. No paging yet (TODO.md). Every row also carries the current
+///     user's vote — <c>"up"</c>, <c>"down"</c>, or <c>null</c> — so highlighting survives
+///     a page reload (issue #18).
 /// </summary>
 public sealed record GetFindingComments(Guid FindingId) : IRequest<IReadOnlyList<CommentThread>?>;
 
@@ -18,6 +20,7 @@ public sealed record CommentThread(
     string Text,
     int UpvoteCount,
     int DownvoteCount,
+    string? MyVote,
     DateTimeOffset CreatedAt,
     IReadOnlyList<CommentReply> Replies);
 
@@ -31,6 +34,7 @@ public sealed record CommentReply(
     string Text,
     int UpvoteCount,
     int DownvoteCount,
+    string? MyVote,
     DateTimeOffset CreatedAt);
 
 public sealed class GetFindingCommentsHandler(
@@ -61,6 +65,7 @@ public sealed class GetFindingCommentsHandler(
         var grouping = groupings
             .SingleOrDefault(kv => kv.Key == comment.Id);
         return new CommentThread(comment.Id, comment.Author, comment.Text, comment.UpvoteCount, comment.DownvoteCount,
+            MyVote: null,
             comment.CreatedAt,
             grouping is not null
                 ? grouping.Select(reply =>
@@ -70,6 +75,7 @@ public sealed class GetFindingCommentsHandler(
                             reply.Text,
                             reply.UpvoteCount,
                             reply.DownvoteCount,
+                            MyVote: null,
                             reply.CreatedAt))
                     .OrderBy(cr => cr.CreatedAt)
                     .ToList()

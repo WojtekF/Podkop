@@ -1,3 +1,9 @@
+<!--
+  Voting (issue #18): every row in the thread — the top-level comment and each reply — takes
+  part in voting. Each row needs to know whether its own vote request is in flight (from
+  `pendingVoteIds`), and a row's clicked direction must surface through the thread's `vote`
+  output tagged with the comment it came from.
+-->
 <mat-card class="thread">
   <app-comment-row [isReply]="false" [comment]="thread()" />
   <div class="replies">

@@ -1,5 +1,5 @@
-import { Component, input } from '@angular/core';
-import { CommentDto } from '../finding-comments.service';
+import { Component, input, output } from '@angular/core';
+import { CommentDto, CommentVoteDirection } from '../finding-comments.service';
 import { TimeAgoPipe } from './time-ago.pipe';
 import { MatCard, MatCardContent } from '@angular/material/card';
 
@@ -12,4 +12,8 @@ import { MatCard, MatCardContent } from '@angular/material/card';
 export class CommentRow {
   readonly isReply = input<boolean>(true);
   readonly comment = input.required<CommentDto>();
+  // True while this comment's vote request is in flight — the vote controls stay disabled.
+  readonly votePending = input<boolean>(false);
+  // The direction the reader chose by clicking one of the vote controls.
+  readonly vote = output<CommentVoteDirection>();
 }

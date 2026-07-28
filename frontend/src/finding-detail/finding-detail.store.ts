@@ -4,7 +4,11 @@ import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
-import { CommentThreadDto, FindingCommentsService } from './finding-comments.service';
+import {
+  CommentThreadDto,
+  CommentVoteDirection,
+  FindingCommentsService,
+} from './finding-comments.service';
 import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
@@ -14,6 +18,9 @@ export interface FindingDetailState {
   finding: FindingDetailDto | null;
   comments: CommentThreadDto[] | null;
   status: FindingDetailStatus;
+  // Ids of comments whose vote request is in flight — their controls stay disabled
+  // so a vote can't be double-submitted (issue #18).
+  pendingCommentVoteIds: readonly string[];
 }
 
 const initialState: FindingDetailState = {
@@ -21,6 +28,7 @@ const initialState: FindingDetailState = {
   finding: null,
   comments: null,
   status: 'loading',
+  pendingCommentVoteIds: [],
 };
 
 export const FindingDetailStore = signalStore(
@@ -58,9 +66,18 @@ export const FindingDetailStore = signalStore(
         if (id !== null) load(id);
       };
 
+      // One entry point for every vote click (issue #18): from the comment's current vote it
+      // decides between recording, switching, and withdrawing; reconciles that comment's
+      // counts and highlight from the response (no refetch); and on failure leaves the
+      // discussion untouched and announces the failure in a snackbar.
+      const voteOnComment = (commentId: string, direction: CommentVoteDirection): void => {
+        throw new Error('not implemented');
+      };
+
       return {
         load,
         retry,
+        voteOnComment,
       };
     },
   ),

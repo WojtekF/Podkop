@@ -256,4 +256,68 @@ describe('FindingDetail', () => {
     expect(element().querySelector('.detail-state.error')).not.toBeNull();
     expect(element().querySelector('.title')).toBeNull();
   });
+
+  describe('voting on comments (issue #18)', () => {
+    // margaret_h's thread — the second one — carries no vote yet.
+    const freshThread = () => commentThreads()[1];
+    const expectVoteRequest = (commentId: string) =>
+      httpMock.expectOne(`/api/comments/${commentId}/my-vote`);
+
+    const threadEls = () => element().querySelectorAll('.comment-thread');
+    const freshThreadUpButton = () =>
+      threadEls()[1].querySelector<HTMLButtonElement>('button.upvote-button');
+
+    const loadPage = async () => {
+      await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
+      flushBoth();
+      harness.detectChanges();
+    };
+
+    it("shows the reader's existing votes highlighted right after a plain load", async () => {
+      await loadPage();
+
+      // grace_hopper's top-level comment is voted up; linus_t's reply is voted down.
+      const topRow = threadEls()[0].querySelector('.comment')!;
+      expect(topRow.querySelector('button.upvote-button.voted')).not.toBeNull();
+      expect(topRow.querySelector('button.downvote-button.voted')).toBeNull();
+
+      const reply = threadEls()[0].querySelectorAll('.replies .comment')[0];
+      expect(reply.querySelector('button.downvote-button.voted')).not.toBeNull();
+
+      // margaret_h's thread holds no vote — nothing on it is highlighted.
+      expect(threadEls()[1].querySelector('.voted')).toBeNull();
+    });
+
+    it('clicking upvote PUTs the vote and shows the reconciled counts and highlight', async () => {
+      await loadPage();
+
+      freshThreadUpButton()!.click();
+      const req = expectVoteRequest(freshThread().id);
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ direction: 'up' });
+
+      req.flush({ upvoteCount: 4, downvoteCount: 4, myVote: 'up' });
+      harness.detectChanges();
+
+      const row = threadEls()[1].querySelector('.comment')!;
+      expect(row.querySelector('.upvote-count')?.textContent).toContain('4');
+      expect(row.querySelector('button.upvote-button.voted')).not.toBeNull();
+    });
+
+    it('a failed vote leaves the visible counts and highlight unchanged', async () => {
+      await loadPage();
+
+      freshThreadUpButton()!.click();
+      expectVoteRequest(freshThread().id).flush('boom', {
+        status: 500,
+        statusText: 'Server Error',
+      });
+      harness.detectChanges();
+
+      const row = threadEls()[1].querySelector('.comment')!;
+      expect(row.querySelector('.upvote-count')?.textContent).toContain('3');
+      expect(row.querySelector('.downvote-count')?.textContent).toContain('4');
+      expect(threadEls()[1].querySelector('.voted')).toBeNull();
+    });
+  });
 });

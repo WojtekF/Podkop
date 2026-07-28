@@ -10,7 +10,9 @@ namespace Podkop.FindingComments.Infrastructure;
 ///     including net-score ties — and varied ages, so best-first ordering and chronological
 ///     replies are visible in the running app. These threads are the authority for each finding's
 ///     comment count (issue #16): the seed coordination in the composition root aligns
-///     Finding.CommentCount with what is generated here, replies included.
+///     Finding.CommentCount with what is generated here, replies included. The stub user
+///     (ada_lovelace) must also arrive with scattered pre-existing votes over the generated set —
+///     never on her own comments — so vote highlighting is visible on first load (issue #18).
 /// </summary>
 public static class SampleFindingComments
 {

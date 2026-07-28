@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CommentThreadDto } from '../finding-comments.service';
 import { commentThreads } from '../finding-detail.fixtures';
-import { CommentThread } from './comment-thread';
+import { CommentThread, CommentVote } from './comment-thread';
 
 describe('CommentThread', () => {
   let fixture: ComponentFixture<CommentThread>;
@@ -54,5 +54,40 @@ describe('CommentThread', () => {
 
     expect(element().querySelectorAll('.comment').length).toBe(1);
     expect(element().querySelectorAll('.replies .comment').length).toBe(0);
+  });
+
+  describe('voting (issue #18)', () => {
+    const rows = () => element().querySelectorAll('.comment');
+    const upButtonOf = (row: Element) =>
+      row.querySelector<HTMLButtonElement>('button.upvote-button');
+
+    it("forwards a row's vote tagged with the comment it belongs to", async () => {
+      await createThread(withReplies());
+
+      const emitted: CommentVote[] = [];
+      fixture.componentInstance.vote.subscribe((vote) => emitted.push(vote));
+
+      // The first reply belongs to linus_t — not the reader — so its controls are live.
+      const replyRow = element().querySelectorAll('.replies .comment')[0];
+      upButtonOf(replyRow)!.click();
+
+      expect(emitted).toEqual([
+        { commentId: withReplies().replies[0].id, direction: 'up' },
+      ]);
+    });
+
+    it("marks only the pending comment's row as pending", async () => {
+      await createThread(withReplies());
+      fixture.componentRef.setInput('pendingVoteIds', [withReplies().replies[0].id]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const replyRow = element().querySelectorAll('.replies .comment')[0];
+      expect(upButtonOf(replyRow)!.disabled).toBe(true);
+
+      // The top-level comment has no request in flight (and grace_hopper is not the
+      // reader), so its controls stay live.
+      expect(upButtonOf(rows()[0])!.disabled).toBe(false);
+    });
   });
 });

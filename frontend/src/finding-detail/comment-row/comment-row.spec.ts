@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { CommentDto } from '../finding-comments.service';
+import { CommentDto, CommentVoteDirection } from '../finding-comments.service';
 import { commentThreads } from '../finding-detail.fixtures';
 import { CommentRow } from './comment-row';
 
@@ -45,9 +45,73 @@ describe('CommentRow', () => {
     expect(age?.textContent).not.toContain('2026');
   });
 
-  it('offers no vote controls — counts are display-only until the voting ticket', async () => {
-    await createRow(comment);
+  describe('vote controls (issue #18)', () => {
+    const upButton = () => element().querySelector<HTMLButtonElement>('button.upvote-button');
+    const downButton = () => element().querySelector<HTMLButtonElement>('button.downvote-button');
 
-    expect(element().querySelectorAll('button').length).toBe(0);
+    it('offers an upvote and a downvote control', async () => {
+      await createRow(comment);
+
+      expect(upButton()).not.toBeNull();
+      expect(downButton()).not.toBeNull();
+    });
+
+    it('reports the direction the reader clicked', async () => {
+      await createRow({ ...comment, myVote: null });
+
+      const emitted: CommentVoteDirection[] = [];
+      fixture.componentInstance.vote.subscribe((direction) => emitted.push(direction));
+
+      upButton()!.click();
+      downButton()!.click();
+      expect(emitted).toEqual(['up', 'down']);
+    });
+
+    it("highlights the reader's current up vote — and only it", async () => {
+      await createRow({ ...comment, myVote: 'up' });
+
+      expect(upButton()!.classList.contains('voted')).toBe(true);
+      expect(downButton()!.classList.contains('voted')).toBe(false);
+    });
+
+    it("highlights the reader's current down vote — and only it", async () => {
+      await createRow({ ...comment, myVote: 'down' });
+
+      expect(upButton()!.classList.contains('voted')).toBe(false);
+      expect(downButton()!.classList.contains('voted')).toBe(true);
+    });
+
+    it('shows no highlight when the reader has not voted', async () => {
+      await createRow({ ...comment, myVote: null });
+
+      // The controls are there — neither carries the highlight.
+      expect(upButton()).not.toBeNull();
+      expect(element().querySelector('.voted')).toBeNull();
+    });
+
+    it("disables both controls on the reader's own comment", async () => {
+      // The stub user (current-user.ts) authored it — scores can't be self-inflated.
+      await createRow({ ...comment, author: 'ada_lovelace', myVote: null });
+
+      expect(upButton()!.disabled).toBe(true);
+      expect(downButton()!.disabled).toBe(true);
+    });
+
+    it('disables both controls while a vote request for this comment is in flight', async () => {
+      await createRow({ ...comment, myVote: null });
+      fixture.componentRef.setInput('votePending', true);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(upButton()!.disabled).toBe(true);
+      expect(downButton()!.disabled).toBe(true);
+    });
+
+    it("leaves the controls enabled on someone else's comment with no request in flight", async () => {
+      await createRow({ ...comment, myVote: null });
+
+      expect(upButton()!.disabled).toBe(false);
+      expect(downButton()!.disabled).toBe(false);
+    });
   });
 });

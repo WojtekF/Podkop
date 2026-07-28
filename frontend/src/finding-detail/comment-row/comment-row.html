@@ -1,3 +1,11 @@
+<!--
+  Voting (issue #18): alongside its counts, each comment offers an upvote and a downvote
+  control — the specs query them as `button.upvote-button` and `button.downvote-button`.
+  States to cover: the control matching the comment's `myVote` carries the `voted` class;
+  both controls are disabled when the reader authored the comment (compare against the stub
+  user in `../current-user.ts`) and while `votePending` is set; a click reports the chosen
+  direction through the component's `vote` output.
+-->
 <mat-card [class]="{ comment: true, thread: !isReply() }">
   <mat-card-content>
     <div class="header">
