@@ -59,3 +59,7 @@ _Avoid_: Bury (for comments), minus, dislike
 **Reply**:
 A comment attached to a top-level comment rather than directly to the finding. A reply can never have replies — threads are exactly one level deep.
 _Avoid_: Nested comment, sub-comment, thread
+
+**Thread**:
+A top-level comment together with its replies, displayed as one unit of a finding's discussion. A thread may have no replies, and a finding may have no threads at all.
+_Avoid_: Comment tree, conversation
