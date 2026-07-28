@@ -67,28 +67,3 @@
     <a routerLink="/" class="back-link">Main Page</a>
   </div>
 }
-
-<!--
-  Issue #16 — the discussion joins this page (the updated finding-detail.spec.ts, plus the
-  colocated comment-thread and comment-row specs, are the contract):
-
-  LOADING now covers the whole page: the one spinner stays until BOTH the finding and its
-  discussion have arrived — the loaded finding must not render while comments are still in
-  flight (the store's status only becomes 'loaded' once both answers are in).
-
-  LOADED additionally shows, below the finding, the comments section:
-    - a container with the id `comments` (the landing target of a card's comment-count link),
-    - inside it, one element marked `comment-thread` per top-level comment, in exactly the
-      order the store holds them — best-first comes from the server; never re-sort here,
-    - each thread shows its top-level comment and, nested one visual level deeper inside a
-      `replies` container, its replies in the delivered (chronological) order — the
-      scaffolded comment-thread and comment-row components render the rows; wire them in,
-    - a finding with no discussion still shows the (empty) comments section.
-
-  Entering the page through a card's comment-count link (the URL carries the `comments`
-  fragment) must land the reader with the FIRST comment centered in the viewport once the
-  page has rendered; a plain visit stays at the top.
-
-  ERROR keeps its shape, but Retry now re-requests both the finding and the discussion (the
-  store's retry() promises this).
--->

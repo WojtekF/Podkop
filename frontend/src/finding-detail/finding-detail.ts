@@ -34,10 +34,6 @@ export class FindingDetail {
   private readonly threadElements = viewChildren(CommentThread, { read: ElementRef });
   private scrolledToComments = false;
 
-  // Issue #16: when the page is entered through a card's comment-count link — the URL
-  // carries the `comments` fragment — the first comment must end up centered in the
-  // viewport once the discussion has rendered, and only then; a plain visit stays at the
-  // top. See the centering specs in finding-detail.spec.ts.
   constructor() {
     effect(() => {
       this.store.load(this.id());

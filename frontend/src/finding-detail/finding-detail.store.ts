@@ -73,6 +73,7 @@ export const FindingDetailStore = signalStore(
     },
   ),
 );
+
 function toPatch(
   finding: FindingDetailDto | HttpErrorResponse,
   comments: CommentThreadDto[] | HttpErrorResponse,

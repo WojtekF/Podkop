@@ -1,17 +1,3 @@
-<!--
-  A single comment row — one voice in the discussion, used for top-level comments and
-  replies alike. The colocated comment-row.spec.ts is the contract.
-
-  On a root element marked `comment`, show:
-    - the author, marked `author`,
-    - how long ago it was written, marked `age` — an age relative to now, not a calendar date,
-    - the text, marked `text`,
-    - the upvote count, marked `upvote-count`, and the downvote count, marked
-      `downvote-count`, visibly distinct from each other.
-
-  Counts are display-only: no buttons or any other vote controls — voting on comments
-  arrives with a later ticket.
--->
 <mat-card [class]="{ comment: true, thread: !isReply() }">
   <mat-card-content>
     <div class="header">
