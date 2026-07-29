@@ -25,21 +25,27 @@ public class CommentVotingApiTests
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
     private static readonly Guid CommentId = Guid.Parse("c0000000-0000-4000-8000-000000000001");
 
-    private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
+    private static DateTimeOffset At(string iso)
+    {
+        return DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
+    }
 
-    private static Finding CreateFinding(Guid id) => new(
-        id: id,
-        title: "A finding under discussion",
-        description: "The finding the votes land under.",
-        source: new Uri("https://blog.example.org/posts/42"),
-        thumbnail: null,
-        author: "grace_hopper",
-        tags: ["angular"],
-        createdAt: At("2026-07-08T03:30:00Z"),
-        promotedAt: At("2026-07-08T09:30:00Z"),
-        digCount: 10,
-        buryCount: 1,
-        commentCount: 0);
+    private static Finding CreateFinding(Guid id)
+    {
+        return new Finding(
+            id,
+            "A finding under discussion",
+            "The finding the votes land under.",
+            new Uri("https://blog.example.org/posts/42"),
+            null,
+            "grace_hopper",
+            ["angular"],
+            At("2026-07-08T03:30:00Z"),
+            At("2026-07-08T09:30:00Z"),
+            10,
+            1,
+            0);
+    }
 
     private static Comment CreateComment(
         Guid id,
@@ -49,28 +55,34 @@ public class CommentVotingApiTests
         Guid? parentCommentId = null,
         VoteDirection? stubUsersVote = null,
         string createdAt = "2026-07-08T10:00:00Z")
-        => new(id, FindingId, parentCommentId, author, "A comment worth judging.", At(createdAt),
-            upvotes, downvotes,
+    {
+        return new Comment(id, FindingId, parentCommentId, author, "A comment worth judging.", At(createdAt),
             stubUsersVote is null
-                ? null
-                : new Dictionary<string, VoteDirection> { [StubUser] = stubUsersVote.Value });
+                ? VotesGenerator.Generate(downvotes, upvotes)
+                : new Dictionary<string, VoteDirection>(VotesGenerator.Generate(downvotes, upvotes))
+                    { [StubUser] = stubUsersVote.Value });
+    }
 
     private static WebApplicationFactory<Program> CreateFactory(IReadOnlyList<Comment> comments)
-        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+    {
+        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IFindingRepository>(
                     new InMemoryFindingRepository([CreateFinding(FindingId)]));
                 services.AddSingleton<ICommentRepository>(new InMemoryCommentRepository(comments));
             }));
+    }
 
     private static Task<HttpResponseMessage> PutVote(HttpClient client, Guid commentId, string direction)
-        => client.PutAsJsonAsync($"/api/comments/{commentId}/my-vote", new { direction });
+    {
+        return client.PutAsJsonAsync($"/api/comments/{commentId}/my-vote", new { direction });
+    }
 
     [Fact]
     public async Task Upvoting_a_fresh_comment_records_it_and_returns_the_new_counts()
     {
-        using var factory = CreateFactory([CreateComment(CommentId, upvotes: 5, downvotes: 2)]);
+        using var factory = CreateFactory([CreateComment(CommentId, 5, 2)]);
         using var client = factory.CreateClient();
 
         var response = await PutVote(client, CommentId, "up");
@@ -83,7 +95,7 @@ public class CommentVotingApiTests
     [Fact]
     public async Task Downvoting_a_fresh_comment_works_symmetrically()
     {
-        using var factory = CreateFactory([CreateComment(CommentId, upvotes: 5, downvotes: 2)]);
+        using var factory = CreateFactory([CreateComment(CommentId, 5, 2)]);
         using var client = factory.CreateClient();
 
         var response = await PutVote(client, CommentId, "down");
@@ -96,9 +108,9 @@ public class CommentVotingApiTests
     [Fact]
     public async Task Setting_the_side_already_held_changes_nothing()
     {
-        // The seeded counts already contain the stub user's upvote.
+        // The seeded counts does not contain the stub user's upvote.
         using var factory = CreateFactory(
-            [CreateComment(CommentId, upvotes: 5, downvotes: 2, stubUsersVote: VoteDirection.Up)]);
+            [CreateComment(CommentId, 4, 2, stubUsersVote: VoteDirection.Up)]);
         using var client = factory.CreateClient();
 
         var response = await PutVote(client, CommentId, "up");
@@ -117,9 +129,9 @@ public class CommentVotingApiTests
         var replyId = Guid.Parse("c0000000-0000-4000-8000-00000000000b");
         using var factory = CreateFactory(
         [
-            CreateComment(parentId, upvotes: 1, downvotes: 0),
-            CreateComment(replyId, upvotes: 5, downvotes: 2, author: "linus_t",
-                parentCommentId: parentId, stubUsersVote: VoteDirection.Up),
+            CreateComment(parentId, 1, 0),
+            CreateComment(replyId, 4, 2, "linus_t",
+                parentId, VoteDirection.Up)
         ]);
         using var client = factory.CreateClient();
 
@@ -134,7 +146,7 @@ public class CommentVotingApiTests
     public async Task Withdrawing_a_vote_frees_the_count_it_was_held_in()
     {
         using var factory = CreateFactory(
-            [CreateComment(CommentId, upvotes: 5, downvotes: 2, stubUsersVote: VoteDirection.Up)]);
+            [CreateComment(CommentId, 4, 2, stubUsersVote: VoteDirection.Up)]);
         using var client = factory.CreateClient();
 
         var response = await client.DeleteAsync($"/api/comments/{CommentId}/my-vote");
@@ -148,7 +160,7 @@ public class CommentVotingApiTests
     public async Task Voting_on_your_own_comment_is_a_400()
     {
         using var factory = CreateFactory(
-            [CreateComment(CommentId, upvotes: 5, downvotes: 2, author: StubUser)]);
+            [CreateComment(CommentId, 5, 2, StubUser)]);
         using var client = factory.CreateClient();
 
         var response = await PutVote(client, CommentId, "up");
@@ -181,7 +193,7 @@ public class CommentVotingApiTests
     [Fact]
     public async Task A_recorded_vote_survives_into_the_next_read()
     {
-        using var factory = CreateFactory([CreateComment(CommentId, upvotes: 5, downvotes: 2)]);
+        using var factory = CreateFactory([CreateComment(CommentId, 5, 2)]);
         using var client = factory.CreateClient();
 
         var putResponse = await PutVote(client, CommentId, "up");
@@ -206,10 +218,10 @@ public class CommentVotingApiTests
         using var factory = CreateFactory(
         [
             // Net scores keep the thread order deterministic: 8 before -1.
-            CreateComment(votedUpThread, upvotes: 10, downvotes: 2, stubUsersVote: VoteDirection.Up),
-            CreateComment(votedDownReply, upvotes: 1, downvotes: 1, author: "linus_t",
-                parentCommentId: votedUpThread, stubUsersVote: VoteDirection.Down),
-            CreateComment(freshThread, upvotes: 3, downvotes: 4, author: "margaret_h"),
+            CreateComment(votedUpThread, 10, 2, stubUsersVote: VoteDirection.Up),
+            CreateComment(votedDownReply, 1, 1, "linus_t",
+                votedUpThread, VoteDirection.Down),
+            CreateComment(freshThread, 3, 4, "margaret_h")
         ]);
         using var client = factory.CreateClient();
 

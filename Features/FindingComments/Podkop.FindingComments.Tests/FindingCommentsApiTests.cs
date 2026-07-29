@@ -17,21 +17,27 @@ public class FindingCommentsApiTests
 {
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
 
-    private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
+    private static DateTimeOffset At(string iso)
+    {
+        return DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
+    }
 
-    private static Finding CreateFinding(Guid id) => new(
-        id: id,
-        title: "A finding under discussion",
-        description: "The finding the threads hang off.",
-        source: new Uri("https://blog.example.org/posts/42"),
-        thumbnail: null,
-        author: "grace_hopper",
-        tags: ["angular"],
-        createdAt: At("2026-07-08T03:30:00Z"),
-        promotedAt: At("2026-07-08T09:30:00Z"),
-        digCount: 10,
-        buryCount: 1,
-        commentCount: 0);
+    private static Finding CreateFinding(Guid id)
+    {
+        return new Finding(
+            id,
+            "A finding under discussion",
+            "The finding the threads hang off.",
+            new Uri("https://blog.example.org/posts/42"),
+            null,
+            "grace_hopper",
+            ["angular"],
+            At("2026-07-08T03:30:00Z"),
+            At("2026-07-08T09:30:00Z"),
+            10,
+            1,
+            0);
+    }
 
     private static Comment TopLevel(
         Guid id,
@@ -40,7 +46,10 @@ public class FindingCommentsApiTests
         string createdAt,
         string author = "ada_lovelace",
         string text = "A top-level comment.")
-        => new(id, FindingId, parentCommentId: null, author, text, At(createdAt), upvotes, downvotes);
+    {
+        return new Comment(id, FindingId, null, author, text, At(createdAt),
+            VotesGenerator.Generate(downvotes, upvotes));
+    }
 
     private static Comment Reply(
         Guid id,
@@ -50,17 +59,22 @@ public class FindingCommentsApiTests
         string text = "A reply.",
         int upvotes = 0,
         int downvotes = 0)
-        => new(id, FindingId, parentCommentId, author, text, At(createdAt), upvotes, downvotes);
+    {
+        return new Comment(id, FindingId, parentCommentId, author, text, At(createdAt),
+            VotesGenerator.Generate(downvotes, upvotes));
+    }
 
     private static WebApplicationFactory<Program> CreateFactory(
         IReadOnlyList<Finding> findings,
         IReadOnlyList<Comment> comments)
-        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+    {
+        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings));
                 services.AddSingleton<ICommentRepository>(new InMemoryCommentRepository(comments));
             }));
+    }
 
     [Fact]
     public async Task Comments_of_an_unknown_finding_are_a_404()
@@ -100,9 +114,9 @@ public class FindingCommentsApiTests
         using var factory = CreateFactory(
             [CreateFinding(FindingId)],
             [
-                TopLevel(middling, upvotes: 5, downvotes: 4, "2026-07-08T10:00:00Z"),
-                TopLevel(best, upvotes: 10, downvotes: 2, "2026-07-08T11:00:00Z"),
-                TopLevel(runnerUp, upvotes: 3, downvotes: 0, "2026-07-08T12:00:00Z"),
+                TopLevel(middling, 5, 4, "2026-07-08T10:00:00Z"),
+                TopLevel(best, 10, 2, "2026-07-08T11:00:00Z"),
+                TopLevel(runnerUp, 3, 0, "2026-07-08T12:00:00Z")
             ]);
         using var client = factory.CreateClient();
 
@@ -123,8 +137,8 @@ public class FindingCommentsApiTests
         using var factory = CreateFactory(
             [CreateFinding(FindingId)],
             [
-                TopLevel(newer, upvotes: 4, downvotes: 1, "2026-07-08T12:00:00Z"),
-                TopLevel(older, upvotes: 3, downvotes: 0, "2026-07-08T09:00:00Z"),
+                TopLevel(newer, 4, 1, "2026-07-08T12:00:00Z"),
+                TopLevel(older, 3, 0, "2026-07-08T09:00:00Z")
             ]);
         using var client = factory.CreateClient();
 
@@ -146,12 +160,12 @@ public class FindingCommentsApiTests
         using var factory = CreateFactory(
             [CreateFinding(FindingId)],
             [
-                TopLevel(parentA, upvotes: 1, downvotes: 0, "2026-07-08T10:00:00Z"),
+                TopLevel(parentA, 1, 0, "2026-07-08T10:00:00Z"),
                 // The late reply hugely outscores the early one — reply order must ignore votes.
                 Reply(replyLate, parentA, "2026-07-08T15:00:00Z", upvotes: 50),
-                TopLevel(parentB, upvotes: 0, downvotes: 0, "2026-07-08T11:00:00Z"),
+                TopLevel(parentB, 0, 0, "2026-07-08T11:00:00Z"),
                 Reply(replyEarly, parentA, "2026-07-08T13:00:00Z"),
-                Reply(replyToB, parentB, "2026-07-08T14:00:00Z"),
+                Reply(replyToB, parentB, "2026-07-08T14:00:00Z")
             ]);
         using var client = factory.CreateClient();
 
@@ -173,10 +187,10 @@ public class FindingCommentsApiTests
         using var factory = CreateFactory(
             [CreateFinding(FindingId)],
             [
-                TopLevel(topLevelId, upvotes: 12, downvotes: 2, "2026-07-08T10:00:00Z",
-                    author: "grace_hopper", text: "Best take in the thread."),
+                TopLevel(topLevelId, 12, 2, "2026-07-08T10:00:00Z",
+                    "grace_hopper", "Best take in the thread."),
                 Reply(replyId, topLevelId, "2026-07-08T10:30:00Z",
-                    author: "linus_t", text: "Agreed — with a caveat.", upvotes: 1, downvotes: 0),
+                    "linus_t", "Agreed — with a caveat.", 1)
             ]);
         using var client = factory.CreateClient();
 

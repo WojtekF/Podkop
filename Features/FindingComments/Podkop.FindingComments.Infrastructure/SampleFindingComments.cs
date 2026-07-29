@@ -26,7 +26,28 @@ public static class SampleFindingComments
         "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos."
     ];
 
-    private static readonly string[] Authors = ["ada_lovelace", "grace_hopper", "linus_t", "margaret_h", "dennis_r"];
+    private static readonly string[] Authors =
+    [
+        "ada_lovelace",
+        "grace_hopper",
+        "linus_t",
+        "margaret_h",
+        "dennis_r",
+        "milan_jovanovic",
+        "nick_chapsas",
+        "matt_pocock",
+        "web_dev_simplified",
+        "Marie Curie-Skłodowska",
+        "Albert Einstein",
+        "Ernest Hemingway",
+        "Martin Luther",
+        "Richard Feynman",
+        "Wisława Szymborska",
+        "Nelson Mandela",
+        "Frances Arnold",
+        "Katalin Karikó",
+        "Emmanuelle Charpentier"
+    ];
 
     public static IReadOnlyList<Comment> GenerateFor(IReadOnlyList<Guid> findingIds)
     {
@@ -39,14 +60,20 @@ public static class SampleFindingComments
     private static IEnumerable<Comment> GenerateComments(Guid findingId, Guid? parentCommentId = null)
     {
         return Enumerable.Range(0, Random.Shared.Next(0, 30)).Select(i =>
-            new Comment(
+        {
+            var author = Authors[Random.Shared.Next(Authors.Length)];
+            return new Comment(
                 Guid.CreateVersion7(),
                 findingId,
                 parentCommentId,
-                Authors[Random.Shared.Next(Authors.Length)],
+                author,
                 string.Join(" ", Random.Shared.GetItems(Sentences, Random.Shared.Next(1, 4))),
                 DateTimeOffset.UtcNow.AddHours(-Random.Shared.Next(2, 96)),
-                Random.Shared.Next(0, 100),
-                Random.Shared.Next(0, 100)));
+                Authors.Where(a => a != author)
+                    .OrderBy(_ => Random.Shared.Next())
+                    .Take(Random.Shared.Next(1, Authors.Length - 1))
+                    .ToDictionary(key => key, key => (VoteDirection)Random.Shared.Next(0, 2))
+            );
+        });
     }
 }

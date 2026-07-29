@@ -39,7 +39,8 @@ public sealed record CommentReply(
 
 public sealed class GetFindingCommentsHandler(
     ICommentRepository commentsRepository,
-    IFindingLookup findingLookup)
+    IFindingLookup findingLookup,
+    ICurrentUser currentUser)
     : IRequestHandler<GetFindingComments, IReadOnlyList<CommentThread>?>
 {
     public async Task<IReadOnlyList<CommentThread>?> Handle(GetFindingComments request,
@@ -51,34 +52,37 @@ public sealed class GetFindingCommentsHandler(
         var commentThreads = commentsFromFinding.Where(comment => !comment.IsReply);
         var commentRepliesByParent = commentsFromFinding
             .Where(comment => comment.IsReply)
-            .GroupBy(comment => comment.ParentCommentId);
+            .ToLookup(comment => comment.ParentCommentId!.Value);
 
         return commentThreads
             .OrderByDescending(comment => comment.NetScore)
             .ThenBy(comment => comment.CreatedAt)
-            .Select(comment => ToCommentThread(comment, commentRepliesByParent)
+            .Select(comment => ToCommentThread(comment, commentRepliesByParent, currentUser.UserName)
             ).ToList();
     }
 
-    private static CommentThread ToCommentThread(Comment comment, IEnumerable<IGrouping<Guid?, Comment>> groupings)
+    private static CommentThread ToCommentThread(Comment comment, ILookup<Guid, Comment> repliesByParent,
+        string currentUser)
     {
-        var grouping = groupings
-            .SingleOrDefault(kv => kv.Key == comment.Id);
         return new CommentThread(comment.Id, comment.Author, comment.Text, comment.UpvoteCount, comment.DownvoteCount,
-            MyVote: null,
+            MyVote(comment, currentUser),
             comment.CreatedAt,
-            grouping is not null
-                ? grouping.Select(reply =>
-                        new CommentReply(
-                            reply.Id,
-                            reply.Author,
-                            reply.Text,
-                            reply.UpvoteCount,
-                            reply.DownvoteCount,
-                            MyVote: null,
-                            reply.CreatedAt))
-                    .OrderBy(cr => cr.CreatedAt)
-                    .ToList()
-                : Enumerable.Empty<CommentReply>().ToList());
+            repliesByParent[comment.Id]
+                .OrderBy(cr => cr.CreatedAt)
+                .Select(reply =>
+                    new CommentReply(
+                        reply.Id,
+                        reply.Author,
+                        reply.Text,
+                        reply.UpvoteCount,
+                        reply.DownvoteCount,
+                        MyVote(reply, currentUser),
+                        reply.CreatedAt))
+                .ToList());
+    }
+
+    private static string? MyVote(Comment comment, string currentUser)
+    {
+        return comment.Votes.TryGetValue(currentUser, out var value) ? value.ToDomainString() : null;
     }
 }

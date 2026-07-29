@@ -1,10 +1,10 @@
 namespace Podkop.FindingComments.Domain;
 
 /// <summary>
-/// A user-authored text response attached to a finding — the unit of discussion (CONTEXT.md).
-/// Comment is its own aggregate referencing the finding (and, when it is a reply, its parent
-/// comment) by id only; it is never held as a collection on the finding (ADR 0005). A reply
-/// can never have replies — threads are exactly one level deep.
+///     A user-authored text response attached to a finding — the unit of discussion (CONTEXT.md).
+///     Comment is its own aggregate referencing the finding (and, when it is a reply, its parent
+///     comment) by id only; it is never held as a collection on the finding (ADR 0005). A reply
+///     can never have replies — threads are exactly one level deep.
 /// </summary>
 public sealed class Comment
 {
@@ -17,8 +17,6 @@ public sealed class Comment
         string author,
         string text,
         DateTimeOffset createdAt,
-        int upvoteCount,
-        int downvoteCount,
         IReadOnlyDictionary<string, VoteDirection>? votes = null)
     {
         Id = id;
@@ -27,8 +25,6 @@ public sealed class Comment
         Author = author;
         Text = text;
         CreatedAt = createdAt;
-        UpvoteCount = upvoteCount;
-        DownvoteCount = downvoteCount;
         _votes = votes is null ? [] : new Dictionary<string, VoteDirection>(votes);
     }
 
@@ -38,8 +34,8 @@ public sealed class Comment
     public string Author { get; }
     public string Text { get; }
     public DateTimeOffset CreatedAt { get; }
-    public int UpvoteCount { get; private set; }
-    public int DownvoteCount { get; private set; }
+    public int UpvoteCount => _votes.Count(vote => vote.Value == VoteDirection.Up);
+    public int DownvoteCount => _votes.Count(vote => vote.Value == VoteDirection.Down);
 
     /// <summary>
     ///     The individual votes tracked per voter. Seeded counts may include votes from users
@@ -57,16 +53,21 @@ public sealed class Comment
     ///     must stay consistent with each other, and the comment's own author can never vote —
     ///     the same ruleset as finding votes, minus reasons.
     /// </summary>
-    public void SetVote(string voter, VoteDirection direction)
+    public ActionOutcome SetVote(string voter, VoteDirection direction)
     {
-        throw new NotImplementedException();
+        if (voter == Author) return ActionOutcome.OwnComment;
+
+        _votes[voter] = direction;
+        return ActionOutcome.Applied;
     }
 
     /// <summary>
     ///     Withdraws the voter's vote (issue #18), freeing the count it was held in.
     /// </summary>
-    public void WithdrawVote(string voter)
+    public ActionOutcome WithdrawVote(string voter)
     {
-        throw new NotImplementedException();
+        if (voter == Author) return ActionOutcome.OwnComment;
+        _votes.Remove(voter);
+        return ActionOutcome.Applied;
     }
 }
