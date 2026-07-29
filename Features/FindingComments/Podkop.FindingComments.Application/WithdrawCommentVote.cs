@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.FindingComments.Domain;
 
 namespace Podkop.FindingComments.Application;
 
@@ -14,8 +15,15 @@ public sealed class WithdrawCommentVoteHandler(
     ICurrentUser currentUser)
     : IRequestHandler<WithdrawCommentVote, CommentVoteResult>
 {
-    public Task<CommentVoteResult> Handle(WithdrawCommentVote request, CancellationToken cancellationToken)
+    public async Task<CommentVoteResult> Handle(WithdrawCommentVote request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var comment = await commentsRepository.GetByIdAsync(request.CommentId, cancellationToken);
+
+        if (comment is null) return new CommentVoteResult(CommentVoteError.UnknownComment, null);
+
+        if (comment.WithdrawVote(currentUser.UserName) == ActionOutcome.OwnComment)
+            return new CommentVoteResult(CommentVoteError.OwnComment, null);
+
+        return new CommentVoteResult(null, new CommentVotes(comment.UpvoteCount, comment.DownvoteCount, null));
     }
 }

@@ -7,5 +7,13 @@ namespace Podkop.FindingComments.Domain;
 public enum VoteDirection
 {
     Up,
-    Down,
+    Down
+}
+
+public static class VoteDirectionExtensions
+{
+    public static string ToDomainString(this VoteDirection voteDirection)
+    {
+        return voteDirection == VoteDirection.Up ? "up" : "down";
+    }
 }

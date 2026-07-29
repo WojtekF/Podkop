@@ -23,8 +23,8 @@ public enum CommentVoteError
     /// <summary>No comment has that id — the endpoint answers 404.</summary>
     UnknownComment,
 
-    /// <summary>The current user authored the comment — the endpoint answers 400.</summary>
-    OwnComment,
+    /// <summary>The voter authored the comment — rejected — the endpoint answers 400.</summary>
+    OwnComment
 }
 
 /// <summary>
@@ -38,8 +38,18 @@ public sealed class SetCommentVoteHandler(
     ICurrentUser currentUser)
     : IRequestHandler<SetCommentVote, CommentVoteResult>
 {
-    public Task<CommentVoteResult> Handle(SetCommentVote request, CancellationToken cancellationToken)
+    public async Task<CommentVoteResult> Handle(SetCommentVote request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var comment = await commentsRepository.GetByIdAsync(request.CommentId, cancellationToken);
+        if (comment is null) return new CommentVoteResult(CommentVoteError.UnknownComment, null);
+
+        if (comment.SetVote(currentUser.UserName, request.Direction) == ActionOutcome.OwnComment)
+            return new CommentVoteResult(CommentVoteError.OwnComment, null);
+
+        return new CommentVoteResult(null, new CommentVotes(
+            comment.UpvoteCount,
+            comment.DownvoteCount,
+            request.Direction.ToDomainString()
+        ));
     }
 }
