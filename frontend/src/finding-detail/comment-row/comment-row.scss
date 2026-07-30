@@ -14,6 +14,12 @@
     .meta {
       display: flex;
       flex-direction: row;
+      .author {
+        align-self: center;
+      }
+      .age {
+        align-self: center;
+      }
     }
     .author {
       margin-right: 10px;
@@ -22,6 +28,18 @@
       display: flex;
       flex-direction: row;
       gap: 0.5rem;
+      .upvote-count {
+        align-self: center;
+      }
+      .downvote-count {
+        align-self: center;
+      }
+      .upvote-button.voted {
+        color: green;
+      }
+      .downvote-button.voted {
+        color: red;
+      }
     }
   }
 }

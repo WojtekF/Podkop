@@ -22,6 +22,9 @@ export const findingDetail = (overrides: Partial<FindingDetailDto> = {}): Findin
 
 // The discussion the comments endpoint returns for the finding: already ordered by the
 // server — threads best-first, replies chronological. The frontend renders this order as-is.
+// The reader's votes are scattered the way the seeds scatter them (issue #18): one thread
+// voted up, one reply voted down (its counts include that vote), the reader's own comment
+// (ada_lovelace) unvotable, and one fresh thread with no vote yet.
 export const commentThreads = (): CommentThreadDto[] => [
   {
     id: 'c0000000-0000-4000-8000-000000000001',
@@ -29,6 +32,7 @@ export const commentThreads = (): CommentThreadDto[] => [
     text: 'Best take in the thread.',
     upvoteCount: 12,
     downvoteCount: 2,
+    myVote: 'up',
     createdAt: '2026-07-08T10:00:00Z',
     replies: [
       {
@@ -36,7 +40,8 @@ export const commentThreads = (): CommentThreadDto[] => [
         author: 'linus_t',
         text: 'Agreed — with a caveat.',
         upvoteCount: 1,
-        downvoteCount: 0,
+        downvoteCount: 1,
+        myVote: 'down',
         createdAt: '2026-07-08T10:30:00Z',
       },
       {
@@ -45,6 +50,7 @@ export const commentThreads = (): CommentThreadDto[] => [
         text: 'The caveat does not hold up.',
         upvoteCount: 5,
         downvoteCount: 1,
+        myVote: null,
         createdAt: '2026-07-08T11:00:00Z',
       },
     ],
@@ -55,6 +61,7 @@ export const commentThreads = (): CommentThreadDto[] => [
     text: 'A dissenting view, sitting lower.',
     upvoteCount: 3,
     downvoteCount: 4,
+    myVote: null,
     createdAt: '2026-07-07T09:00:00Z',
     replies: [],
   },

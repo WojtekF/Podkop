@@ -57,7 +57,11 @@
   <div id="comments">
     @for (thread of store.comments(); track thread.id) {
       <mat-card class="comment-thread">
-        <app-comment-thread [thread]="thread" />
+        <app-comment-thread
+          [thread]="thread"
+          [pendingVoteIds]="store.pendingCommentVoteIds()"
+          (vote)="onVote($event)"
+        />
       </mat-card>
     }
   </div>

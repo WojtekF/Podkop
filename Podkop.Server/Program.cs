@@ -17,6 +17,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddFindings(() => SampleSeed.Findings);
 builder.Services.AddFindingComments(() => SampleSeed.Comments);
 builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
+builder.Services.AddSingleton<ICurrentUser, StubCurrentUser>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

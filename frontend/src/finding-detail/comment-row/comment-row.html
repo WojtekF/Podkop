@@ -6,8 +6,26 @@
         <div class="age">{{ comment().createdAt | timeAgo }}</div>
       </div>
       <div class="counts">
+        <button
+          [class]="{ 'upvote-button': true, voted: comment().myVote === 'up' }"
+          mat-icon-button
+          aria-label="Vote up"
+          [disabled]="isButtonDisabled()"
+          (click)="vote.emit('up')"
+        >
+          <mat-icon>arrow_upward</mat-icon>
+        </button>
         <span class="upvote-count">{{ comment().upvoteCount }}</span>
         <span class="downvote-count">{{ comment().downvoteCount }}</span>
+        <button
+          [class]="{ 'downvote-button': true, voted: comment().myVote === 'down' }"
+          mat-icon-button
+          aria-label="Vote down"
+          [disabled]="isButtonDisabled()"
+          (click)="vote.emit('down')"
+        >
+          <mat-icon>arrow_downward</mat-icon>
+        </button>
       </div>
     </div>
     <div class="text">{{ comment().text }}</div>

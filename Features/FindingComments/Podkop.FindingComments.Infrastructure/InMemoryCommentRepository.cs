@@ -10,4 +10,7 @@ public sealed class InMemoryCommentRepository(IEnumerable<Comment> comments) : I
     public Task<IReadOnlyList<Comment>> GetByFindingIdAsync(Guid findingId, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<Comment>>(
             _comments.Where(comment => comment.FindingId == findingId).ToList());
+
+    public Task<Comment?> GetByIdAsync(Guid commentId, CancellationToken cancellationToken) =>
+        Task.FromResult(_comments.FirstOrDefault(comment => comment.Id == commentId));
 }

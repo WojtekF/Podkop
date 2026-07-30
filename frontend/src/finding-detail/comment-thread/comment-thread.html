@@ -1,8 +1,17 @@
 <mat-card class="thread">
-  <app-comment-row [isReply]="false" [comment]="thread()" />
+  <app-comment-row
+    [isReply]="false"
+    [comment]="thread()"
+    [votePending]="pendingVoteIds().includes(thread().id)"
+    (vote)="vote.emit({ commentId: thread().id, direction: $event })"
+  />
   <div class="replies">
     @for (reply of thread().replies; track reply.id) {
-      <app-comment-row [comment]="reply" />
+      <app-comment-row
+        [comment]="reply"
+        [votePending]="pendingVoteIds().includes(reply.id)"
+        (vote)="vote.emit({ commentId: reply.id, direction: $event })"
+      />
     }
   </div>
 </mat-card>

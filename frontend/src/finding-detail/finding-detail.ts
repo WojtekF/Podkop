@@ -5,7 +5,7 @@ import { FindingDetailStore } from './finding-detail.store';
 import { MatButton } from '@angular/material/button';
 import { DatePipe } from '@angular/common';
 import { MatCard, MatCardContent } from '@angular/material/card';
-import { CommentThread } from './comment-thread/comment-thread';
+import { CommentThread, CommentVote } from './comment-thread/comment-thread';
 
 @Component({
   selector: 'app-finding-detail',
@@ -23,9 +23,14 @@ import { CommentThread } from './comment-thread/comment-thread';
   styleUrl: './finding-detail.scss',
 })
 export class FindingDetail {
+  protected onVote($event: CommentVote) {
+    this.store.voteOnComment($event);
+  }
+
   protected hasThumbnail() {
     return !!this.store.finding()?.thumbnailUrl;
   }
+
   protected readonly store = inject(FindingDetailStore);
 
   protected readonly id = input.required<string>();

@@ -2,10 +2,17 @@ import { LoadResult, asResult } from './as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
+import { concatMap, forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
-import { CommentThreadDto, FindingCommentsService } from './finding-comments.service';
+import {
+  CommentThreadDto,
+  CommentVoteDirection,
+  CommentVotesDto,
+  FindingCommentsService,
+} from './finding-comments.service';
 import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
+import { tapResponse } from '@ngrx/operators';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
 
@@ -14,6 +21,9 @@ export interface FindingDetailState {
   finding: FindingDetailDto | null;
   comments: CommentThreadDto[] | null;
   status: FindingDetailStatus;
+  // Ids of comments whose vote request is in flight — their controls stay disabled
+  // so a vote can't be double-submitted (issue #18).
+  pendingCommentVoteIds: readonly string[];
 }
 
 const initialState: FindingDetailState = {
@@ -21,6 +31,7 @@ const initialState: FindingDetailState = {
   finding: null,
   comments: null,
   status: 'loading',
+  pendingCommentVoteIds: [],
 };
 
 export const FindingDetailStore = signalStore(
@@ -30,6 +41,7 @@ export const FindingDetailStore = signalStore(
       store,
       service = inject(FindingDetailService),
       commentsService = inject(FindingCommentsService),
+      snackBar = inject(MatSnackBar),
     ) => {
       const load = rxMethod<string>(
         pipe(
@@ -58,18 +70,85 @@ export const FindingDetailStore = signalStore(
         if (id !== null) load(id);
       };
 
+      const voteOnComment = rxMethod<{ commentId: string; direction: CommentVoteDirection }>(
+        pipe(
+          tap({
+            next: ({ commentId }) => {
+              patchState(store, {
+                pendingCommentVoteIds: [...store.pendingCommentVoteIds(), commentId],
+              });
+            },
+          }),
+          concatMap(({ commentId, direction }) => {
+            const request$ =
+              myVoteOf(store.comments(), commentId) === direction
+                ? commentsService.withdrawMyVote(commentId)
+                : commentsService.setMyVote(commentId, direction);
+
+            return request$.pipe(
+              tapResponse({
+                next: (votes) => {
+                  patchState(store, {
+                    comments: applyVotes(store.comments()!, commentId, votes),
+                    pendingCommentVoteIds: filterFromPendingVotes(
+                      store.pendingCommentVoteIds(),
+                      commentId,
+                    ),
+                  });
+                },
+                error: () => {
+                  patchState(store, {
+                    pendingCommentVoteIds: filterFromPendingVotes(
+                      store.pendingCommentVoteIds(),
+                      commentId,
+                    ),
+                  });
+                  snackBar.open("Couldn't record your vote. Please try again.");
+                },
+              }),
+            );
+          }),
+        ),
+      );
+
       return {
         load,
         retry,
+        voteOnComment,
       };
     },
   ),
 );
 
-function toPatch(
+const filterFromPendingVotes = (pendingVotes: readonly string[], commentId: string) =>
+  pendingVotes.filter((votes) => votes !== commentId);
+
+const myVoteOf = (threads: CommentThreadDto[] | null, commentId: string) => {
+  const rows = threads?.flatMap((thread) => [thread, ...thread.replies]);
+  return rows?.find((row) => row.id === commentId)?.myVote ?? null;
+};
+
+const applyVotes = (
+  threads: CommentThreadDto[],
+  commentId: string,
+  votes: CommentVotesDto,
+): CommentThreadDto[] => {
+  return threads.map((thread) =>
+    thread.id === commentId
+      ? { ...thread, ...votes }
+      : {
+          ...thread,
+          replies: thread.replies.map((reply) =>
+            reply.id === commentId ? { ...reply, ...votes } : reply,
+          ),
+        },
+  );
+};
+
+const toPatch = (
   finding: LoadResult<FindingDetailDto>,
   comments: LoadResult<CommentThreadDto[]>,
-): Partial<FindingDetailState> {
+): Partial<FindingDetailState> => {
   if (isNotFound(finding) || isNotFound(comments)) return { status: 'notFound' };
   if (
     finding instanceof HttpErrorResponse ||
@@ -79,11 +158,11 @@ function toPatch(
   )
     return { status: 'error' };
   return { status: 'loaded', finding, comments };
-}
+};
 
-function isNotFound<T>(input: T | HttpErrorResponse): boolean {
+const isNotFound = <T>(input: T | HttpErrorResponse): boolean => {
   if (input instanceof HttpErrorResponse) {
     return input.status === 404;
   }
   return false;
-}
+};

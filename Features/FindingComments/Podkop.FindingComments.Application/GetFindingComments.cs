@@ -8,7 +8,9 @@ namespace Podkop.FindingComments.Application;
 ///     Yields <c>null</c> when no finding has that id so the endpoint can answer 404, and an
 ///     empty list for a finding whose discussion is empty. Top-level comments come best-first
 ///     — net score descending, ties oldest-first — and each carries its replies in
-///     chronological order. No paging yet (TODO.md).
+///     chronological order. No paging yet (TODO.md). Every row also carries the current
+///     user's vote — <c>"up"</c>, <c>"down"</c>, or <c>null</c> — so highlighting survives
+///     a page reload (issue #18).
 /// </summary>
 public sealed record GetFindingComments(Guid FindingId) : IRequest<IReadOnlyList<CommentThread>?>;
 
@@ -18,6 +20,7 @@ public sealed record CommentThread(
     string Text,
     int UpvoteCount,
     int DownvoteCount,
+    string? MyVote,
     DateTimeOffset CreatedAt,
     IReadOnlyList<CommentReply> Replies);
 
@@ -31,11 +34,13 @@ public sealed record CommentReply(
     string Text,
     int UpvoteCount,
     int DownvoteCount,
+    string? MyVote,
     DateTimeOffset CreatedAt);
 
 public sealed class GetFindingCommentsHandler(
     ICommentRepository commentsRepository,
-    IFindingLookup findingLookup)
+    IFindingLookup findingLookup,
+    ICurrentUser currentUser)
     : IRequestHandler<GetFindingComments, IReadOnlyList<CommentThread>?>
 {
     public async Task<IReadOnlyList<CommentThread>?> Handle(GetFindingComments request,
@@ -47,32 +52,32 @@ public sealed class GetFindingCommentsHandler(
         var commentThreads = commentsFromFinding.Where(comment => !comment.IsReply);
         var commentRepliesByParent = commentsFromFinding
             .Where(comment => comment.IsReply)
-            .GroupBy(comment => comment.ParentCommentId);
+            .ToLookup(comment => comment.ParentCommentId!.Value);
 
         return commentThreads
             .OrderByDescending(comment => comment.NetScore)
             .ThenBy(comment => comment.CreatedAt)
-            .Select(comment => ToCommentThread(comment, commentRepliesByParent)
+            .Select(comment => ToCommentThread(comment, commentRepliesByParent, currentUser.UserName)
             ).ToList();
     }
 
-    private static CommentThread ToCommentThread(Comment comment, IEnumerable<IGrouping<Guid?, Comment>> groupings)
+    private static CommentThread ToCommentThread(Comment comment, ILookup<Guid, Comment> repliesByParent,
+        string currentUser)
     {
-        var grouping = groupings
-            .SingleOrDefault(kv => kv.Key == comment.Id);
         return new CommentThread(comment.Id, comment.Author, comment.Text, comment.UpvoteCount, comment.DownvoteCount,
+            comment.VoteBy(currentUser),
             comment.CreatedAt,
-            grouping is not null
-                ? grouping.Select(reply =>
-                        new CommentReply(
-                            reply.Id,
-                            reply.Author,
-                            reply.Text,
-                            reply.UpvoteCount,
-                            reply.DownvoteCount,
-                            reply.CreatedAt))
-                    .OrderBy(cr => cr.CreatedAt)
-                    .ToList()
-                : Enumerable.Empty<CommentReply>().ToList());
+            repliesByParent[comment.Id]
+                .OrderBy(cr => cr.CreatedAt)
+                .Select(reply =>
+                    new CommentReply(
+                        reply.Id,
+                        reply.Author,
+                        reply.Text,
+                        reply.UpvoteCount,
+                        reply.DownvoteCount,
+                        reply.VoteBy(currentUser),
+                        reply.CreatedAt))
+                .ToList());
     }
 }
