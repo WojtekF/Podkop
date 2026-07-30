@@ -99,7 +99,11 @@ implemented; code embodying a behavioral decision throws and is the user's to wr
 ## Process checklist
 
 1. Read the ticket, its parent spec, and every ADR either names; confirm blockers are closed.
-2. Branch, commit, and hand off for merge per CLAUDE.md's **Git Conventions**.
+2. Branch from an up-to-date `master` — `git fetch` then fast-forward/pull `master` to
+   `origin/master` (or branch straight off `origin/master`) **before** creating the branch,
+   unless the user asks to branch from elsewhere. Scaffolding onto a stale or unrelated HEAD
+   forces the user to throw the work away. Then commit and hand off for merge per CLAUDE.md's
+   **Git Conventions**.
 3. Mirror the canonical templates; write skeletons and specs on both ends.
 4. Verify: `dotnet build` and `dotnet test`; `npm run build` and `npx vitest run` from
    `frontend/` (bare vitest needs `frontend/vite.config.ts` — on older branches use
