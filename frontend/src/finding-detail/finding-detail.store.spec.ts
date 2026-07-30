@@ -8,6 +8,7 @@ import {
   findingId as id,
 } from './finding-detail.fixtures';
 import { FindingDetailStore } from './finding-detail.store';
+import { FindingDetailDto } from './finding-detail.service';
 
 describe('FindingDetailStore', () => {
   let store: InstanceType<typeof FindingDetailStore>;
@@ -283,6 +284,92 @@ describe('FindingDetailStore', () => {
       expect(store.pendingCommentVoteIds()).toEqual([]);
       expect(snackBar.open).toHaveBeenCalled();
       expect(String(snackBar.open.mock.calls[0]?.[0])).toContain("Couldn't record your vote");
+    });
+  });
+
+  describe('voting on the finding (issue #15)', () => {
+    // A finding the stub user did not author, so its vote controls are live.
+    const votable = (overrides: Partial<FindingDetailDto> = {}) =>
+      detail({ author: 'grace_hopper', myVote: null, ...overrides });
+
+    const expectVoteRequest = () => httpMock.expectOne(`/api/findings/${id}/my-vote`);
+
+    const loadFinding = (finding = votable()) => {
+      store.load(id);
+      expectDetailRequest(id).flush(finding);
+      expectCommentsRequest(id).flush(commentThreads());
+    };
+
+    it('digging a finding with no vote PUTs a dig', () => {
+      loadFinding();
+
+      store.voteOnFinding({ type: 'dig' });
+
+      const req = expectVoteRequest();
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ type: 'dig' });
+    });
+
+    it('burying PUTs a bury carrying the chosen reason', () => {
+      loadFinding();
+
+      store.voteOnFinding({ type: 'bury', reason: 'spam' });
+
+      const req = expectVoteRequest();
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ type: 'bury', reason: 'spam' });
+    });
+
+    it('clicking the side already held withdraws it with a DELETE', () => {
+      loadFinding(votable({ myVote: 'dig' }));
+
+      store.voteOnFinding({ type: 'dig' });
+
+      const req = expectVoteRequest();
+      expect(req.request.method).toBe('DELETE');
+    });
+
+    it('clicking the other side switches with a single PUT', () => {
+      loadFinding(votable({ myVote: 'dig' }));
+
+      store.voteOnFinding({ type: 'bury', reason: 'duplicate' });
+
+      const req = expectVoteRequest();
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ type: 'bury', reason: 'duplicate' });
+    });
+
+    it('reconciles the dig count and highlight from the response — no refetch', () => {
+      loadFinding(votable({ digCount: 123 }));
+
+      store.voteOnFinding({ type: 'dig' });
+      expectVoteRequest().flush({ digCount: 124, myVote: 'dig' });
+
+      expect(store.finding()?.digCount).toBe(124);
+      expect(store.finding()?.myVote).toBe('dig');
+      httpMock.expectNone(`/api/findings/${id}`);
+    });
+
+    it('marks the finding vote pending while its request is in flight, and only then', () => {
+      loadFinding();
+
+      store.voteOnFinding({ type: 'dig' });
+      expect(store.pendingFindingVote()).toBe(true);
+
+      expectVoteRequest().flush({ digCount: 124, myVote: 'dig' });
+      expect(store.pendingFindingVote()).toBe(false);
+    });
+
+    it('a failed finding vote announces itself in a snackbar and leaves the finding untouched', () => {
+      const finding = votable({ digCount: 123 });
+      loadFinding(finding);
+
+      store.voteOnFinding({ type: 'dig' });
+      expectVoteRequest().flush('boom', { status: 500, statusText: 'Server Error' });
+
+      expect(store.finding()).toEqual(finding);
+      expect(store.pendingFindingVote()).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
     });
   });
 });

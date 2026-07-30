@@ -3,6 +3,7 @@ namespace Podkop.Findings.Domain;
 public sealed class Finding
 {
     private readonly List<IDomainEvent> _domainEvents = [];
+    private readonly Dictionary<string, FindingVote> _votes;
 
     public Finding(
         Guid id,
@@ -16,7 +17,8 @@ public sealed class Finding
         DateTimeOffset? promotedAt,
         int digCount,
         int buryCount,
-        int commentCount)
+        int commentCount,
+        IReadOnlyDictionary<string, FindingVote>? votes = null)
     {
         Id = id;
         Title = title;
@@ -30,6 +32,7 @@ public sealed class Finding
         DigCount = digCount;
         BuryCount = buryCount;
         CommentCount = commentCount;
+        _votes = votes is null ? [] : new Dictionary<string, FindingVote>(votes);
     }
 
     public Guid Id { get; }
@@ -41,12 +44,19 @@ public sealed class Finding
     public IReadOnlyList<string> Tags { get; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset? PromotedAt { get; private set; }
-    public int DigCount { get; }
-    public int BuryCount { get; }
+    public int DigCount { get; private set; }
+    public int BuryCount { get; private set; }
     public int CommentCount { get; private set; }
 
     public bool IsPromoted => PromotedAt is not null;
     public int NetScore => DigCount - BuryCount;
+
+    /// <summary>
+    ///     The finding votes tracked per voter (issue #15). Seeded counts may include votes from
+    ///     users whose individual records were never tracked — only a tracked voter can have
+    ///     their vote highlighted, switched, or withdrawn.
+    /// </summary>
+    public IReadOnlyDictionary<string, FindingVote> Votes => _votes;
 
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents;
 
@@ -60,6 +70,27 @@ public sealed class Finding
         if (IsPromoted) return;
         PromotedAt = promotedAt;
         _domainEvents.Add(new FindingPromoted(Id, promotedAt));
+    }
+
+    /// <summary>
+    ///     Records the voter's vote (issue #15): a fresh dig or bury, or a one-click switch to the
+    ///     other side; setting the side already held changes nothing. A bury must carry a
+    ///     <see cref="BuryReason" />; a bury without one is rejected. The finding's own author can
+    ///     never vote on it, so scores can't be self-inflated. The dig and bury counts and the
+    ///     tracked votes must stay consistent with each other; the bury count never leaves the
+    ///     aggregate.
+    /// </summary>
+    public void SetVote(string voter, FindingVoteSide side, BuryReason? reason)
+    {
+        throw new NotImplementedException();
+    }
+
+    /// <summary>
+    ///     Withdraws the voter's vote (issue #15), freeing the count it was held in.
+    /// </summary>
+    public void WithdrawVote(string voter)
+    {
+        throw new NotImplementedException();
     }
 
     // method exposed for seeding purpose only.

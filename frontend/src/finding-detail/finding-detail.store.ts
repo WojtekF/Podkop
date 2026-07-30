@@ -10,7 +10,11 @@ import {
   CommentVotesDto,
   FindingCommentsService,
 } from './finding-comments.service';
-import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
+import {
+  FindingDetailDto,
+  FindingDetailService,
+  FindingVoteIntent,
+} from './finding-detail.service';
 import { tapResponse } from '@ngrx/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -24,6 +28,9 @@ export interface FindingDetailState {
   // Ids of comments whose vote request is in flight — their controls stay disabled
   // so a vote can't be double-submitted (issue #18).
   pendingCommentVoteIds: readonly string[];
+  // True while the finding's own vote request is in flight — its controls stay disabled
+  // so a vote can't be double-submitted (issue #15).
+  pendingFindingVote: boolean;
 }
 
 const initialState: FindingDetailState = {
@@ -32,6 +39,7 @@ const initialState: FindingDetailState = {
   comments: null,
   status: 'loading',
   pendingCommentVoteIds: [],
+  pendingFindingVote: false,
 };
 
 export const FindingDetailStore = signalStore(
@@ -111,10 +119,20 @@ export const FindingDetailStore = signalStore(
         ),
       );
 
+      // One entry point for every finding-vote click (issue #15): from the finding's current
+      // vote it decides between recording, switching, and withdrawing; reconciles the dig count
+      // and highlight from the response (no refetch); marks the finding pending while the
+      // request is in flight; and on failure leaves the finding untouched and announces the
+      // failure in a snackbar.
+      const voteOnFinding = (intent: FindingVoteIntent): void => {
+        throw new Error('not implemented');
+      };
+
       return {
         load,
         retry,
         voteOnComment,
+        voteOnFinding,
       };
     },
   ),
