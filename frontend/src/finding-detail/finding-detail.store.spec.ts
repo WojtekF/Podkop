@@ -2,7 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { commentThreads, findingDetail as detail, findingId as id } from './finding-detail.fixtures';
+import {
+  commentThreads,
+  findingDetail as detail,
+  findingId as id,
+} from './finding-detail.fixtures';
 import { FindingDetailStore } from './finding-detail.store';
 
 describe('FindingDetailStore', () => {
@@ -12,7 +16,8 @@ describe('FindingDetailStore', () => {
 
   const otherId = '0d4f9a3e-2222-4222-8333-444455556666';
 
-  const expectDetailRequest = (findingId: string) => httpMock.expectOne(`/api/findings/${findingId}`);
+  const expectDetailRequest = (findingId: string) =>
+    httpMock.expectOne(`/api/findings/${findingId}`);
   const expectCommentsRequest = (findingId: string) =>
     httpMock.expectOne(`/api/findings/${findingId}/comments`);
 
@@ -190,7 +195,7 @@ describe('FindingDetailStore', () => {
     it('voting on a comment without a vote PUTs the chosen direction', () => {
       loadDiscussion();
 
-      store.voteOnComment(freshThread().id, 'up');
+      store.voteOnComment({ commentId: freshThread().id, direction: 'up' });
 
       const req = expectVoteRequest(freshThread().id);
       expect(req.request.method).toBe('PUT');
@@ -200,7 +205,7 @@ describe('FindingDetailStore', () => {
     it('the response reconciles exactly that comment in place — no refetch', () => {
       loadDiscussion();
 
-      store.voteOnComment(freshThread().id, 'up');
+      store.voteOnComment({ commentId: freshThread().id, direction: 'up' });
       expectVoteRequest(freshThread().id).flush({ upvoteCount: 4, downvoteCount: 4, myVote: 'up' });
 
       expect(store.comments()?.[1]).toEqual({
@@ -216,7 +221,7 @@ describe('FindingDetailStore', () => {
     it('clicking the side already held withdraws the vote with a DELETE', () => {
       loadDiscussion();
 
-      store.voteOnComment(votedUpThread().id, 'up');
+      store.voteOnComment({ commentId: votedUpThread().id, direction: 'up' });
 
       const req = expectVoteRequest(votedUpThread().id);
       expect(req.request.method).toBe('DELETE');
@@ -229,7 +234,7 @@ describe('FindingDetailStore', () => {
     it('clicking the other side switches with a single PUT', () => {
       loadDiscussion();
 
-      store.voteOnComment(votedUpThread().id, 'down');
+      store.voteOnComment({ commentId: votedUpThread().id, direction: 'down' });
 
       const req = expectVoteRequest(votedUpThread().id);
       expect(req.request.method).toBe('PUT');
@@ -240,7 +245,7 @@ describe('FindingDetailStore', () => {
       loadDiscussion();
 
       // The reply currently holds a down vote, so choosing up is a switch.
-      store.voteOnComment(votedDownReply().id, 'up');
+      store.voteOnComment({ commentId: votedDownReply().id, direction: 'up' });
       expectVoteRequest(votedDownReply().id).flush({
         upvoteCount: 2,
         downvoteCount: 0,
@@ -258,7 +263,7 @@ describe('FindingDetailStore', () => {
     it('marks the comment pending while its request is in flight, and only then', () => {
       loadDiscussion();
 
-      store.voteOnComment(freshThread().id, 'up');
+      store.voteOnComment({ commentId: freshThread().id, direction: 'up' });
       expect(store.pendingCommentVoteIds()).toContain(freshThread().id);
 
       expectVoteRequest(freshThread().id).flush({ upvoteCount: 4, downvoteCount: 4, myVote: 'up' });
@@ -268,7 +273,7 @@ describe('FindingDetailStore', () => {
     it('a failed vote announces itself in a snackbar and leaves the discussion untouched', () => {
       loadDiscussion();
 
-      store.voteOnComment(freshThread().id, 'up');
+      store.voteOnComment({ commentId: freshThread().id, direction: 'up' });
       expectVoteRequest(freshThread().id).flush('boom', {
         status: 500,
         statusText: 'Server Error',

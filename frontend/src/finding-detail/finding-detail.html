@@ -54,15 +54,14 @@
       <div class="thumbnail thumbnail-placeholder" aria-hidden="true"></div>
     }
   </mat-card>
-  <!--
-    Voting (issue #18): each thread needs the store wired to it — the pending vote ids flow
-    down into the thread, and a thread's vote events land in the store, which owns the
-    record/switch/withdraw decision and the failure snackbar.
-  -->
   <div id="comments">
     @for (thread of store.comments(); track thread.id) {
       <mat-card class="comment-thread">
-        <app-comment-thread [thread]="thread" />
+        <app-comment-thread
+          [thread]="thread"
+          [pendingVoteIds]="store.pendingCommentVoteIds()"
+          (vote)="onVote($event)"
+        />
       </mat-card>
     }
   </div>

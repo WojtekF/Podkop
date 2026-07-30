@@ -2,14 +2,17 @@ import { LoadResult, asResult } from './as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
+import { concatMap, forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
 import {
   CommentThreadDto,
   CommentVoteDirection,
+  CommentVotesDto,
   FindingCommentsService,
 } from './finding-comments.service';
 import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
+import { tapResponse } from '@ngrx/operators';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
 
@@ -38,6 +41,7 @@ export const FindingDetailStore = signalStore(
       store,
       service = inject(FindingDetailService),
       commentsService = inject(FindingCommentsService),
+      snackBar = inject(MatSnackBar),
     ) => {
       const load = rxMethod<string>(
         pipe(
@@ -66,13 +70,44 @@ export const FindingDetailStore = signalStore(
         if (id !== null) load(id);
       };
 
-      // One entry point for every vote click (issue #18): from the comment's current vote it
-      // decides between recording, switching, and withdrawing; reconciles that comment's
-      // counts and highlight from the response (no refetch); and on failure leaves the
-      // discussion untouched and announces the failure in a snackbar.
-      const voteOnComment = (commentId: string, direction: CommentVoteDirection): void => {
-        throw new Error('not implemented');
-      };
+      const voteOnComment = rxMethod<{ commentId: string; direction: CommentVoteDirection }>(
+        pipe(
+          tap({
+            next: ({ commentId }) => {
+              patchState(store, {
+                pendingCommentVoteIds: [...store.pendingCommentVoteIds(), commentId],
+              });
+            },
+          }),
+          concatMap(({ commentId, direction }) => {
+            const request$ =
+              myVoteOf(store.comments(), commentId) === direction
+                ? commentsService.withdrawMyVote(commentId)
+                : commentsService.setMyVote(commentId, direction);
+
+            return request$.pipe(
+              tapResponse({
+                next: (votes) => {
+                  patchState(store, {
+                    comments: applyVotes(store.comments()!, commentId, votes),
+                    pendingCommentVoteIds: store
+                      .pendingCommentVoteIds()
+                      .filter((id) => id !== commentId),
+                  });
+                },
+                error: () => {
+                  patchState(store, {
+                    pendingCommentVoteIds: store
+                      .pendingCommentVoteIds()
+                      .filter((id) => id !== commentId),
+                  });
+                  snackBar.open("Couldn't record your vote. Please try again.");
+                },
+              }),
+            );
+          }),
+        ),
+      );
 
       return {
         load,
@@ -83,10 +118,32 @@ export const FindingDetailStore = signalStore(
   ),
 );
 
-function toPatch(
+const myVoteOf = (threads: CommentThreadDto[] | null, commentId: string) => {
+  const rows = threads?.flatMap((thread) => [thread, ...thread.replies]);
+  return rows?.find((row) => row.id === commentId)?.myVote ?? null;
+};
+
+const applyVotes = (
+  threads: CommentThreadDto[],
+  commentId: string,
+  votes: CommentVotesDto,
+): CommentThreadDto[] => {
+  return threads.map((thread) =>
+    thread.id === commentId
+      ? { ...thread, ...votes }
+      : {
+          ...thread,
+          replies: thread.replies.map((reply) =>
+            reply.id === commentId ? { ...reply, ...votes } : reply,
+          ),
+        },
+  );
+};
+
+const toPatch = (
   finding: LoadResult<FindingDetailDto>,
   comments: LoadResult<CommentThreadDto[]>,
-): Partial<FindingDetailState> {
+): Partial<FindingDetailState> => {
   if (isNotFound(finding) || isNotFound(comments)) return { status: 'notFound' };
   if (
     finding instanceof HttpErrorResponse ||
@@ -96,11 +153,11 @@ function toPatch(
   )
     return { status: 'error' };
   return { status: 'loaded', finding, comments };
-}
+};
 
-function isNotFound<T>(input: T | HttpErrorResponse): boolean {
+const isNotFound = <T>(input: T | HttpErrorResponse): boolean => {
   if (input instanceof HttpErrorResponse) {
     return input.status === 404;
   }
   return false;
-}
+};

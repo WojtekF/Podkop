@@ -1,11 +1,3 @@
-<!--
-  Voting (issue #18): alongside its counts, each comment offers an upvote and a downvote
-  control — the specs query them as `button.upvote-button` and `button.downvote-button`.
-  States to cover: the control matching the comment's `myVote` carries the `voted` class;
-  both controls are disabled when the reader authored the comment (compare against the stub
-  user in `../current-user.ts`) and while `votePending` is set; a click reports the chosen
-  direction through the component's `vote` output.
--->
 <mat-card [class]="{ comment: true, thread: !isReply() }">
   <mat-card-content>
     <div class="header">
@@ -14,8 +6,26 @@
         <div class="age">{{ comment().createdAt | timeAgo }}</div>
       </div>
       <div class="counts">
+        <button
+          [class]="{ 'upvote-button': true, voted: comment().myVote === 'up' }"
+          mat-icon-button
+          aria-label="Vote up"
+          [disabled]="isButtonDisabled()"
+          (click)="vote.emit('up')"
+        >
+          <mat-icon>arrow_upward</mat-icon>
+        </button>
         <span class="upvote-count">{{ comment().upvoteCount }}</span>
         <span class="downvote-count">{{ comment().downvoteCount }}</span>
+        <button
+          [class]="{ 'downvote-button': true, voted: comment().myVote === 'down' }"
+          mat-icon-button
+          aria-label="Vote down"
+          [disabled]="isButtonDisabled()"
+          (click)="vote.emit('down')"
+        >
+          <mat-icon>arrow_downward</mat-icon>
+        </button>
       </div>
     </div>
     <div class="text">{{ comment().text }}</div>
