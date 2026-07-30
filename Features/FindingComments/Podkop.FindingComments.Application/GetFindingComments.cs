@@ -65,7 +65,7 @@ public sealed class GetFindingCommentsHandler(
         string currentUser)
     {
         return new CommentThread(comment.Id, comment.Author, comment.Text, comment.UpvoteCount, comment.DownvoteCount,
-            MyVote(comment, currentUser),
+            comment.VoteBy(currentUser),
             comment.CreatedAt,
             repliesByParent[comment.Id]
                 .OrderBy(cr => cr.CreatedAt)
@@ -76,13 +76,8 @@ public sealed class GetFindingCommentsHandler(
                         reply.Text,
                         reply.UpvoteCount,
                         reply.DownvoteCount,
-                        MyVote(reply, currentUser),
+                        reply.VoteBy(currentUser),
                         reply.CreatedAt))
                 .ToList());
-    }
-
-    private static string? MyVote(Comment comment, string currentUser)
-    {
-        return comment.Votes.TryGetValue(currentUser, out var value) ? value.ToDomainString() : null;
     }
 }

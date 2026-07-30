@@ -12,7 +12,7 @@ public enum VoteDirection
 
 public static class VoteDirectionExtensions
 {
-    public static string ToDomainString(this VoteDirection voteDirection)
+    public static string ToApiString(this VoteDirection voteDirection)
     {
         return voteDirection == VoteDirection.Up ? "up" : "down";
     }

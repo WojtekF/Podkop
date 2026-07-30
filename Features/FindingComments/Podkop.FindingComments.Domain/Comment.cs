@@ -38,8 +38,7 @@ public sealed class Comment
     public int DownvoteCount => _votes.Count(vote => vote.Value == VoteDirection.Down);
 
     /// <summary>
-    ///     The individual votes tracked per voter. Seeded counts may include votes from users
-    ///     whose individual records were never tracked — only a tracked voter can have their
+    ///     The individual votes tracked per voter. Tracked voter can have their
     ///     vote highlighted, switched, or withdrawn.
     /// </summary>
     public IReadOnlyDictionary<string, VoteDirection> Votes => _votes;
@@ -69,5 +68,10 @@ public sealed class Comment
         if (voter == Author) return ActionOutcome.OwnComment;
         _votes.Remove(voter);
         return ActionOutcome.Applied;
+    }
+
+    public string? VoteBy(string voter)
+    {
+        return Votes.TryGetValue(voter, out var value) ? value.ToApiString() : null;
     }
 }

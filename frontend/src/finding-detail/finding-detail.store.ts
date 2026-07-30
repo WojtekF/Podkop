@@ -90,16 +90,18 @@ export const FindingDetailStore = signalStore(
                 next: (votes) => {
                   patchState(store, {
                     comments: applyVotes(store.comments()!, commentId, votes),
-                    pendingCommentVoteIds: store
-                      .pendingCommentVoteIds()
-                      .filter((id) => id !== commentId),
+                    pendingCommentVoteIds: filterFromPendingVotes(
+                      store.pendingCommentVoteIds(),
+                      commentId,
+                    ),
                   });
                 },
                 error: () => {
                   patchState(store, {
-                    pendingCommentVoteIds: store
-                      .pendingCommentVoteIds()
-                      .filter((id) => id !== commentId),
+                    pendingCommentVoteIds: filterFromPendingVotes(
+                      store.pendingCommentVoteIds(),
+                      commentId,
+                    ),
                   });
                   snackBar.open("Couldn't record your vote. Please try again.");
                 },
@@ -117,6 +119,9 @@ export const FindingDetailStore = signalStore(
     },
   ),
 );
+
+const filterFromPendingVotes = (pendingVotes: readonly string[], commentId: string) =>
+  pendingVotes.filter((votes) => votes !== commentId);
 
 const myVoteOf = (threads: CommentThreadDto[] | null, commentId: string) => {
   const rows = threads?.flatMap((thread) => [thread, ...thread.replies]);

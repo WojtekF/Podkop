@@ -49,7 +49,7 @@ public sealed class SetCommentVoteHandler(
         return new CommentVoteResult(null, new CommentVotes(
             comment.UpvoteCount,
             comment.DownvoteCount,
-            request.Direction.ToDomainString()
+            request.Direction.ToApiString()
         ));
     }
 }
