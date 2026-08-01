@@ -7,7 +7,7 @@ session, use `CLAUDE.md` instead.)
 ## In progress / planned
 
 - [ ] Finding detail page with comments — spec agreed, see
-      [#13](https://github.com/WojtekF/AngularLearning/issues/13)
+      [#13](https://github.com/WojtekF/Podkop/issues/13)
 - [ ] Comment paging/lazy-loading on the finding detail page (`GET .../comments` currently
       specced in #13 to return all threads at once; revisit when comment volumes justify it)
 - [ ] Limit finding descriptions to a reasonable maximum length — decide the limit and

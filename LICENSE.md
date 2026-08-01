@@ -2,7 +2,7 @@
 
 <https://polyformproject.org/licenses/noncommercial/1.0.0>
 
-Required Notice: Copyright 2026 WojtekF (https://github.com/WojtekF/AngularLearning)
+Required Notice: Copyright 2026 WojtekF (https://github.com/WojtekF/Podkop)
 
 ## Acceptance
 
