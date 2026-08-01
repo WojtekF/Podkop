@@ -4,7 +4,7 @@ A Wykop-style social link-aggregation platform: users submit **findings**, vote 
 
 Built as a learning project on .NET Aspire + Angular 22, with a deliberately opinionated architecture — vertical feature slices, Clean Architecture layering inside each slice, CQRS via MediatR on the backend, and signals-first standalone components on the frontend.
 
-> **Project status: early-stage prototype.** The API serves in-memory sample data — there is no database and no authentication yet (the current user is a stub). Several feature slices are scaffolded with failing tests that specify agreed behavior but are not implemented. See [TODO.md](TODO.md) and the [issue tracker](https://github.com/WojtekF/AngularLearning/issues).
+> **Project status: early-stage prototype.** The API serves in-memory sample data — there is no database and no authentication yet (the current user is a stub). Several feature slices are scaffolded with failing tests that specify agreed behavior but are not implemented. See [TODO.md](TODO.md) and the [issue tracker](https://github.com/WojtekF/Podkop/issues).
 
 ## Domain language
 
