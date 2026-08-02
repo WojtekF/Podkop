@@ -28,16 +28,16 @@ public sealed record FindingDetail(
     DateTimeOffset CreatedAt,
     DateTimeOffset? PromotedAt);
 
-public sealed class GetFindingDetailHandler(IFindingRepository findingsRepository)
+public sealed class GetFindingDetailHandler(IFindingRepository findingsRepository, ICurrentUser currentUser)
     : IRequestHandler<GetFindingDetail, FindingDetail?>
 {
     public async Task<FindingDetail?> Handle(GetFindingDetail request, CancellationToken cancellationToken)
     {
         var finding = await findingsRepository.GetByIdAsync(request.Id, cancellationToken);
-        return MapToFindingDetail(finding);
+        return MapToFindingDetail(finding, currentUser.UserName);
     }
 
-    private static FindingDetail? MapToFindingDetail(Finding? finding)
+    private static FindingDetail? MapToFindingDetail(Finding? finding, string userName)
     {
         return finding is null
             ? null
@@ -51,9 +51,7 @@ public sealed class GetFindingDetailHandler(IFindingRepository findingsRepositor
                 finding.Author,
                 finding.Tags,
                 finding.DigCount,
-                // The reader's own vote is not wired up yet: the detail reports null until the
-                // finding-vote logic (and the seeded stub votes) exist (issue #15).
-                MyVote: null,
+                finding.VoteBy(userName),
                 finding.CommentCount,
                 finding.CreatedAt,
                 finding.PromotedAt);

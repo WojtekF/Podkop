@@ -5,8 +5,7 @@ public sealed class Finding
     private readonly List<IDomainEvent> _domainEvents = [];
     private readonly Dictionary<string, FindingVote> _votes;
 
-    public Finding(
-        Guid id,
+    public Finding(Guid id,
         string title,
         string description,
         Uri source,
@@ -15,8 +14,6 @@ public sealed class Finding
         IReadOnlyList<string> tags,
         DateTimeOffset createdAt,
         DateTimeOffset? promotedAt,
-        int digCount,
-        int buryCount,
         int commentCount,
         IReadOnlyDictionary<string, FindingVote>? votes = null)
     {
@@ -29,8 +26,6 @@ public sealed class Finding
         Tags = tags;
         CreatedAt = createdAt;
         PromotedAt = promotedAt;
-        DigCount = digCount;
-        BuryCount = buryCount;
         CommentCount = commentCount;
         _votes = votes is null ? [] : new Dictionary<string, FindingVote>(votes);
     }
@@ -44,19 +39,12 @@ public sealed class Finding
     public IReadOnlyList<string> Tags { get; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset? PromotedAt { get; private set; }
-    public int DigCount { get; private set; }
-    public int BuryCount { get; private set; }
+    public int DigCount => _votes.Values.Count(vote => vote.Side == FindingVoteSide.Dig);
+    public int BuryCount => _votes.Values.Count(vote => vote.Side == FindingVoteSide.Bury);
     public int CommentCount { get; private set; }
 
     public bool IsPromoted => PromotedAt is not null;
     public int NetScore => DigCount - BuryCount;
-
-    /// <summary>
-    ///     The finding votes tracked per voter (issue #15). Seeded counts may include votes from
-    ///     users whose individual records were never tracked — only a tracked voter can have
-    ///     their vote highlighted, switched, or withdrawn.
-    /// </summary>
-    public IReadOnlyDictionary<string, FindingVote> Votes => _votes;
 
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents;
 
@@ -80,22 +68,34 @@ public sealed class Finding
     ///     tracked votes must stay consistent with each other; the bury count never leaves the
     ///     aggregate.
     /// </summary>
-    public void SetVote(string voter, FindingVoteSide side, BuryReason? reason)
+    public DigBuryOutcome SetVote(string voter, FindingVoteSide side, BuryReason? reason)
     {
-        throw new NotImplementedException();
+        if (voter == Author) return DigBuryOutcome.OwnFinding;
+        if (side == FindingVoteSide.Bury && reason is null) return DigBuryOutcome.BuryReasonRequired;
+        _votes[voter] = new FindingVote(side, reason);
+        return DigBuryOutcome.Applied;
     }
+
 
     /// <summary>
     ///     Withdraws the voter's vote (issue #15), freeing the count it was held in.
     /// </summary>
-    public void WithdrawVote(string voter)
+    public WithdrawOutcome WithdrawVote(string voter)
     {
-        throw new NotImplementedException();
+        if (voter == Author) return WithdrawOutcome.OwnFinding;
+
+        _votes.Remove(voter);
+        return WithdrawOutcome.Applied;
     }
 
     // method exposed for seeding purpose only.
     public void UpdateCommentCount(int commentCount)
     {
         CommentCount = commentCount;
+    }
+
+    public string? VoteBy(string voter)
+    {
+        return _votes.TryGetValue(voter, out var value) ? value!.Side.ToApiString() : null;
     }
 }

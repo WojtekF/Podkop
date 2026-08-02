@@ -24,7 +24,10 @@ public class FindingVotingApiTests
     private const string StubUser = "ada_lovelace";
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
 
-    private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
+    private static DateTimeOffset At(string iso)
+    {
+        return DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
+    }
 
     private static Finding CreateFinding(
         Guid id,
@@ -32,7 +35,8 @@ public class FindingVotingApiTests
         int buryCount,
         string author = "grace_hopper",
         FindingVote? stubUsersVote = null)
-        => new(
+    {
+        return new Finding(
             id,
             "A finding worth judging",
             "The finding the votes land on.",
@@ -42,23 +46,30 @@ public class FindingVotingApiTests
             ["angular"],
             At("2026-07-08T03:30:00Z"),
             At("2026-07-08T09:30:00Z"),
-            digCount,
-            buryCount,
             0,
             stubUsersVote is null
-                ? null
-                : new Dictionary<string, FindingVote> { [StubUser] = stubUsersVote });
+                ? VotesGenerator.Generate(digCount, buryCount)
+                : VotesGenerator.Generate(digCount, buryCount)
+                    .Concat(new Dictionary<string, FindingVote> { [StubUser] = stubUsersVote }).ToDictionary(
+                        kvp => kvp.Key, kvp => kvp.Value));
+    }
 
     private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
-        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+    {
+        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
                 services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings))));
+    }
 
     private static Task<HttpResponseMessage> PutDig(HttpClient client, Guid id)
-        => client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "dig" });
+    {
+        return client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "dig" });
+    }
 
     private static Task<HttpResponseMessage> PutBury(HttpClient client, Guid id, string reason)
-        => client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "bury", reason });
+    {
+        return client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "bury", reason });
+    }
 
     [Fact]
     public async Task Digging_a_fresh_finding_records_it_and_returns_the_new_dig_count()

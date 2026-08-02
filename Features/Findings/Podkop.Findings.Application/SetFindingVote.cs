@@ -42,8 +42,25 @@ public sealed class SetFindingVoteHandler(
     ICurrentUser currentUser)
     : IRequestHandler<SetFindingVote, FindingVoteResult>
 {
-    public Task<FindingVoteResult> Handle(SetFindingVote request, CancellationToken cancellationToken)
+    public async Task<FindingVoteResult> Handle(SetFindingVote request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var finding = await findingsRepository.GetByIdAsync(request.FindingId, cancellationToken);
+        if (finding is null)
+        {
+            return new FindingVoteResult(FindingVoteError.UnknownFinding,null);
+        }
+
+        var digBuryOutcome = finding.SetVote(currentUser.UserName, request.Side, request.Reason);
+        if (digBuryOutcome == DigBuryOutcome.BuryReasonRequired)
+        {
+            return new FindingVoteResult(FindingVoteError.BuryReasonRequired, null);
+        }
+
+        if (digBuryOutcome == DigBuryOutcome.OwnFinding)
+        {
+            return new FindingVoteResult(FindingVoteError.OwnFinding, null);
+        }
+
+        return new FindingVoteResult(null, new FindingVotes(finding.DigCount, request.Side.ToApiString()));
     }
 }

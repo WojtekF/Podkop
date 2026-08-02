@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Application;
 
@@ -14,8 +15,22 @@ public sealed class WithdrawFindingVoteHandler(
     ICurrentUser currentUser)
     : IRequestHandler<WithdrawFindingVote, FindingVoteResult>
 {
-    public Task<FindingVoteResult> Handle(WithdrawFindingVote request, CancellationToken cancellationToken)
+    public async Task<FindingVoteResult> Handle(WithdrawFindingVote request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var finding = await findingsRepository.GetByIdAsync(request.FindingId, cancellationToken);
+
+        if (finding is null)
+        {
+            return new FindingVoteResult(FindingVoteError.UnknownFinding, null);
+        }
+        
+        var withdrawOutcome = finding.WithdrawVote(currentUser.UserName);
+        if (withdrawOutcome == WithdrawOutcome.OwnFinding)
+        {
+            return new FindingVoteResult(FindingVoteError.OwnFinding, null);
+        }
+
+        return new FindingVoteResult(null, new FindingVotes(finding.DigCount, null));
+
     }
 }

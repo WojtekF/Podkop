@@ -20,8 +20,6 @@ public class FindingTests
         tags: ["angular", "webdev"],
         createdAt: FirstPromotion.AddHours(-8),
         promotedAt: null,
-        digCount: 52,
-        buryCount: 2,
         commentCount: 4);
 
     [Fact]
