@@ -1,0 +1,66 @@
+﻿# Root configuration for everything outside frontend/ (which carries its own root = true).
+# Its job is narrow: pin the C# conventions this codebase already follows, so an IDE's
+# "Code Cleanup" run stops rewriting untouched code and burying real changes in style churn.
+root = true
+
+[*]
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{cs,csx}]
+indent_size = 4
+max_line_length = 120
+
+[*.{csproj,slnx,props,targets,json,yml,yaml,xml}]
+indent_size = 2
+
+[*.md]
+indent_size = 2
+max_line_length = off
+trim_trailing_whitespace = false
+
+##
+## C# body style — one-line members are expression-bodied here (test factories, endpoint
+## helpers, repository methods). Severities are deliberately silent: this records the
+## preference so cleanup keeps `=>` bodies as it finds them, without nagging about the
+## block-bodied members that exist for other reasons.
+##
+[*.cs]
+csharp_style_expression_bodied_methods = true:silent
+csharp_style_expression_bodied_local_functions = true:silent
+csharp_style_expression_bodied_properties = true:silent
+csharp_style_expression_bodied_indexers = true:silent
+csharp_style_expression_bodied_accessors = true:silent
+csharp_style_expression_bodied_lambdas = true:silent
+csharp_style_expression_bodied_operators = true:silent
+csharp_style_expression_bodied_constructors = false:silent
+
+# ReSharper / Rider read their own keys for the same settings; without these, Code Cleanup
+# applies its default (block_body) and rewrites every `=>` member it touches.
+resharper_csharp_method_or_operator_body = expression_body
+resharper_csharp_local_function_body = expression_body
+resharper_csharp_accessor_owner_body = expression_body
+resharper_csharp_constructor_or_destructor_body = block_body
+
+##
+## Argument style — the default (positional) strips "redundant" argument names, turning a
+## call like CreateFinding(id, digCount: 123, commentCount: 9) into a row of anonymous
+## numbers. Flipping it to `named` is no better: it would rewrite every assertion in the
+## test suite as Assert.Equal(expected: 123, ...). The style has no "leave alone" value, and
+## these severity keys do NOT hold it back — code cleanup's "arrange arguments" task applies
+## the style whatever the inspection severity. They only stop the editor squiggle.
+##
+## Where argument names are load-bearing, the file opts out with `// ReSharper disable
+## ArgumentsStyle*` in its header, which cleanup does respect. See the Findings test files.
+##
+resharper_arguments_style_literal_highlighting = none
+resharper_arguments_style_string_literal_highlighting = none
+resharper_arguments_style_named_expression_highlighting = none
+resharper_arguments_style_anonymous_function_highlighting = none
+resharper_arguments_style_other_highlighting = none
+resharper_csharp_arguments_skip_single = true
+
+# Namespaces are file-scoped throughout.
+csharp_style_namespace_declarations = file_scoped:warning
+resharper_csharp_namespace_body = file_scoped

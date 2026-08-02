@@ -7,14 +7,19 @@ using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 
+// The finding factories below take a run of same-typed optional ints, where the argument name is
+// the only thing telling digs from buries from comments. Code cleanup's positional argument style
+// would strip exactly those names, so argument style is left to the call site in this file.
+// ReSharper disable ArgumentsStyleLiteral
+// ReSharper disable ArgumentsStyleStringLiteral
+// ReSharper disable ArgumentsStyleNamedExpression
+// ReSharper disable ArgumentsStyleOther
+
 namespace Podkop.Findings.Tests;
 
 public class MainPageFeedTests
 {
-    private static DateTimeOffset At(string iso)
-    {
-        return DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
-    }
+    private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
 
     private static Finding CreateFinding(
         string title,
@@ -22,29 +27,26 @@ public class MainPageFeedTests
         string source = "https://example.com/articles/1",
         string? thumbnail = "https://example.com/thumb.jpg",
         int digCount = 100,
+        int buryCount = 3,
         int commentCount = 10,
         Guid? id = null)
-    {
-        return new Finding(
-            id ?? Guid.NewGuid(),
-            title,
-            $"{title} — description",
-            new Uri(source),
-            thumbnail is null ? null : new Uri(thumbnail),
-            "grace_hopper",
-            ["dotnet", "webdev"],
-            (promotedAt ?? At("2026-07-01T00:00:00Z")).AddHours(-6),
-            promotedAt,
-            commentCount,
-            VotesGenerator.Generate(digCount, 0));
-    }
+        => new(
+            id: id ?? Guid.NewGuid(),
+            title: title,
+            description: $"{title} — description",
+            source: new Uri(source),
+            thumbnail: thumbnail is null ? null : new Uri(thumbnail),
+            author: "grace_hopper",
+            tags: ["dotnet", "webdev"],
+            createdAt: (promotedAt ?? At("2026-07-01T00:00:00Z")).AddHours(-6),
+            promotedAt: promotedAt,
+            commentCount: commentCount,
+            votes: VotesGenerator.Generate(digCount, buryCount));
 
     private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
-    {
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
                 services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings))));
-    }
 
     [Fact]
     public async Task Main_feed_returns_the_items_and_has_next_page_envelope()
@@ -66,9 +68,9 @@ public class MainPageFeedTests
     {
         using var factory = CreateFactory(
             CreateFinding("Promoted A", At("2026-07-08T10:00:00Z")),
-            CreateFinding("Still upcoming", null),
+            CreateFinding("Still upcoming", promotedAt: null),
             CreateFinding("Promoted B", At("2026-07-08T11:00:00Z")),
-            CreateFinding("Also upcoming", null));
+            CreateFinding("Also upcoming", promotedAt: null));
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main");
@@ -213,8 +215,8 @@ public class MainPageFeedTests
     public async Task Main_feed_is_empty_when_nothing_is_promoted_yet()
     {
         using var factory = CreateFactory(
-            CreateFinding("Upcoming A", null),
-            CreateFinding("Upcoming B", null));
+            CreateFinding("Upcoming A", promotedAt: null),
+            CreateFinding("Upcoming B", promotedAt: null));
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/findings?feed=main");
@@ -233,10 +235,10 @@ public class MainPageFeedTests
         using var factory = CreateFactory(CreateFinding(
             "Text-only finding",
             promotedAt,
-            "https://blog.example.org/posts/42",
-            null,
-            123,
-            7));
+            source: "https://blog.example.org/posts/42",
+            thumbnail: null,
+            digCount: 123,
+            commentCount: 7));
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main");
@@ -303,12 +305,10 @@ public class MainPageFeedTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
-    private static Finding[] FivePromotedFindings()
-    {
-        return Enumerable.Range(1, 5)
+    private static Finding[] FivePromotedFindings() =>
+        Enumerable.Range(1, 5)
             .Select(hour => CreateFinding($"Promoted {hour}", At($"2026-07-08T{hour:00}:00:00Z")))
             .ToArray();
-    }
 
     private sealed record FeedResponse(List<FeedItem> Items, bool HasNextPage);
 

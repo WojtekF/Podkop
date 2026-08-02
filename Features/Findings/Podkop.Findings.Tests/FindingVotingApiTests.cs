@@ -8,6 +8,14 @@ using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 
+// The finding factory below takes a run of same-typed ints, where the argument name is the only
+// thing telling digs from buries. Code cleanup's positional argument style would strip exactly
+// those names, so argument style is left to the call site in this file.
+// ReSharper disable ArgumentsStyleLiteral
+// ReSharper disable ArgumentsStyleStringLiteral
+// ReSharper disable ArgumentsStyleNamedExpression
+// ReSharper disable ArgumentsStyleOther
+
 namespace Podkop.Findings.Tests;
 
 /// <summary>
@@ -24,10 +32,7 @@ public class FindingVotingApiTests
     private const string StubUser = "ada_lovelace";
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
 
-    private static DateTimeOffset At(string iso)
-    {
-        return DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
-    }
+    private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
 
     private static Finding CreateFinding(
         Guid id,
@@ -35,8 +40,7 @@ public class FindingVotingApiTests
         int buryCount,
         string author = "grace_hopper",
         FindingVote? stubUsersVote = null)
-    {
-        return new Finding(
+        => new(
             id,
             "A finding worth judging",
             "The finding the votes land on.",
@@ -47,29 +51,30 @@ public class FindingVotingApiTests
             At("2026-07-08T03:30:00Z"),
             At("2026-07-08T09:30:00Z"),
             0,
-            stubUsersVote is null
-                ? VotesGenerator.Generate(digCount, buryCount)
-                : VotesGenerator.Generate(digCount, buryCount)
-                    .Concat(new Dictionary<string, FindingVote> { [StubUser] = stubUsersVote }).ToDictionary(
-                        kvp => kvp.Key, kvp => kvp.Value));
+            SeedVotes(digCount, buryCount, stubUsersVote));
+
+    /// <summary>
+    ///     The crowd of untracked voters the seeded counts stand for, with the stub user's own vote
+    ///     laid on top of them when she has one — never colliding, since the generated voters are
+    ///     numbered rather than named.
+    /// </summary>
+    private static Dictionary<string, FindingVote> SeedVotes(int digCount, int buryCount, FindingVote? stubUsersVote)
+    {
+        var votes = VotesGenerator.Generate(digCount, buryCount);
+        if (stubUsersVote is not null) votes[StubUser] = stubUsersVote;
+        return votes;
     }
 
     private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
-    {
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
                 services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings))));
-    }
 
     private static Task<HttpResponseMessage> PutDig(HttpClient client, Guid id)
-    {
-        return client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "dig" });
-    }
+        => client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "dig" });
 
     private static Task<HttpResponseMessage> PutBury(HttpClient client, Guid id, string reason)
-    {
-        return client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "bury", reason });
-    }
+        => client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "bury", reason });
 
     [Fact]
     public async Task Digging_a_fresh_finding_records_it_and_returns_the_new_dig_count()

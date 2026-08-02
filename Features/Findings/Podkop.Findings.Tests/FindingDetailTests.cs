@@ -8,14 +8,19 @@ using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 
+// The finding factories below take a run of same-typed optional ints, where the argument name is
+// the only thing telling digs from buries from comments. Code cleanup's positional argument style
+// would strip exactly those names, so argument style is left to the call site in this file.
+// ReSharper disable ArgumentsStyleLiteral
+// ReSharper disable ArgumentsStyleStringLiteral
+// ReSharper disable ArgumentsStyleNamedExpression
+// ReSharper disable ArgumentsStyleOther
+
 namespace Podkop.Findings.Tests;
 
 public class FindingDetailTests
 {
-    private static DateTimeOffset At(string iso)
-    {
-        return DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
-    }
+    private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
 
     private static Finding CreateFinding(
         Guid id,
@@ -26,28 +31,23 @@ public class FindingDetailTests
         int digCount = 123,
         int buryCount = 7,
         int commentCount = 9)
-    {
-        return new Finding(
-            id,
-            title,
-            $"{title} — the full, untruncated description.",
-            new Uri(source),
-            thumbnail is null ? null : new Uri(thumbnail),
-            "ada_lovelace",
-            ["angular", "webdev"],
-            (promotedAt ?? At("2026-07-08T09:30:00Z")).AddHours(-6),
-            promotedAt ?? At("2026-07-08T09:30:00Z"),
-            commentCount,
-            VotesGenerator.Generate(digCount, buryCount));
-    }
-
+        => new(
+            id: id,
+            title: title,
+            description: $"{title} — the full, untruncated description.",
+            source: new Uri(source),
+            thumbnail: thumbnail is null ? null : new Uri(thumbnail),
+            author: "ada_lovelace",
+            tags: ["angular", "webdev"],
+            createdAt: (promotedAt ?? At("2026-07-08T09:30:00Z")).AddHours(-6),
+            promotedAt: promotedAt ?? At("2026-07-08T09:30:00Z"),
+            commentCount: commentCount,
+            votes: VotesGenerator.Generate(digCount, buryCount));
 
     private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
-    {
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
                 services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings))));
-    }
 
     [Fact]
     public async Task Detail_returns_the_finding_addressed_by_its_id()
@@ -56,11 +56,11 @@ public class FindingDetailTests
         var promotedAt = At("2026-07-08T09:30:00Z");
         using var factory = CreateFactory(CreateFinding(
             id,
-            "Text-only finding",
-            "https://blog.example.org/posts/42",
-            null,
-            promotedAt,
-            123,
+            title: "Text-only finding",
+            source: "https://blog.example.org/posts/42",
+            thumbnail: null,
+            promotedAt: promotedAt,
+            digCount: 123,
             commentCount: 9));
         using var client = factory.CreateClient();
 
