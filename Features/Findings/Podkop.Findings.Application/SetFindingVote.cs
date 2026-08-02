@@ -9,7 +9,8 @@ namespace Podkop.Findings.Application;
 ///     reason; a bury must carry one of the five <see cref="BuryReason" /> values. The current
 ///     user comes from the <see cref="ICurrentUser" /> seam, never from the request.
 /// </summary>
-public sealed record SetFindingVote(Guid FindingId, FindingVoteSide Side, BuryReason? Reason) : IRequest<FindingVoteResult>;
+public sealed record SetFindingVote(Guid FindingId, FindingVoteSide Side, BuryReason? Reason)
+    : IRequest<FindingVoteResult>;
 
 /// <summary>
 ///     The fresh vote state of one finding after a mutation, for the frontend to reconcile from —
@@ -45,22 +46,15 @@ public sealed class SetFindingVoteHandler(
     public async Task<FindingVoteResult> Handle(SetFindingVote request, CancellationToken cancellationToken)
     {
         var finding = await findingsRepository.GetByIdAsync(request.FindingId, cancellationToken);
-        if (finding is null)
-        {
-            return new FindingVoteResult(FindingVoteError.UnknownFinding,null);
-        }
+        if (finding is null) return new FindingVoteResult(FindingVoteError.UnknownFinding, null);
 
         var digBuryOutcome = finding.SetVote(currentUser.UserName, request.Side, request.Reason);
         if (digBuryOutcome == DigBuryOutcome.BuryReasonRequired)
-        {
             return new FindingVoteResult(FindingVoteError.BuryReasonRequired, null);
-        }
 
         if (digBuryOutcome == DigBuryOutcome.OwnFinding)
-        {
             return new FindingVoteResult(FindingVoteError.OwnFinding, null);
-        }
 
-        return new FindingVoteResult(null, new FindingVotes(finding.DigCount, request.Side.ToApiString()));
+        return new FindingVoteResult(null, new FindingVotes(finding.DigCount, finding.VoteBy(currentUser.UserName)));
     }
 }

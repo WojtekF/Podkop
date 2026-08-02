@@ -27,7 +27,7 @@ public sealed class Finding
         CreatedAt = createdAt;
         PromotedAt = promotedAt;
         CommentCount = commentCount;
-        _votes = votes is null ? [] : new Dictionary<string, FindingVote>(votes);
+        _votes = votes is null ? [] : new Dictionary<string, FindingVote>(votes.Where(kvp => kvp.Key != author));
     }
 
     public Guid Id { get; }
@@ -72,7 +72,7 @@ public sealed class Finding
     {
         if (voter == Author) return DigBuryOutcome.OwnFinding;
         if (side == FindingVoteSide.Bury && reason is null) return DigBuryOutcome.BuryReasonRequired;
-        _votes[voter] = new FindingVote(side, reason);
+        _votes[voter] = new FindingVote(side, side == FindingVoteSide.Bury ? reason : null);
         return DigBuryOutcome.Applied;
     }
 

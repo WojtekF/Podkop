@@ -19,18 +19,12 @@ public sealed class WithdrawFindingVoteHandler(
     {
         var finding = await findingsRepository.GetByIdAsync(request.FindingId, cancellationToken);
 
-        if (finding is null)
-        {
-            return new FindingVoteResult(FindingVoteError.UnknownFinding, null);
-        }
-        
+        if (finding is null) return new FindingVoteResult(FindingVoteError.UnknownFinding, null);
+
         var withdrawOutcome = finding.WithdrawVote(currentUser.UserName);
         if (withdrawOutcome == WithdrawOutcome.OwnFinding)
-        {
             return new FindingVoteResult(FindingVoteError.OwnFinding, null);
-        }
 
-        return new FindingVoteResult(null, new FindingVotes(finding.DigCount, null));
-
+        return new FindingVoteResult(null, new FindingVotes(finding.DigCount, finding.VoteBy(currentUser.UserName)));
     }
 }
