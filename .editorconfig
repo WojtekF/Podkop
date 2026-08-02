@@ -47,12 +47,13 @@ resharper_csharp_constructor_or_destructor_body = block_body
 ## Argument style — the default (positional) strips "redundant" argument names, turning a
 ## call like CreateFinding(id, digCount: 123, commentCount: 9) into a row of anonymous
 ## numbers. Flipping it to `named` is no better: it would rewrite every assertion in the
-## test suite as Assert.Equal(expected: 123, ...). The style has no "leave alone" value, and
-## these severity keys do NOT hold it back — code cleanup's "arrange arguments" task applies
-## the style whatever the inspection severity. They only stop the editor squiggle.
+## test suite as Assert.Equal(expected: 123, ...). The style has no "leave alone" value, so
+## the call site decides instead, and these keys only silence the editor squiggle about it.
 ##
-## Where argument names are load-bearing, the file opts out with `// ReSharper disable
-## ArgumentsStyle*` in its header, which cleanup does respect. See the Findings test files.
+## They do NOT hold code cleanup back — cleanup runs the "arrange arguments" task whatever
+## the inspection severity. That task is switched off for the whole solution in
+## Podkop.sln.DotSettings (CSCodeStyleAttributes/@ArrangeArgumentsStyle), which is what
+## actually keeps named arguments alive on save. Keep the two in step.
 ##
 resharper_arguments_style_literal_highlighting = none
 resharper_arguments_style_string_literal_highlighting = none

@@ -8,14 +8,6 @@ using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 
-// The finding factory below takes a run of same-typed ints, where the argument name is the only
-// thing telling digs from buries. Code cleanup's positional argument style would strip exactly
-// those names, so argument style is left to the call site in this file.
-// ReSharper disable ArgumentsStyleLiteral
-// ReSharper disable ArgumentsStyleStringLiteral
-// ReSharper disable ArgumentsStyleNamedExpression
-// ReSharper disable ArgumentsStyleOther
-
 namespace Podkop.Findings.Tests;
 
 /// <summary>
