@@ -14,6 +14,9 @@
     <Project Path="Features/Findings/Podkop.Findings.Server/Podkop.Findings.Server.csproj" />
     <Project Path="Features/Findings/Podkop.Findings.Tests/Podkop.Findings.Tests.csproj" />
   </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/Podkop.Shared.Infrastructure/Podkop.Shared.Infrastructure.csproj" />
+  </Folder>
   <Project Path="Podkop.AppHost/Podkop.AppHost.csproj" />
   <Project Path="Podkop.Server/Podkop.Server.csproj" />
 </Solution>
