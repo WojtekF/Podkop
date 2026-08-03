@@ -3,11 +3,12 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TimeoutError } from 'rxjs';
 import {
+  CommentDto,
   CommentThreadDto,
   CommentVotesDto,
   FindingCommentsService,
 } from './finding-comments.service';
-import { commentThreads, findingId as id } from './finding-detail.fixtures';
+import { commentThreads, findingId as id, postedComment } from './finding-detail.fixtures';
 
 describe('FindingCommentsService', () => {
   let service: FindingCommentsService;
@@ -119,6 +120,43 @@ describe('FindingCommentsService', () => {
       } finally {
         vi.useRealTimers();
       }
+    });
+  });
+
+  describe('posting a comment (issue #17)', () => {
+    const postUrl = `/api/findings/${id}/comments`;
+
+    it('POSTs the text with no parent for a top-level comment and yields the created row', () => {
+      let received: CommentDto | undefined;
+      service.postComment(id, 'A fresh take.', null).subscribe((comment) => (received = comment));
+
+      const req = httpMock.expectOne(postUrl);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ text: 'A fresh take.', parentCommentId: null });
+
+      req.flush(postedComment());
+      expect(received).toEqual(postedComment());
+    });
+
+    it('sends the parent id when the post is a reply', () => {
+      const parentId = 'c0000000-0000-4000-8000-000000000001';
+      service.postComment(id, 'An answer.', parentId).subscribe();
+
+      const req = httpMock.expectOne(postUrl);
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ text: 'An answer.', parentCommentId: parentId });
+      req.flush(postedComment({ text: 'An answer.' }));
+    });
+
+    it('propagates a rejected post as an error the caller can inspect', () => {
+      let status: number | undefined;
+      service.postComment(id, '', null).subscribe({
+        error: (e: { status?: number }) => (status = e.status),
+      });
+
+      httpMock.expectOne(postUrl).flush('empty', { status: 400, statusText: 'Bad Request' });
+
+      expect(status).toBe(400);
     });
   });
 });

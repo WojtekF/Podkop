@@ -17,6 +17,9 @@ export class CommentRow {
   readonly comment = input.required<CommentDto>();
   readonly votePending = input<boolean>(false);
   readonly vote = output<CommentVoteDirection>();
+  // A request to answer this comment (issue #17). Live on every comment, own ones included —
+  // replying to yourself is allowed; only voting is not.
+  readonly reply = output<void>();
   protected readonly isOwnComment = computed(() => this.comment().author === CURRENT_USER);
 
   protected readonly isButtonDisabled = computed(() => this.votePending() || this.isOwnComment());

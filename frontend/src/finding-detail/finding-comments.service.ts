@@ -49,4 +49,13 @@ export class FindingCommentsService {
       .delete<CommentVotesDto>(`/api/comments/${commentId}/my-vote`)
       .pipe(timeout(5000));
   }
+
+  /**
+   * Posts a comment under the finding (issue #17): a top-level comment when parentCommentId is
+   * null, a reply to that top-level comment otherwise. Returns the created comment in the same
+   * shape a GET row has, for the store to render straight from the response — no refetch.
+   */
+  postComment(findingId: string, text: string, parentCommentId: string | null): Observable<CommentDto> {
+    throw new Error('not implemented');
+  }
 }

@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { CommentThreadDto } from '../finding-comments.service';
 import { commentThreads } from '../finding-detail.fixtures';
-import { CommentThread, CommentVote } from './comment-thread';
+import { CommentThread, CommentVote, ReplyRequest } from './comment-thread';
 
 describe('CommentThread', () => {
   let fixture: ComponentFixture<CommentThread>;
@@ -88,6 +88,52 @@ describe('CommentThread', () => {
       // The top-level comment has no request in flight (and grace_hopper is not the
       // reader), so its controls stay live.
       expect(upButtonOf(rows()[0])!.disabled).toBe(false);
+    });
+  });
+
+  describe('replying (issue #17)', () => {
+    const replyButtonOf = (row: Element) =>
+      row.querySelector<HTMLButtonElement>('button.reply-button');
+
+    it("a reply request from the top-level row targets this thread, no @name to append", async () => {
+      await createThread(withReplies());
+      const emitted: ReplyRequest[] = [];
+      fixture.componentInstance.reply.subscribe((request) => emitted.push(request));
+
+      const topRow = element().querySelector('.comment')!;
+      replyButtonOf(topRow)!.click();
+
+      expect(emitted).toEqual([{ threadId: withReplies().id, appendAuthor: null }]);
+    });
+
+    it("a reply request from a reply row targets the same thread, carrying that reply's author", async () => {
+      // Threads are one level deep: answering a reply lands under the same top-level
+      // comment, with the answered author's @name travelling along for the draft.
+      await createThread(withReplies());
+      const emitted: ReplyRequest[] = [];
+      fixture.componentInstance.reply.subscribe((request) => emitted.push(request));
+
+      const replyRow = element().querySelectorAll('.replies .comment')[0];
+      replyButtonOf(replyRow)!.click();
+
+      expect(emitted).toEqual([
+        { threadId: withReplies().id, appendAuthor: withReplies().replies[0].author },
+      ]);
+    });
+
+    it('hosts no composer while its composer input is null', async () => {
+      await createThread(withReplies());
+
+      expect(element().querySelector('app-comment-composer')).toBeNull();
+    });
+
+    it('hosts the inline composer when its composer input is set', async () => {
+      await createThread(withReplies());
+      fixture.componentRef.setInput('composer', { draft: '', pending: false });
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(element().querySelector('app-comment-composer')).not.toBeNull();
     });
   });
 });

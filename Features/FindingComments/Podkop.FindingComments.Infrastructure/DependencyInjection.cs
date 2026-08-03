@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Podkop.FindingComments.Application;
 using Podkop.FindingComments.Domain;
@@ -13,7 +14,8 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<GetFindingComments>());
         // The seed is a lazy factory: hosts and tests that override ICommentRepository never
         // trigger (or pay for) sample-data generation.
-        services.AddSingleton<ICommentRepository>(_ => new InMemoryCommentRepository(seed()));
+        services.AddSingleton<ICommentRepository>(provider =>
+            new InMemoryCommentRepository(seed(), provider.GetRequiredService<IPublisher>()));
         return services;
     }
 }

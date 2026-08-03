@@ -20,6 +20,19 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
 
+/**
+ * One comment composer's state (issue #17). Composers live in the store keyed by
+ * TOP_COMPOSER_KEY (the always-present composer at the top of the comments section) or a
+ * top-level comment's id (an inline reply composer — present in the map exactly while open).
+ * Each key is independent: drafts and in-flight posts on one never block another.
+ */
+export interface ComposerState {
+  draft: string;
+  pending: boolean;
+}
+
+export const TOP_COMPOSER_KEY = 'top';
+
 export interface FindingDetailState {
   id: string | null;
   finding: FindingDetailDto | null;
@@ -27,6 +40,7 @@ export interface FindingDetailState {
   status: FindingDetailStatus;
   pendingCommentVoteIds: readonly string[];
   pendingFindingVote: boolean;
+  composers: Readonly<Record<string, ComposerState>>;
 }
 
 const initialState: FindingDetailState = {
@@ -36,6 +50,7 @@ const initialState: FindingDetailState = {
   status: 'loading',
   pendingCommentVoteIds: [],
   pendingFindingVote: false,
+  composers: { [TOP_COMPOSER_KEY]: { draft: '', pending: false } },
 };
 
 export const FindingDetailStore = signalStore(
@@ -144,11 +159,49 @@ export const FindingDetailStore = signalStore(
         ),
       );
 
+      /**
+       * Opens (or re-targets) the reply composer of one thread (issue #17). With an
+       * appendAuthor — the reader answered a reply — `@author ` is appended to whatever
+       * draft the composer already holds; nothing typed is ever discarded. Without one the
+       * composer just opens (empty on first open), no prefill.
+       */
+      const openReplyComposer = (_request: { threadId: string; appendAuthor: string | null }): void => {
+        throw new Error('not implemented');
+      };
+
+      /** Records an edit to the composer's draft (issue #17). */
+      const updateComposerDraft = (_edit: { composerKey: string; text: string }): void => {
+        throw new Error('not implemented');
+      };
+
+      /** Closes a reply composer and discards its draft (issue #17). */
+      const cancelReplyComposer = (_threadId: string): void => {
+        throw new Error('not implemented');
+      };
+
+      /**
+       * Posts the composer's draft (issue #17). TOP_COMPOSER_KEY posts a top-level comment:
+       * on success the created comment is pinned to the top of the thread list for this
+       * session (newest post first — real ordering applies from the next load), the draft
+       * clears, and the finding's comment count reconciles by +1. A thread id posts a reply:
+       * on success it appends to that thread's replies (chronological — last) and the
+       * composer closes. Each composer's in-flight state is its own: pending disables only
+       * that composer, and posts from different composers may overlap. Failure shows a
+       * snackbar and leaves the draft and the discussion untouched.
+       */
+      const postComment = (_composerKey: string): void => {
+        throw new Error('not implemented');
+      };
+
       return {
         load,
         retry,
         voteOnComment,
         voteOnFinding,
+        openReplyComposer,
+        updateComposerDraft,
+        cancelReplyComposer,
+        postComment,
       };
     },
   ),

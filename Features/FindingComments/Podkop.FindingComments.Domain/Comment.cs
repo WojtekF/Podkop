@@ -8,6 +8,10 @@ namespace Podkop.FindingComments.Domain;
 /// </summary>
 public sealed class Comment
 {
+    /// <summary>The most text one comment may carry (issue #17); longer text is rejected.</summary>
+    public const int MaxTextLength = 5000;
+
+    private readonly List<IDomainEvent> _domainEvents = [];
     private readonly Dictionary<string, VoteDirection> _votes;
 
     public Comment(
@@ -45,6 +49,27 @@ public sealed class Comment
 
     public bool IsReply => ParentCommentId is not null;
     public int NetScore => UpvoteCount - DownvoteCount;
+
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents;
+
+    /// <summary>
+    ///     Creates a newly posted comment (issue #17). Text is trimmed before validation and
+    ///     storage; text that is empty after trimming is rejected, as is text longer than
+    ///     <see cref="MaxTextLength" /> characters. A successful post raises
+    ///     <see cref="CommentAdded" />. Whether the parent is a valid top-level comment is not
+    ///     this factory's rule — the aggregate cannot see other comments, so the depth invariant
+    ///     is enforced where the parent can be loaded.
+    /// </summary>
+    public static PostCommentResult Post(
+        Guid id,
+        Guid findingId,
+        Guid? parentCommentId,
+        string author,
+        string? text,
+        DateTimeOffset createdAt)
+    {
+        throw new NotImplementedException();
+    }
 
     /// <summary>
     ///     Records the voter's vote (issue #18): a fresh vote or a one-step switch to the other
