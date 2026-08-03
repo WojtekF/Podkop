@@ -95,10 +95,7 @@ public sealed class Finding
     ///     Counts one newly posted comment or reply (issue #17) — the Findings-side effect of
     ///     the FindingComments slice's CommentPosted contract event.
     /// </summary>
-    public void IncrementCommentCount()
-    {
-        throw new NotImplementedException();
-    }
+    public void IncrementCommentCount() => CommentCount++;
 
     public FindingVoteSide? VoteBy(string voter) =>
         _votes.TryGetValue(voter, out var value) ? value.Side : null;

@@ -68,8 +68,27 @@ public sealed class Comment
         string? text,
         DateTimeOffset createdAt)
     {
-        throw new NotImplementedException();
+        if (string.IsNullOrWhiteSpace(text)) return new PostCommentResult(PostCommentOutcome.EmptyText, null);
+
+        var trimmedText = text.Trim();
+        if (trimmedText.Length > MaxTextLength) return new PostCommentResult(PostCommentOutcome.TextTooLong, null);
+
+        var comment = new Comment(
+            id,
+            findingId,
+            parentCommentId,
+            author,
+            trimmedText,
+            createdAt);
+
+        comment.RaiseCommentAdded();
+        return new PostCommentResult(
+            PostCommentOutcome.Posted,
+            comment
+        );
     }
+
+    private void RaiseCommentAdded() => _domainEvents.Add(new CommentAdded(Id, FindingId));
 
     /// <summary>
     ///     Records the voter's vote (issue #18): a fresh vote or a one-step switch to the other
@@ -95,8 +114,5 @@ public sealed class Comment
         return ActionOutcome.Applied;
     }
 
-    public VoteDirection? VoteBy(string voter)
-    {
-        return Votes.TryGetValue(voter, out var value) ? value : null;
-    }
+    public VoteDirection? VoteBy(string voter) => Votes.TryGetValue(voter, out var value) ? value : null;
 }

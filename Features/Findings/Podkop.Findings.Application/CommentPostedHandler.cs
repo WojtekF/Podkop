@@ -12,8 +12,9 @@ namespace Podkop.Findings.Application;
 public sealed class CommentPostedHandler(IFindingRepository findingsRepository)
     : INotificationHandler<CommentPosted>
 {
-    public Task Handle(CommentPosted notification, CancellationToken cancellationToken)
+    public async Task Handle(CommentPosted notification, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var finding = await findingsRepository.GetByIdAsync(notification.FindingId, cancellationToken);
+        finding?.IncrementCommentCount();
     }
 }

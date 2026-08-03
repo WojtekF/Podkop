@@ -50,9 +50,10 @@ public class PostCommentApiTests
     }
 
     private static Comment CreateComment(Guid id, Guid? parentCommentId = null,
-        string createdAt = "2026-07-08T10:00:00Z")
+        string createdAt = "2026-07-08T10:00:00Z", Guid? findingId = null)
     {
-        return new Comment(id, FindingId, parentCommentId, "grace_hopper", "An existing take.", At(createdAt));
+        return new Comment(id, findingId ?? FindingId, parentCommentId, "grace_hopper", "An existing take.",
+            At(createdAt));
     }
 
     private static WebApplicationFactory<Program> CreateFactory(
@@ -262,6 +263,23 @@ public class PostCommentApiTests
 
         var response = await Post(client, "An answer to nobody.",
             Guid.Parse("88888888-8888-4888-8888-888888888888"));
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemResponse>();
+        Assert.Equal("podkop:problem:unknown-parent", problem?.Type);
+    }
+
+    [Fact]
+    public async Task Replying_to_a_parent_from_another_finding_is_a_404_typed_unknown_parent()
+    {
+        // The parent exists and is top-level, but belongs to a different finding — for the
+        // finding being posted under it is unknown, not a valid thread to land in.
+        using var factory = CreateFactory([
+            CreateComment(TopLevelId, findingId: Guid.Parse("77777777-7777-4777-8777-777777777777")),
+        ]);
+        using var client = factory.CreateClient();
+
+        var response = await Post(client, "An answer across findings.", TopLevelId);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<ProblemResponse>();

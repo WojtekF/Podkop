@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.FindingComments.Domain;
 
 namespace Podkop.FindingComments.Application;
 
@@ -44,8 +45,34 @@ public sealed class PostCommentHandler(
     ICurrentUser currentUser)
     : IRequestHandler<PostComment, PostCommentResponse>
 {
-    public Task<PostCommentResponse> Handle(PostComment request, CancellationToken cancellationToken)
+    public async Task<PostCommentResponse> Handle(PostComment request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        if (!await findingLookup.ExistsAsync(request.FindingId, cancellationToken))
+            return new PostCommentResponse(PostCommentError.UnknownFinding, null);
+
+        if (request.ParentCommentId is not null)
+        {
+            var parentComment = await commentsRepository.GetByIdAsync(request.ParentCommentId.Value, cancellationToken);
+            if (parentComment is null || parentComment.FindingId != request.FindingId)
+                return new PostCommentResponse(PostCommentError.UnknownParent, null);
+            if (parentComment.IsReply) return new PostCommentResponse(PostCommentError.ParentIsAReply, null);
+        }
+
+        var postCommentResult = Comment.Post(
+            id: Guid.CreateVersion7(),
+            request.FindingId,
+            request.ParentCommentId,
+            author: currentUser.UserName,
+            request.Text,
+            createdAt: DateTimeOffset.UtcNow);
+
+        if (postCommentResult.Outcome == PostCommentOutcome.EmptyText)
+            return new PostCommentResponse(PostCommentError.EmptyText, null);
+
+        if (postCommentResult.Outcome == PostCommentOutcome.TextTooLong)
+            return new PostCommentResponse(PostCommentError.TextTooLong, null);
+
+        await commentsRepository.AddAsync(postCommentResult.Comment, cancellationToken);
+        return new PostCommentResponse(null, postCommentResult.Comment.ToCommentReply(currentUser.UserName));
     }
 }
