@@ -33,17 +33,17 @@ public class FindingVotingApiTests
         string author = "grace_hopper",
         FindingVote? stubUsersVote = null)
         => new(
-            id,
-            "A finding worth judging",
-            "The finding the votes land on.",
-            new Uri("https://blog.example.org/posts/42"),
-            null,
-            author,
-            ["angular"],
-            At("2026-07-08T03:30:00Z"),
-            At("2026-07-08T09:30:00Z"),
-            0,
-            SeedVotes(digCount, buryCount, stubUsersVote));
+            id: id,
+            title: "A finding worth judging",
+            description: "The finding the votes land on.",
+            source: new Uri("https://blog.example.org/posts/42"),
+            thumbnail: null,
+            author: author,
+            tags: ["angular"],
+            createdAt: At("2026-07-08T03:30:00Z"),
+            promotedAt: At("2026-07-08T09:30:00Z"),
+            commentCount: 0,
+            votes: SeedVotes(digCount, buryCount, stubUsersVote));
 
     /// <summary>
     ///     The crowd of untracked voters the seeded counts stand for, with the stub user's own vote

@@ -1,31 +1,3 @@
-<!--
-  Finding vote controls (issue #15). The reader digs a finding or buries it with a reason; the
-  colocated finding-vote.spec.ts asserts this behaviour. Bind against the `finding` input, the
-  `votePending` input, the `isDisabled` computed, and the `dig` / `bury` outputs.
-
-  Render two controls:
-
-  - A dig control, class `dig-button`. It shows the finding's dig count in an element with class
-    `dig-count`. It carries class `voted` exactly when the reader's current vote (finding.myVote)
-    is a dig. Activating it reports a dig — emit the `dig` output (no reason).
-
-  - A bury control, class `bury-button`. It shows NO count of any kind (bury totals stay private).
-    It carries class `voted` exactly when the reader's current vote is a bury. Choosing to bury
-    lets the reader pick one of the five bury reasons before the bury is reported; picking a reason
-    reports it — emit the `bury` output with that reason's value.
-
-  The five bury reasons — each an option with class `bury-reason`, showing the label on the left
-  and reporting the value on the right:
-    Duplicate              -> 'duplicate'
-    Spam                   -> 'spam'
-    False information      -> 'false-information'
-    Inappropriate content  -> 'inappropriate-content'
-    Unsuitable             -> 'unsuitable'
-
-  Both controls are disabled when `isDisabled` is true — i.e. on the reader's own finding, and
-  while a vote request is in flight.
--->
-
 <div class="dig-bury-container">
   <button
     [class]="{ 'dig-button': true, voted: finding().myVote === 'dig' }"
@@ -33,8 +5,9 @@
     (click)="dig.emit()"
     [disabled]="isDisabled()"
   >
-    <span class="dig-count">{{ finding().digCount }}</span>
+    Dig
   </button>
+  <span class="dig-count">{{ finding().digCount }}</span>
   <button
     [class]="{ 'bury-button': true, voted: finding().myVote === 'bury' }"
     mat-button

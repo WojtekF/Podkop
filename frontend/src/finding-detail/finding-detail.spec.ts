@@ -6,7 +6,11 @@ import { provideRouter, Router, withComponentInputBinding } from '@angular/route
 import { RouterTestingHarness } from '@angular/router/testing';
 import { CommentThreadDto } from './finding-comments.service';
 import { FindingDetailDto } from './finding-detail.service';
-import { commentThreads, findingDetail as detail, findingId as id } from './finding-detail.fixtures';
+import {
+  commentThreads,
+  findingDetail as detail,
+  findingId as id,
+} from './finding-detail.fixtures';
 import { FindingDetail } from './finding-detail';
 
 @Component({ template: 'main page' })
@@ -21,7 +25,8 @@ describe('FindingDetail', () => {
   // element was asked to scroll itself into view, and how.
   let scrollIntoViewCalls: { element: Element; options: unknown }[];
 
-  const expectDetailRequest = (findingId: string) => httpMock.expectOne(`/api/findings/${findingId}`);
+  const expectDetailRequest = (findingId: string) =>
+    httpMock.expectOne(`/api/findings/${findingId}`);
   const expectCommentsRequest = (findingId: string) =>
     httpMock.expectOne(`/api/findings/${findingId}/comments`);
 
@@ -328,6 +333,7 @@ describe('FindingDetail', () => {
       detail({ author: 'grace_hopper', myVote: null, ...overrides });
     const digButton = () => element().querySelector<HTMLButtonElement>('button.dig-button');
     const buryButton = () => element().querySelector<HTMLButtonElement>('button.bury-button');
+    const digCount = () => element().querySelector<HTMLElement>('.dig-count');
     const expectVoteRequest = () => httpMock.expectOne(`/api/findings/${id}/my-vote`);
 
     const loadPage = async (finding = votable()) => {
@@ -346,7 +352,7 @@ describe('FindingDetail', () => {
     it('shows the dig count on the dig control and no count on the bury control', async () => {
       await loadPage(votable({ digCount: 123 }));
 
-      expect(digButton()?.textContent).toContain('123');
+      expect(digCount()?.textContent).toContain('123');
       expect(buryButton()?.textContent).not.toMatch(/\d/);
     });
 
@@ -361,7 +367,7 @@ describe('FindingDetail', () => {
       req.flush({ digCount: 124, myVote: 'dig' });
       harness.detectChanges();
 
-      expect(digButton()?.textContent).toContain('124');
+      expect(digCount()?.textContent).toContain('124');
       expect(digButton()?.classList.contains('voted')).toBe(true);
     });
 
@@ -379,7 +385,7 @@ describe('FindingDetail', () => {
       expectVoteRequest().flush('boom', { status: 500, statusText: 'Server Error' });
       harness.detectChanges();
 
-      expect(digButton()?.textContent).toContain('123');
+      expect(digCount()?.textContent).toContain('123');
       expect(digButton()?.classList.contains('voted')).toBe(false);
     });
   });

@@ -2,12 +2,11 @@ import { Component, computed, input, output } from '@angular/core';
 import { BuryReason, FindingDetailDto } from '../finding-detail.service';
 import { CURRENT_USER } from '../current-user';
 import { MatButton } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatMenu, MatMenuTrigger, MatMenuItem } from '@angular/material/menu';
 
 @Component({
   selector: 'app-finding-vote',
-  imports: [MatButton, MatMenu, MatFormFieldModule, MatMenuTrigger, MatMenuItem],
+  imports: [MatButton, MatMenu, MatMenuTrigger, MatMenuItem],
   templateUrl: './finding-vote.html',
   styleUrl: './finding-vote.scss',
 })

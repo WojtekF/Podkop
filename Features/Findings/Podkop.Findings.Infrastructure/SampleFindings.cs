@@ -42,17 +42,19 @@ public static class SampleFindings
             var voters = SampleData.Authors.Except(new[] { author, StubUser })
                 .Concat(SampleData.Voters).ToArray();
             return new Finding(
-                Guid.NewGuid(),
-                $"Sample finding {index}",
-                string.Join(" ", Random.Shared.GetItems(SampleData.Lines.AsSpan(), Random.Shared.Next(1, 4))),
-                new Uri($"https://{SampleData.Hosts[Random.Shared.Next(SampleData.Hosts.Length)]}/article/{index}"),
-                index % 5 == 0 ? null : new Uri($"https://picsum.photos/id/{index * 10}/220/142"),
-                author,
-                Random.Shared.GetItems(SampleData.Tags.AsSpan(), Random.Shared.Next(1, 4)).Distinct().ToArray(),
-                createdAt,
-                promoted ? createdAt.AddHours(Random.Shared.Next(1, 24)) : null,
-                Random.Shared.Next(0, 250),
-                SeedVotes(digCount, voters, buryCount, promoted, stubVote));
+                id: Guid.NewGuid(),
+                title: $"Sample finding {index}",
+                description: string.Join(" ",
+                    Random.Shared.GetItems(SampleData.Lines.AsSpan(), Random.Shared.Next(1, 4))),
+                source: new Uri(
+                    $"https://{SampleData.Hosts[Random.Shared.Next(SampleData.Hosts.Length)]}/article/{index}"),
+                thumbnail: index % 5 == 0 ? null : new Uri($"https://picsum.photos/id/{index * 10}/220/142"),
+                author: author,
+                tags: Random.Shared.GetItems(SampleData.Tags.AsSpan(), Random.Shared.Next(1, 4)).Distinct().ToArray(),
+                createdAt: createdAt,
+                promotedAt: promoted ? createdAt.AddHours(Random.Shared.Next(1, 24)) : null,
+                commentCount: Random.Shared.Next(0, 250),
+                votes: SeedVotes(digCount, voters, buryCount, promoted, stubVote));
         }).ToArray();
     }
 
@@ -64,31 +66,25 @@ public static class SampleFindings
     ///     both sides on the promoted two thirds several times over, while the remaining half stays
     ///     unvoted so the highlight reads as scattered rather than blanket.
     /// </summary>
-    private static FindingVote? StubVoteFor(int index)
-    {
-        return (index % 4) switch
+    private static FindingVote? StubVoteFor(int index) =>
+        (index % 4) switch
         {
             1 => new FindingVote(FindingVoteSide.Bury, (BuryReason)Random.Shared.Next(0, 5)),
             2 => new FindingVote(FindingVoteSide.Dig, null),
             _ => null
         };
-    }
 
     private static Dictionary<string, FindingVote> SeedVotes(int digCount, string[] voters, int buryCount,
         bool promoted, FindingVote? stubVote)
     {
-        Dictionary<string, FindingVote> GetDigVotes(int starting, int count)
-        {
-            return Enumerable.Range(starting, count).Select(i => voters[i])
+        Dictionary<string, FindingVote> GetDigVotes(int starting, int count) =>
+            Enumerable.Range(starting, count).Select(i => voters[i])
                 .ToDictionary(voter => voter, _ => new FindingVote(FindingVoteSide.Dig, null));
-        }
 
-        Dictionary<string, FindingVote> GetBuryVotes(int starting, int count)
-        {
-            return Enumerable.Range(starting, count).Select(i => voters[i])
+        Dictionary<string, FindingVote> GetBuryVotes(int starting, int count) =>
+            Enumerable.Range(starting, count).Select(i => voters[i])
                 .ToDictionary(voter => voter,
                     _ => new FindingVote(FindingVoteSide.Bury, (BuryReason)Random.Shared.Next(0, 5)));
-        }
 
         var votes = (promoted
                 ? GetDigVotes(0, digCount).Concat(GetBuryVotes(digCount, buryCount))

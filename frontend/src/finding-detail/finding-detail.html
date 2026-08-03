@@ -15,6 +15,7 @@
       (bury)="onBuryVoteOnFinding($event)"
       (dig)="onDigVoteOnFinding()"
       [finding]="finding"
+      [votePending]="store.pendingFindingVote()"
     />
     <mat-card-content class="content">
       <h2 class="title">

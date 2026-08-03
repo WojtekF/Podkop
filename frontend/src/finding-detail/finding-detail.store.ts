@@ -107,7 +107,7 @@ export const FindingDetailStore = signalStore(
                       commentId,
                     ),
                   });
-                  snackBar.open("Couldn't record your vote. Please try again.");
+                  snackBar.open("Couldn't vote on comment. Please try again.");
                 },
               }),
             );
@@ -130,14 +130,13 @@ export const FindingDetailStore = signalStore(
               tapResponse({
                 next: (result) => {
                   patchState(store, {
-                    status: 'loaded',
                     finding: { ...store.finding()!, ...result },
                     pendingFindingVote: false,
                   });
                 },
                 error: () => {
-                  patchState(store, { status: 'loaded', pendingFindingVote: false });
-                  snackBar.open("Couldn't record your vote. Please try again.");
+                  patchState(store, { pendingFindingVote: false });
+                  snackBar.open("Couldn't vote on finding. Please try again.");
                 },
               }),
             );

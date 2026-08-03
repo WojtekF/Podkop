@@ -27,7 +27,7 @@ public sealed class Finding
         CreatedAt = createdAt;
         PromotedAt = promotedAt;
         CommentCount = commentCount;
-        _votes = votes is null ? [] : new Dictionary<string, FindingVote>(votes.Where(kvp => kvp.Key != author));
+        _votes = votes is null ? [] : new Dictionary<string, FindingVote>(votes);
     }
 
     public Guid Id { get; }
@@ -89,13 +89,7 @@ public sealed class Finding
     }
 
     // method exposed for seeding purpose only.
-    public void UpdateCommentCount(int commentCount)
-    {
-        CommentCount = commentCount;
-    }
+    public void UpdateCommentCount(int commentCount) => CommentCount = commentCount;
 
-    public string? VoteBy(string voter)
-    {
-        return _votes.TryGetValue(voter, out var value) ? value!.Side.ToApiString() : null;
-    }
+    public string? VoteBy(string voter) => _votes.TryGetValue(voter, out var value) ? value.Side.ToApiString() : null;
 }

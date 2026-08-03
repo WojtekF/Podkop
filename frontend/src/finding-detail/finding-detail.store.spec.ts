@@ -283,7 +283,7 @@ describe('FindingDetailStore', () => {
       expect(store.comments()).toEqual(commentThreads());
       expect(store.pendingCommentVoteIds()).toEqual([]);
       expect(snackBar.open).toHaveBeenCalled();
-      expect(String(snackBar.open.mock.calls[0]?.[0])).toContain("Couldn't record your vote");
+      expect(String(snackBar.open.mock.calls[0]?.[0])).toContain("Couldn't vote on comment");
     });
   });
 
