@@ -2,7 +2,7 @@ import { LoadResult, asResult } from './as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { concatMap, forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
+import { concatMap, exhaustMap, forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
 import {
   CommentThreadDto,
@@ -25,11 +25,7 @@ export interface FindingDetailState {
   finding: FindingDetailDto | null;
   comments: CommentThreadDto[] | null;
   status: FindingDetailStatus;
-  // Ids of comments whose vote request is in flight — their controls stay disabled
-  // so a vote can't be double-submitted (issue #18).
   pendingCommentVoteIds: readonly string[];
-  // True while the finding's own vote request is in flight — its controls stay disabled
-  // so a vote can't be double-submitted (issue #15).
   pendingFindingVote: boolean;
 }
 
@@ -119,14 +115,35 @@ export const FindingDetailStore = signalStore(
         ),
       );
 
-      // One entry point for every finding-vote click (issue #15): from the finding's current
-      // vote it decides between recording, switching, and withdrawing; reconciles the dig count
-      // and highlight from the response (no refetch); marks the finding pending while the
-      // request is in flight; and on failure leaves the finding untouched and announces the
-      // failure in a snackbar.
-      const voteOnFinding = (intent: FindingVoteIntent): void => {
-        throw new Error('not implemented');
-      };
+      const voteOnFinding = rxMethod<FindingVoteIntent>(
+        pipe(
+          tap(() => {
+            patchState(store, { pendingFindingVote: true });
+          }),
+          exhaustMap((intent) => {
+            const request$ =
+              intent.type === store.finding()?.myVote
+                ? service.withdrawMyVote(store.id()!)
+                : service.setMyVote(store.id()!, intent);
+
+            return request$.pipe(
+              tapResponse({
+                next: (result) => {
+                  patchState(store, {
+                    status: 'loaded',
+                    finding: { ...store.finding()!, ...result },
+                    pendingFindingVote: false,
+                  });
+                },
+                error: () => {
+                  patchState(store, { status: 'loaded', pendingFindingVote: false });
+                  snackBar.open("Couldn't record your vote. Please try again.");
+                },
+              }),
+            );
+          }),
+        ),
+      );
 
       return {
         load,

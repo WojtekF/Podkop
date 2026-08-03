@@ -11,6 +11,11 @@
   </div>
 } @else if (finding) {
   <mat-card class="detail-state">
+    <app-finding-vote
+      (bury)="onBuryVoteOnFinding($event)"
+      (dig)="onDigVoteOnFinding()"
+      [finding]="finding"
+    />
     <mat-card-content class="content">
       <h2 class="title">
         <a
@@ -21,6 +26,7 @@
           >{{ finding.title }}</a
         >
       </h2>
+
       <div class="description">
         {{ finding.description }}
       </div>
@@ -60,7 +66,7 @@
         <app-comment-thread
           [thread]="thread"
           [pendingVoteIds]="store.pendingCommentVoteIds()"
-          (vote)="onVote($event)"
+          (vote)="onVoteOnComment($event)"
         />
       </mat-card>
     }

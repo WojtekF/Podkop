@@ -2,3 +2,17 @@
 // `voted` state a distinct, legible highlight so the reader sees at a glance how they voted; and
 // make disabled controls read as unavailable. Keep the dig count beside its control and the bury
 // side count-free.
+:host {
+  align-self: center;
+}
+.dig-bury-container {
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  .dig-button.voted {
+    color: green;
+  }
+  .bury-button.voted {
+    color: red;
+  }
+}

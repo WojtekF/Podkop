@@ -25,3 +25,37 @@
   Both controls are disabled when `isDisabled` is true — i.e. on the reader's own finding, and
   while a vote request is in flight.
 -->
+
+<div class="dig-bury-container">
+  <button
+    [class]="{ 'dig-button': true, voted: finding().myVote === 'dig' }"
+    mat-button
+    (click)="dig.emit()"
+    [disabled]="isDisabled()"
+  >
+    <span class="dig-count">{{ finding().digCount }}</span>
+  </button>
+  <button
+    [class]="{ 'bury-button': true, voted: finding().myVote === 'bury' }"
+    mat-button
+    [matMenuTriggerFor]="buryMenu"
+    [disabled]="isDisabled()"
+  >
+    Bury
+  </button>
+  <mat-menu #buryMenu>
+    <button class="bury-reason" mat-menu-item (click)="bury.emit('duplicate')">Duplicate</button>
+
+    <button class="bury-reason" mat-menu-item (click)="bury.emit('spam')">Spam</button>
+
+    <button class="bury-reason" mat-menu-item (click)="bury.emit('false-information')">
+      False information
+    </button>
+
+    <button class="bury-reason" mat-menu-item (click)="bury.emit('inappropriate-content')">
+      Inappropriate content
+    </button>
+
+    <button class="bury-reason" mat-menu-item (click)="bury.emit('unsuitable')">Unsuitable</button>
+  </mat-menu>
+</div>
