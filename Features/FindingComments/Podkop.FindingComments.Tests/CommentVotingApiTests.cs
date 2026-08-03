@@ -164,6 +164,22 @@ public class CommentVotingApiTests
         var response = await PutVote(client, CommentId, "up");
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemResponse>();
+        Assert.Contains("own comment", problem?.Detail);
+    }
+
+    [Fact]
+    public async Task An_unrecognised_vote_direction_is_a_400_that_names_the_valid_directions()
+    {
+        using var factory = CreateFactory([CreateComment(CommentId, 5, 2)]);
+        using var client = factory.CreateClient();
+
+        var response = await PutVote(client, CommentId, "sideways");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemResponse>();
+        Assert.Contains("up", problem?.Detail);
+        Assert.Contains("down", problem?.Detail);
     }
 
     [Fact]
@@ -244,4 +260,6 @@ public class CommentVotingApiTests
         List<CommentReplyResponse> Replies);
 
     private sealed record CommentReplyResponse(Guid Id, string? MyVote);
+
+    private sealed record ProblemResponse(string? Detail);
 }

@@ -19,7 +19,7 @@ import { BuryReason } from './finding-detail.service';
     MatCard,
     MatCardContent,
     CommentThread,
-    FindingVote
+    FindingVote,
   ],
   providers: [FindingDetailStore],
   templateUrl: './finding-detail.html',
@@ -30,12 +30,12 @@ export class FindingDetail {
     this.store.voteOnComment($event);
   }
 
-  protected onDigVoteOnFinding(){
-    this.store.voteOnFinding({type:'dig'})
+  protected onDigVoteOnFinding() {
+    this.store.voteOnFinding({ type: 'dig' });
   }
 
-  protected onBuryVoteOnFinding(reason: BuryReason){
-    this.store.voteOnFinding({type:'bury', reason})
+  protected onBuryVoteOnFinding(reason?: BuryReason) {
+    this.store.voteOnFinding({ type: 'bury', reason });
   }
 
   protected hasThumbnail() {

@@ -14,6 +14,7 @@
     <app-finding-vote
       (bury)="onBuryVoteOnFinding($event)"
       (dig)="onDigVoteOnFinding()"
+      (withdrawBury)="onBuryVoteOnFinding()"
       [finding]="finding"
       [votePending]="store.pendingFindingVote()"
     />

@@ -378,6 +378,39 @@ describe('FindingDetail', () => {
       expect(buryButton()?.disabled).toBe(true);
     });
 
+    it('clicking the highlighted bury control withdraws the vote with a DELETE', async () => {
+      // The reader already holds a bury, so the click is an undo: no reason picker, straight
+      // to the wire. The response clears the highlight.
+      await loadPage(votable({ myVote: 'bury', digCount: 123 }));
+
+      buryButton()!.click();
+      const req = expectVoteRequest();
+      expect(req.request.method).toBe('DELETE');
+
+      req.flush({ digCount: 123, myVote: null });
+      harness.detectChanges();
+
+      expect(buryButton()?.classList.contains('voted')).toBe(false);
+    });
+
+    it('disables the vote controls while a vote request is in flight, and only then', async () => {
+      await loadPage(votable());
+
+      digButton()!.click();
+      harness.detectChanges();
+
+      // In flight: both controls sit out the round trip.
+      expect(digButton()?.disabled).toBe(true);
+      expect(buryButton()?.disabled).toBe(true);
+
+      expectVoteRequest().flush({ digCount: 124, myVote: 'dig' });
+      harness.detectChanges();
+
+      // ...and come back once it lands.
+      expect(digButton()?.disabled).toBe(false);
+      expect(buryButton()?.disabled).toBe(false);
+    });
+
     it('a failed finding vote leaves the visible count and highlight unchanged', async () => {
       await loadPage(votable({ digCount: 123 }));
 

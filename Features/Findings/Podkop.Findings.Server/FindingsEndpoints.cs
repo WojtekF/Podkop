@@ -66,7 +66,11 @@ public static class FindingsEndpoints
                 CancellationToken cancellationToken) =>
             {
                 var side = ParseSide(request.Type);
-                if (side is null) return Results.BadRequest();
+                if (side is null)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+                        detail: "type must be 'dig' or 'bury'.");
+                }
                 // A missing or unrecognised reason is passed through as null; the "a bury needs a
                 // reason" rule is the domain's to enforce (issue #15), so the endpoint does not
                 // pre-reject it here.
@@ -106,8 +110,10 @@ public static class FindingsEndpoints
     private static IResult ToVoteResponse(FindingVoteResult result) => result.Error switch
     {
         FindingVoteError.UnknownFinding => Results.NotFound(),
-        FindingVoteError.OwnFinding => Results.BadRequest(),
-        FindingVoteError.BuryReasonRequired => Results.BadRequest(),
+        FindingVoteError.OwnFinding => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+            detail: "You cannot vote on your own finding."),
+        FindingVoteError.BuryReasonRequired => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+            detail: "A bury must carry a reason."),
         _ => Results.Ok(result.Votes),
     };
 }

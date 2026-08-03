@@ -11,7 +11,8 @@
   <button
     [class]="{ 'bury-button': true, voted: finding().myVote === 'bury' }"
     mat-button
-    [matMenuTriggerFor]="buryMenu"
+    (click)="finding().myVote === 'bury' ? withdrawBury.emit() : null"
+    [matMenuTriggerFor]="finding().myVote === 'bury' ? null : buryMenu"
     [disabled]="isDisabled()"
   >
     Bury

@@ -7,7 +7,7 @@ export type FindingVoteSide = 'dig' | 'bury';
 export type BuryReason =
   'duplicate' | 'spam' | 'false-information' | 'inappropriate-content' | 'unsuitable';
 
-export type FindingVoteIntent = { type: 'dig' } | { type: 'bury'; reason: BuryReason };
+export type FindingVoteIntent = { type: 'dig' } | { type: 'bury'; reason?: BuryReason };
 
 export interface FindingDetailDto {
   id: string;

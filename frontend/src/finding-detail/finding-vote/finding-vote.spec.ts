@@ -93,6 +93,47 @@ describe('FindingVote', () => {
     expect(chosen).toEqual(['spam']);
   });
 
+  it('withdraws an existing bury on click — no reason picker involved', async () => {
+    // A reason is only ever chosen when a reason is needed. The reader already holds a bury,
+    // so clicking the bury control undoes it directly, symmetric with clicking a highlighted
+    // dig — the picker stays shut and no reason is reported.
+    await create(votable({ myVote: 'bury' }));
+    let withdrawals = 0;
+    const chosen: BuryReason[] = [];
+    fixture.componentInstance.withdrawBury.subscribe(() => (withdrawals += 1));
+    fixture.componentInstance.bury.subscribe((reason) => chosen.push(reason));
+
+    buryButton()!.click();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(withdrawals).toBe(1);
+    expect(chosen).toEqual([]);
+    expect(reasonOptions()).toEqual([]);
+  });
+
+  it('still offers the reason picker when the reader currently holds a dig', async () => {
+    // Only an existing bury short-circuits the picker: switching sides creates a fresh bury,
+    // which needs its reason like any other.
+    await create(votable({ myVote: 'dig' }));
+
+    await openBuryPicker();
+
+    expect(reasonOptions()).toHaveLength(5);
+  });
+
+  it('does not withdraw when the reader has no bury to withdraw', async () => {
+    // Unvoted reader: the click opens the picker and nothing is withdrawn.
+    await create(votable({ myVote: null }));
+    let withdrawals = 0;
+    fixture.componentInstance.withdrawBury.subscribe(() => (withdrawals += 1));
+
+    await openBuryPicker();
+
+    expect(withdrawals).toBe(0);
+    expect(reasonOptions()).toHaveLength(5);
+  });
+
   it("highlights the reader's current dig — and only it", async () => {
     await create(votable({ myVote: 'dig' }));
 

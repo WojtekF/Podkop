@@ -15,6 +15,7 @@ export class FindingVote {
   readonly votePending = input<boolean>(false);
   readonly dig = output<void>();
   readonly bury = output<BuryReason>();
+  readonly withdrawBury = output<void>();
 
   protected readonly isOwnFinding = computed(() => this.finding().author === CURRENT_USER);
   protected readonly isDisabled = computed(() => this.votePending() || this.isOwnFinding());

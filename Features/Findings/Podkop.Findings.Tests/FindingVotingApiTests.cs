@@ -163,6 +163,8 @@ public class FindingVotingApiTests
         var response = await client.PutAsJsonAsync($"/api/findings/{FindingId}/my-vote", new { type = "bury" });
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemResponse>();
+        Assert.Contains("reason", problem?.Detail);
     }
 
     [Fact]
@@ -174,6 +176,22 @@ public class FindingVotingApiTests
         var response = await PutDig(client, FindingId);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemResponse>();
+        Assert.Contains("own finding", problem?.Detail);
+    }
+
+    [Fact]
+    public async Task An_unrecognised_vote_type_is_a_400_that_names_the_valid_sides()
+    {
+        using var factory = CreateFactory(CreateFinding(FindingId, 5, 1));
+        using var client = factory.CreateClient();
+
+        var response = await client.PutAsJsonAsync($"/api/findings/{FindingId}/my-vote", new { type = "smash" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var problem = await response.Content.ReadFromJsonAsync<ProblemResponse>();
+        Assert.Contains("dig", problem?.Detail);
+        Assert.Contains("bury", problem?.Detail);
     }
 
     [Fact]
@@ -271,6 +289,8 @@ public class FindingVotingApiTests
     }
 
     private sealed record FindingVotesResponse(int DigCount, string? MyVote);
+
+    private sealed record ProblemResponse(string? Detail);
 
     private sealed record FindingDetailResponse(Guid Id, int DigCount, string? MyVote);
 }
