@@ -7,8 +7,6 @@
     "esbenp.prettier-vscode",
     // Applies the root and frontend/ .editorconfig files (indentation, final newline, trimming).
     "editorconfig.editorconfig",
-    // C# language support; the default formatter for .cs, driven by the root .editorconfig.
-    "ms-dotnettools.csharp",
     // Angular language service: template type-checking, completions, go-to-definition in .html.
     "angular.ng-template"
   ]
