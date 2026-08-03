@@ -70,8 +70,8 @@ public sealed class Comment
         return ActionOutcome.Applied;
     }
 
-    public string? VoteBy(string voter)
+    public VoteDirection? VoteBy(string voter)
     {
-        return Votes.TryGetValue(voter, out var value) ? value.ToApiString() : null;
+        return Votes.TryGetValue(voter, out var value) ? value : null;
     }
 }

@@ -55,6 +55,7 @@ public sealed class SetFindingVoteHandler(
         if (digBuryOutcome == DigBuryOutcome.OwnFinding)
             return new FindingVoteResult(FindingVoteError.OwnFinding, null);
 
-        return new FindingVoteResult(null, new FindingVotes(finding.DigCount, finding.VoteBy(currentUser.UserName)));
+        return new FindingVoteResult(null,
+            new FindingVotes(finding.DigCount, finding.VoteBy(currentUser.UserName).ToApiString()));
     }
 }

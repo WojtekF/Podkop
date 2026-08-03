@@ -51,7 +51,7 @@ public sealed class GetFindingDetailHandler(IFindingRepository findingsRepositor
                 finding.Author,
                 finding.Tags,
                 finding.DigCount,
-                finding.VoteBy(userName),
+                finding.VoteBy(userName).ToApiString(),
                 finding.CommentCount,
                 finding.CreatedAt,
                 finding.PromotedAt);

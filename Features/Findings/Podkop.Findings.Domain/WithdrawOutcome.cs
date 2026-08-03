@@ -1,4 +1,4 @@
-﻿namespace Podkop.Findings.Domain;
+namespace Podkop.Findings.Domain;
 
 public enum WithdrawOutcome
 {

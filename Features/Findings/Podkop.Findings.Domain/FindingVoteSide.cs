@@ -10,11 +10,3 @@ public enum FindingVoteSide
     Dig,
     Bury
 }
-
-public static class FindingVoteSideExtensions
-{
-    public static string ToApiString(this FindingVoteSide side)
-    {
-        return side == FindingVoteSide.Dig ? "dig" : "bury";
-    }
-}

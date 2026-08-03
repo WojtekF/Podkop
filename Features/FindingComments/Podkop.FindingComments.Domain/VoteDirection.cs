@@ -9,11 +9,3 @@ public enum VoteDirection
     Up,
     Down
 }
-
-public static class VoteDirectionExtensions
-{
-    public static string ToApiString(this VoteDirection voteDirection)
-    {
-        return voteDirection == VoteDirection.Up ? "up" : "down";
-    }
-}

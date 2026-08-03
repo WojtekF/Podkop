@@ -91,5 +91,6 @@ public sealed class Finding
     // method exposed for seeding purpose only.
     public void UpdateCommentCount(int commentCount) => CommentCount = commentCount;
 
-    public string? VoteBy(string voter) => _votes.TryGetValue(voter, out var value) ? value.Side.ToApiString() : null;
+    public FindingVoteSide? VoteBy(string voter) =>
+        _votes.TryGetValue(voter, out var value) ? value.Side : null;
 }

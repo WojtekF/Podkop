@@ -1,4 +1,4 @@
-﻿using Podkop.Findings.Domain;
+using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Tests;
 
