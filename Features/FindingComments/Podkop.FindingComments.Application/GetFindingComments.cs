@@ -65,7 +65,7 @@ public sealed class GetFindingCommentsHandler(
         string currentUser)
     {
         return new CommentThread(comment.Id, comment.Author, comment.Text, comment.UpvoteCount, comment.DownvoteCount,
-            comment.VoteBy(currentUser),
+            comment.VoteBy(currentUser).ToApiString(),
             comment.CreatedAt,
             repliesByParent[comment.Id]
                 .OrderBy(cr => cr.CreatedAt)
@@ -76,7 +76,7 @@ public sealed class GetFindingCommentsHandler(
                         reply.Text,
                         reply.UpvoteCount,
                         reply.DownvoteCount,
-                        reply.VoteBy(currentUser),
+                        reply.VoteBy(currentUser).ToApiString(),
                         reply.CreatedAt))
                 .ToList());
     }

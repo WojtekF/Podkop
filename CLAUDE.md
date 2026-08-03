@@ -23,6 +23,8 @@ Podkop.AppHost/              # Aspire orchestration — wires server + frontend
 Podkop.Server/               # ASP.NET Core API host / composition root
 Features/
   Findings/                  # Findings feature slice (Domain/Application/Infrastructure/Server/Tests projects)
+Shared/
+  Podkop.Shared.Infrastructure/  # Cross-slice infrastructure helpers (sample-data vocabulary for seed generators)
 frontend/                    # Angular 22 app
   src/app/                   # Root component, routing, app config
   src/sink/                  # Feature: main post feed (component, service, post-card/)

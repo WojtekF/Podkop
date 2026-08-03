@@ -18,6 +18,8 @@ builder.Services.AddFindings(() => SampleSeed.Findings);
 builder.Services.AddFindingComments(() => SampleSeed.Comments);
 builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
 builder.Services.AddSingleton<ICurrentUser, StubCurrentUser>();
+// The Findings slice owns its own current-user port (ADR 0003); the same stub backs it (issue #15).
+builder.Services.AddSingleton<Podkop.Findings.Application.ICurrentUser, StubCurrentUser>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

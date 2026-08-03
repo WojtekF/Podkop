@@ -1,0 +1,13 @@
+{
+  // Extensions this workspace's settings.json depends on. VSCode prompts new contributors to
+  // install these on first open, so format-on-save works without anyone having to debug why it
+  // silently does nothing.
+  "recommendations": [
+    // Formats .ts/.js/.html/.scss per frontend/.prettierrc — referenced as the default formatter.
+    "esbenp.prettier-vscode",
+    // Applies the root and frontend/ .editorconfig files (indentation, final newline, trimming).
+    "editorconfig.editorconfig",
+    // Angular language service: template type-checking, completions, go-to-definition in .html.
+    "angular.ng-template"
+  ]
+}

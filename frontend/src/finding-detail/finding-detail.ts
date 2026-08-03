@@ -6,6 +6,8 @@ import { MatButton } from '@angular/material/button';
 import { DatePipe } from '@angular/common';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { CommentThread, CommentVote } from './comment-thread/comment-thread';
+import { FindingVote } from './finding-vote/finding-vote';
+import { BuryReason } from './finding-detail.service';
 
 @Component({
   selector: 'app-finding-detail',
@@ -17,14 +19,23 @@ import { CommentThread, CommentVote } from './comment-thread/comment-thread';
     MatCard,
     MatCardContent,
     CommentThread,
+    FindingVote,
   ],
   providers: [FindingDetailStore],
   templateUrl: './finding-detail.html',
   styleUrl: './finding-detail.scss',
 })
 export class FindingDetail {
-  protected onVote($event: CommentVote) {
+  protected onVoteOnComment($event: CommentVote) {
     this.store.voteOnComment($event);
+  }
+
+  protected onDigVoteOnFinding() {
+    this.store.voteOnFinding({ type: 'dig' });
+  }
+
+  protected onBuryVoteOnFinding(reason?: BuryReason) {
+    this.store.voteOnFinding({ type: 'bury', reason });
   }
 
   protected hasThumbnail() {

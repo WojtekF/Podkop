@@ -34,8 +34,6 @@ public class FindingCommentsApiTests
             ["angular"],
             At("2026-07-08T03:30:00Z"),
             At("2026-07-08T09:30:00Z"),
-            10,
-            1,
             0);
     }
 

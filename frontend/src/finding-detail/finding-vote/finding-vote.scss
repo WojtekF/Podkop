@@ -1,0 +1,17 @@
+:host {
+  align-self: center;
+}
+.dig-bury-container {
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  .dig-count {
+    text-align: center;
+  }
+  .dig-button.voted {
+    color: green;
+  }
+  .bury-button.voted {
+    color: red;
+  }
+}

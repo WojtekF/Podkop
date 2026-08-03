@@ -2,7 +2,11 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { TimeoutError } from 'rxjs';
-import { FindingDetailDto, FindingDetailService } from './finding-detail.service';
+import {
+  FindingDetailDto,
+  FindingDetailService,
+  FindingVotesDto,
+} from './finding-detail.service';
 import { findingDetail as detail, findingId as id } from './finding-detail.fixtures';
 
 describe('FindingDetailService', () => {
@@ -62,5 +66,42 @@ describe('FindingDetailService', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  describe('voting on the finding (issue #15)', () => {
+    const voteEndpoint = `/api/findings/${id}/my-vote`;
+
+    it('PUTs a dig to the finding my-vote endpoint', () => {
+      let received: FindingVotesDto | undefined;
+      service.setMyVote(id, { type: 'dig' }).subscribe((votes) => (received = votes));
+
+      const req = httpMock.expectOne(voteEndpoint);
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ type: 'dig' });
+
+      const body: FindingVotesDto = { digCount: 124, myVote: 'dig' };
+      req.flush(body);
+      expect(received).toEqual(body);
+    });
+
+    it('PUTs a bury carrying the chosen reason', () => {
+      service.setMyVote(id, { type: 'bury', reason: 'spam' }).subscribe();
+
+      const req = httpMock.expectOne(voteEndpoint);
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ type: 'bury', reason: 'spam' });
+    });
+
+    it('DELETEs to withdraw the vote', () => {
+      let received: FindingVotesDto | undefined;
+      service.withdrawMyVote(id).subscribe((votes) => (received = votes));
+
+      const req = httpMock.expectOne(voteEndpoint);
+      expect(req.request.method).toBe('DELETE');
+
+      const body: FindingVotesDto = { digCount: 123, myVote: null };
+      req.flush(body);
+      expect(received).toEqual(body);
+    });
   });
 });

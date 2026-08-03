@@ -29,7 +29,11 @@ public static class FindingCommentsEndpoints
                 CancellationToken cancellationToken) =>
             {
                 var direction = ParseDirection(request.Direction);
-                if (direction is null) return Results.BadRequest();
+                if (direction is null)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+                        detail: "direction must be 'up' or 'down'.");
+                }
                 var result = await sender.Send(new SetCommentVote(commentId, direction.Value), cancellationToken);
                 return ToVoteResponse(result);
             })
@@ -55,7 +59,8 @@ public static class FindingCommentsEndpoints
     private static IResult ToVoteResponse(CommentVoteResult result) => result.Error switch
     {
         CommentVoteError.UnknownComment => Results.NotFound(),
-        CommentVoteError.OwnComment => Results.BadRequest(),
+        CommentVoteError.OwnComment => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+            detail: "You cannot vote on your own comment."),
         _ => Results.Ok(result.Votes),
     };
 }

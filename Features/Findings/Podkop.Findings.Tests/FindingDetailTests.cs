@@ -33,9 +33,8 @@ public class FindingDetailTests
             tags: ["angular", "webdev"],
             createdAt: (promotedAt ?? At("2026-07-08T09:30:00Z")).AddHours(-6),
             promotedAt: promotedAt ?? At("2026-07-08T09:30:00Z"),
-            digCount: digCount,
-            buryCount: buryCount,
-            commentCount: commentCount);
+            commentCount: commentCount,
+            votes: VotesGenerator.Generate(digCount, buryCount));
 
     private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
         => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>

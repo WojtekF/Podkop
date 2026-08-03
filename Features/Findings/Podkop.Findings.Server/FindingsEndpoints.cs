@@ -4,8 +4,15 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Podkop.Findings.Application;
+using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Server;
+
+/// <summary>
+///     The wire shape of PUT my-vote (issue #15's API contract): <c>type</c> is "dig" or "bury";
+///     a bury also carries a <c>reason</c> (one of the five bury reasons). A dig ignores reason.
+/// </summary>
+public sealed record SetFindingVoteRequest(string? Type, string? Reason);
 
 public static class FindingsEndpoints
 {
@@ -53,6 +60,60 @@ public static class FindingsEndpoints
             })
             .WithName("GetFindingById");
 
+        var voteGroup = routes.MapGroup("/api/findings/{id:guid}/my-vote");
+
+        voteGroup.MapPut("/", async (Guid id, SetFindingVoteRequest request, ISender sender,
+                CancellationToken cancellationToken) =>
+            {
+                var side = ParseSide(request.Type);
+                if (side is null)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+                        detail: "type must be 'dig' or 'bury'.");
+                }
+                // A missing or unrecognised reason is passed through as null; the "a bury needs a
+                // reason" rule is the domain's to enforce (issue #15), so the endpoint does not
+                // pre-reject it here.
+                var reason = ParseReason(request.Reason);
+                var result = await sender.Send(new SetFindingVote(id, side.Value, reason), cancellationToken);
+                return ToVoteResponse(result);
+            })
+            .WithName("SetFindingVote");
+
+        voteGroup.MapDelete("/", async (Guid id, ISender sender, CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(new WithdrawFindingVote(id), cancellationToken);
+                return ToVoteResponse(result);
+            })
+            .WithName("WithdrawFindingVote");
+
         return routes;
     }
+
+    private static FindingVoteSide? ParseSide(string? type) => type switch
+    {
+        "dig" => FindingVoteSide.Dig,
+        "bury" => FindingVoteSide.Bury,
+        _ => null,
+    };
+
+    private static BuryReason? ParseReason(string? reason) => reason switch
+    {
+        "duplicate" => BuryReason.Duplicate,
+        "spam" => BuryReason.Spam,
+        "false-information" => BuryReason.FalseInformation,
+        "inappropriate-content" => BuryReason.InappropriateContent,
+        "unsuitable" => BuryReason.Unsuitable,
+        _ => null,
+    };
+
+    private static IResult ToVoteResponse(FindingVoteResult result) => result.Error switch
+    {
+        FindingVoteError.UnknownFinding => Results.NotFound(),
+        FindingVoteError.OwnFinding => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+            detail: "You cannot vote on your own finding."),
+        FindingVoteError.BuryReasonRequired => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+            detail: "A bury must carry a reason."),
+        _ => Results.Ok(result.Votes),
+    };
 }

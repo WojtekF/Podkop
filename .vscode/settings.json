@@ -1,0 +1,12 @@
+{
+  // Format on save, with each language pinned to the formatter that owns it. Without an explicit
+  // per-language formatter VSCode falls back to its built-ins — notably the HTML one, which
+  // mangles Angular templates. Prettier reads frontend/.prettierrc (it walks up from each file).
+  // C# is deliberately absent: the .NET side is edited in Rider, which drives its own formatting
+  // from the root .editorconfig and Podkop.sln.DotSettings.
+  "editor.formatOnSave": true,
+  "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+  "[scss]": { "editor.defaultFormatter": "esbenp.prettier-vscode" }
+}

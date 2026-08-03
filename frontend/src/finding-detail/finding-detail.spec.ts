@@ -5,7 +5,12 @@ import { provideHttpClientTesting, HttpTestingController } from '@angular/common
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { CommentThreadDto } from './finding-comments.service';
-import { commentThreads, findingDetail as detail, findingId as id } from './finding-detail.fixtures';
+import { FindingDetailDto } from './finding-detail.service';
+import {
+  commentThreads,
+  findingDetail as detail,
+  findingId as id,
+} from './finding-detail.fixtures';
 import { FindingDetail } from './finding-detail';
 
 @Component({ template: 'main page' })
@@ -20,7 +25,8 @@ describe('FindingDetail', () => {
   // element was asked to scroll itself into view, and how.
   let scrollIntoViewCalls: { element: Element; options: unknown }[];
 
-  const expectDetailRequest = (findingId: string) => httpMock.expectOne(`/api/findings/${findingId}`);
+  const expectDetailRequest = (findingId: string) =>
+    httpMock.expectOne(`/api/findings/${findingId}`);
   const expectCommentsRequest = (findingId: string) =>
     httpMock.expectOne(`/api/findings/${findingId}/comments`);
 
@@ -318,6 +324,102 @@ describe('FindingDetail', () => {
       expect(row.querySelector('.upvote-count')?.textContent).toContain('3');
       expect(row.querySelector('.downvote-count')?.textContent).toContain('4');
       expect(threadEls()[1].querySelector('.voted')).toBeNull();
+    });
+  });
+
+  describe('voting on the finding (issue #15)', () => {
+    // A finding the stub user did not author, so its vote controls are live.
+    const votable = (overrides: Partial<FindingDetailDto> = {}) =>
+      detail({ author: 'grace_hopper', myVote: null, ...overrides });
+    const digButton = () => element().querySelector<HTMLButtonElement>('button.dig-button');
+    const buryButton = () => element().querySelector<HTMLButtonElement>('button.bury-button');
+    const digCount = () => element().querySelector<HTMLElement>('.dig-count');
+    const expectVoteRequest = () => httpMock.expectOne(`/api/findings/${id}/my-vote`);
+
+    const loadPage = async (finding = votable()) => {
+      await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
+      flushBoth(finding);
+      harness.detectChanges();
+    };
+
+    it("shows the reader's existing dig highlighted right after a plain load", async () => {
+      await loadPage(votable({ myVote: 'dig' }));
+
+      expect(digButton()?.classList.contains('voted')).toBe(true);
+      expect(buryButton()?.classList.contains('voted')).toBe(false);
+    });
+
+    it('shows the dig count on the dig control and no count on the bury control', async () => {
+      await loadPage(votable({ digCount: 123 }));
+
+      expect(digCount()?.textContent).toContain('123');
+      expect(buryButton()?.textContent).not.toMatch(/\d/);
+    });
+
+    it('clicking dig PUTs the vote and shows the reconciled count and highlight', async () => {
+      await loadPage(votable({ digCount: 123 }));
+
+      digButton()!.click();
+      const req = expectVoteRequest();
+      expect(req.request.method).toBe('PUT');
+      expect(req.request.body).toEqual({ type: 'dig' });
+
+      req.flush({ digCount: 124, myVote: 'dig' });
+      harness.detectChanges();
+
+      expect(digCount()?.textContent).toContain('124');
+      expect(digButton()?.classList.contains('voted')).toBe(true);
+    });
+
+    it("disables the vote controls on the reader's own finding", async () => {
+      await loadPage(detail({ author: 'ada_lovelace', myVote: null }));
+
+      expect(digButton()?.disabled).toBe(true);
+      expect(buryButton()?.disabled).toBe(true);
+    });
+
+    it('clicking the highlighted bury control withdraws the vote with a DELETE', async () => {
+      // The reader already holds a bury, so the click is an undo: no reason picker, straight
+      // to the wire. The response clears the highlight.
+      await loadPage(votable({ myVote: 'bury', digCount: 123 }));
+
+      buryButton()!.click();
+      const req = expectVoteRequest();
+      expect(req.request.method).toBe('DELETE');
+
+      req.flush({ digCount: 123, myVote: null });
+      harness.detectChanges();
+
+      expect(buryButton()?.classList.contains('voted')).toBe(false);
+    });
+
+    it('disables the vote controls while a vote request is in flight, and only then', async () => {
+      await loadPage(votable());
+
+      digButton()!.click();
+      harness.detectChanges();
+
+      // In flight: both controls sit out the round trip.
+      expect(digButton()?.disabled).toBe(true);
+      expect(buryButton()?.disabled).toBe(true);
+
+      expectVoteRequest().flush({ digCount: 124, myVote: 'dig' });
+      harness.detectChanges();
+
+      // ...and come back once it lands.
+      expect(digButton()?.disabled).toBe(false);
+      expect(buryButton()?.disabled).toBe(false);
+    });
+
+    it('a failed finding vote leaves the visible count and highlight unchanged', async () => {
+      await loadPage(votable({ digCount: 123 }));
+
+      digButton()!.click();
+      expectVoteRequest().flush('boom', { status: 500, statusText: 'Server Error' });
+      harness.detectChanges();
+
+      expect(digCount()?.textContent).toContain('123');
+      expect(digButton()?.classList.contains('voted')).toBe(false);
     });
   });
 });

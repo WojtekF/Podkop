@@ -19,6 +19,7 @@ public class MainPageFeedTests
         string source = "https://example.com/articles/1",
         string? thumbnail = "https://example.com/thumb.jpg",
         int digCount = 100,
+        int buryCount = 3,
         int commentCount = 10,
         Guid? id = null)
         => new(
@@ -31,9 +32,8 @@ public class MainPageFeedTests
             tags: ["dotnet", "webdev"],
             createdAt: (promotedAt ?? At("2026-07-01T00:00:00Z")).AddHours(-6),
             promotedAt: promotedAt,
-            digCount: digCount,
             commentCount: commentCount,
-            buryCount: 3);
+            votes: VotesGenerator.Generate(digCount, buryCount));
 
     private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
         => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>

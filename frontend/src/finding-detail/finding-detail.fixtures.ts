@@ -14,6 +14,7 @@ export const findingDetail = (overrides: Partial<FindingDetailDto> = {}): Findin
   author: 'ada_lovelace',
   tags: ['angular', 'webdev'],
   digCount: 123,
+  myVote: null,
   commentCount: 9,
   createdAt: '2026-07-08T03:30:00Z',
   promotedAt: '2026-07-08T09:30:00Z',
