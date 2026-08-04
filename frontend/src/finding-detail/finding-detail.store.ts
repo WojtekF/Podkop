@@ -2,7 +2,17 @@ import { LoadResult, asResult } from './as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
-import { concatMap, exhaustMap, forkJoin, pipe, switchMap, tap, TimeoutError } from 'rxjs';
+import {
+  concatMap,
+  exhaustMap,
+  find,
+  forkJoin,
+  mergeMap,
+  pipe,
+  switchMap,
+  tap,
+  TimeoutError,
+} from 'rxjs';
 import { signalStore, withMethods, withState, patchState } from '@ngrx/signals';
 import {
   CommentThreadDto,
@@ -165,18 +175,46 @@ export const FindingDetailStore = signalStore(
        * draft the composer already holds; nothing typed is ever discarded. Without one the
        * composer just opens (empty on first open), no prefill.
        */
-      const openReplyComposer = (_request: { threadId: string; appendAuthor: string | null }): void => {
-        throw new Error('not implemented');
+      const openReplyComposer = ({
+        appendAuthor,
+        threadId,
+      }: {
+        threadId: string;
+        appendAuthor: string | null;
+      }): void => {
+        const { [threadId]: _opened, ...rest } = store.composers();
+
+        patchState(store, {
+          composers: {
+            ...rest,
+
+            [threadId]: {
+              draft: `${_opened ? _opened.draft + ' ' : ''}${appendAuthor ? `@${appendAuthor} ` : ''}`,
+              pending: false,
+            },
+          },
+        });
       };
 
       /** Records an edit to the composer's draft (issue #17). */
       const updateComposerDraft = (_edit: { composerKey: string; text: string }): void => {
-        throw new Error('not implemented');
+        const { [_edit.composerKey]: _edited, ...rest } = store.composers();
+        patchState(store, {
+          composers: {
+            ...rest,
+            ...{ [_edit.composerKey]: { draft: _edit.text, pending: false } },
+          },
+        });
       };
 
       /** Closes a reply composer and discards its draft (issue #17). */
       const cancelReplyComposer = (_threadId: string): void => {
-        throw new Error('not implemented');
+        const { [_threadId]: _removed, ...rest } = store.composers();
+        let clean = {};
+        if (_threadId === TOP_COMPOSER_KEY) {
+          clean = { [TOP_COMPOSER_KEY]: { draft: '', pending: false } };
+        }
+        patchState(store, { composers: { ...clean, ...rest } });
       };
 
       /**
@@ -189,9 +227,50 @@ export const FindingDetailStore = signalStore(
        * that composer, and posts from different composers may overlap. Failure shows a
        * snackbar and leaves the draft and the discussion untouched.
        */
-      const postComment = (_composerKey: string): void => {
-        throw new Error('not implemented');
-      };
+      const postComment = rxMethod<string>(
+        pipe(
+          tap((_composerKey) => {
+            const { [_composerKey]: _posted, ...rest } = store.composers();
+            patchState(store, {
+              composers: { ...rest, [_composerKey]: { ..._posted, pending: true } },
+            });
+          }),
+          mergeMap((_composerKey) => {
+            return commentsService
+              .postComment(
+                store.finding()!.id,
+                store.composers()[_composerKey].draft,
+                _composerKey === TOP_COMPOSER_KEY ? null : _composerKey,
+              )
+              .pipe(
+                tapResponse({
+                  next: (commentDto) => {
+                    cancelReplyComposer(_composerKey);
+
+                    const finding = store.finding()!;
+                    finding.commentCount++;
+                    let comments: CommentThreadDto[] | null;
+                    if (_composerKey === TOP_COMPOSER_KEY) {
+                      comments = [{ ...commentDto, replies: [] }, ...(store.comments() || [])];
+                    } else {
+                      comments = [...store.comments()!];
+                      const threadIdx = comments.findIndex((t) => t.id === _composerKey);
+                      comments[threadIdx].replies = [...comments[threadIdx].replies, commentDto];
+                    }
+                    patchState(store, { comments, finding });
+                  },
+                  error: () => {
+                    const { [_composerKey]: _notPosted, ...rest } = store.composers();
+                    patchState(store, {
+                      composers: { ...rest, [_composerKey]: { ..._notPosted, pending: false } },
+                    });
+                    snackBar.open('Some issues occured while posting a comment. Try again.');
+                  },
+                }),
+              );
+          }),
+        ),
+      );
 
       return {
         load,

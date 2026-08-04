@@ -55,7 +55,13 @@ export class FindingCommentsService {
    * null, a reply to that top-level comment otherwise. Returns the created comment in the same
    * shape a GET row has, for the store to render straight from the response — no refetch.
    */
-  postComment(findingId: string, text: string, parentCommentId: string | null): Observable<CommentDto> {
-    throw new Error('not implemented');
+  postComment(
+    findingId: string,
+    text: string,
+    parentCommentId: string | null,
+  ): Observable<CommentDto> {
+    return this.http
+      .post<CommentDto>(`/api/findings/${findingId}/comments`, { text, parentCommentId })
+      .pipe(timeout(5000));
   }
 }
