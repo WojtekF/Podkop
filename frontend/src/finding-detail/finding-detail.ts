@@ -1,13 +1,14 @@
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Component, ElementRef, effect, inject, input, viewChildren } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { FindingDetailStore } from './finding-detail.store';
+import { FindingDetailStore, TOP_COMPOSER_KEY } from './finding-detail.store';
 import { MatButton } from '@angular/material/button';
 import { DatePipe } from '@angular/common';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { CommentThread, CommentVote } from './comment-thread/comment-thread';
 import { FindingVote } from './finding-vote/finding-vote';
 import { BuryReason } from './finding-detail.service';
+import { CommentComposer } from './comment-composer/comment-composer';
 
 @Component({
   selector: 'app-finding-detail',
@@ -20,12 +21,15 @@ import { BuryReason } from './finding-detail.service';
     MatCardContent,
     CommentThread,
     FindingVote,
+    CommentComposer,
   ],
   providers: [FindingDetailStore],
   templateUrl: './finding-detail.html',
   styleUrl: './finding-detail.scss',
 })
 export class FindingDetail {
+  protected readonly TOP_COMPOSER_KEY = TOP_COMPOSER_KEY;
+
   protected onVoteOnComment($event: CommentVote) {
     this.store.voteOnComment($event);
   }

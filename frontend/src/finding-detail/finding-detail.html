@@ -63,12 +63,29 @@
     }
   </mat-card>
   <div id="comments">
+    <app-comment-composer
+      (cancel)="store.cancelReplyComposer(TOP_COMPOSER_KEY)"
+      (post)="store.postComment(TOP_COMPOSER_KEY)"
+      [pending]="store.composers()[TOP_COMPOSER_KEY].pending"
+      [draft]="store.composers()[TOP_COMPOSER_KEY].draft"
+      (draftChange)="store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: $event })"
+    />
     @for (thread of store.comments(); track thread.id) {
       <mat-card class="comment-thread">
         <app-comment-thread
           [thread]="thread"
           [pendingVoteIds]="store.pendingCommentVoteIds()"
           (vote)="onVoteOnComment($event)"
+          [composer]="store.composers()[thread.id]"
+          (reply)="store.openReplyComposer($event)"
+          (composerDraftChange)="
+            store.updateComposerDraft({ composerKey: thread.id, text: $event })
+          "
+          (composerPost)="store.postComment(thread.id)"
+          (composerCancel)="store.cancelReplyComposer(thread.id)"
+          (composerDraftChange)="
+            store.updateComposerDraft({ composerKey: thread.id, text: $event })
+          "
         />
       </mat-card>
     }

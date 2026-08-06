@@ -20,3 +20,33 @@
   - Only when `cancellable`: a cancel control, class `cancel-button`, labelled "Cancel",
     emitting the `cancel` output.
 -->
+
+<mat-card class="comment-composer-container">
+  <mat-card-content>
+    <textarea
+      #ta
+      class="comment-text"
+      [disabled]="pending()"
+      [value]="draft()"
+      (input)="draftChange.emit(ta.value)"
+    ></textarea>
+    <div class="footer">
+      <span [class]="{ 'char-counter': true, 'over-limit': draft().length > maxLength }"
+        >{{ draft().length }}/{{ maxLength }}</span
+      >
+      <div class="composer-actions">
+        <button
+          mat-button
+          class="post-button"
+          [disabled]="isSubmitDisabled()"
+          (click)="post.emit()"
+        >
+          Post
+        </button>
+        @if (cancellable()) {
+          <button mat-button class="cancel-button" (click)="cancel.emit()">Cancel</button>
+        }
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

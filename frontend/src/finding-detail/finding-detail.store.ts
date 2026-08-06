@@ -189,7 +189,7 @@ export const FindingDetailStore = signalStore(
             ...rest,
 
             [threadId]: {
-              draft: `${_opened ? _opened.draft + ' ' : ''}${appendAuthor ? `@${appendAuthor} ` : ''}`,
+              draft: `${_opened ? _opened.draft.trim() + ' ' : ''}${appendAuthor ? `@${appendAuthor} ` : ''}`,
               pending: false,
             },
           },
@@ -271,6 +271,10 @@ export const FindingDetailStore = signalStore(
           }),
         ),
       );
+
+      const doesContainComposer = (composerKey: string): boolean => {
+        return false;
+      };
 
       return {
         load,

@@ -1,4 +1,6 @@
 import { Component, computed, input, output } from '@angular/core';
+import { MatButton } from '@angular/material/button';
+import { MatCard, MatCardContent } from '@angular/material/card';
 
 /** The most text one comment may carry (issue #17); mirrors the backend's Comment.MaxTextLength. */
 export const COMMENT_MAX_LENGTH = 5000;
@@ -10,7 +12,7 @@ export const COMMENT_MAX_LENGTH = 5000;
  */
 @Component({
   selector: 'app-comment-composer',
-  imports: [],
+  imports: [MatButton, MatCardContent, MatCard],
   templateUrl: './comment-composer.html',
   styleUrl: './comment-composer.scss',
 })
