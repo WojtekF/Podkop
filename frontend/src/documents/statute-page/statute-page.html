@@ -1,0 +1,19 @@
+<!--
+  The public Statute page (issue #30): renders the Statute version currently in force, fetched
+  through DocumentsService when the page is visited.
+
+  States to cover (the colocated specs define done):
+  - Loading: while the statute is in flight, a spinner the specs find as `mat-spinner` inside
+    `.document-state.loading`; none of the document content is visible yet.
+  - Error: when the request fails, `.document-state.error` carrying the exact copy
+    "Couldn't load the Statute."
+  - Loaded: the document itself —
+    - `.version-line` naming the version in force ("Version 2") and its effective-from date,
+      including the date's year.
+    - Every section in server order, its title inside `.section-title`.
+    - Every point of every section in server order: a `.point` holding `.point-number` with the
+      citation composed as section.point (point 1 of section 2 reads "2.1") and `.point-text`
+      with the point's text.
+
+  The server orders sections and points; render them as-is.
+-->

@@ -1,0 +1,15 @@
+<!--
+  The public Privacy Policy page (issue #30): renders the version currently in force, fetched
+  through DocumentsService when the page is visited.
+
+  States to cover (the colocated specs define done):
+  - Loading: while the policy is in flight, a spinner the specs find as `mat-spinner` inside
+    `.document-state.loading`; no document content visible yet.
+  - Error: when the request fails, `.document-state.error` carrying the exact copy
+    "Couldn't load the Privacy Policy."
+  - Loaded: `.version-line` naming the version in force ("Version 1") and its effective-from
+    date including the year; every section in server order with its title in `.section-title`
+    and each of its prose paragraphs in a `.paragraph`, in server order.
+
+  The server orders sections and paragraphs; render them as-is.
+-->
