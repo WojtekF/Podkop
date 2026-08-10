@@ -31,7 +31,7 @@
       (input)="draftChange.emit(ta.value)"
     ></textarea>
     <div class="footer">
-      <span [class]="{ 'char-counter': true, 'over-limit': draft().length > maxLength }"
+      <span [class]="{ 'char-counter': true, 'over-limit': isOverLimit() }"
         >{{ draft().length }}/{{ maxLength }}</span
       >
       <div class="composer-actions">

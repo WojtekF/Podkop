@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -76,21 +77,22 @@ public static class FindingCommentsEndpoints
     ///     <c>podkop:problem:&lt;slug&gt;</c> discriminator — several outcomes share a status
     ///     code, and clients dispatch on the type rather than parsing the prose detail.
     /// </summary>
-    private static IResult ToPostResponse(Guid findingId, PostCommentResponse result) => result.Error switch
+    private static IResult ToPostResponse(Guid findingId, PostCommentResponse result) => result.Outcome switch
     {
-        PostCommentError.UnknownFinding => Results.Problem(statusCode: StatusCodes.Status404NotFound,
+        PostCommentOutcome.Posted => Results.Created($"/api/findings/{findingId}/comments", result.Comment),
+        PostCommentOutcome.UnknownFinding => Results.Problem(statusCode: StatusCodes.Status404NotFound,
             type: "podkop:problem:unknown-finding", detail: "No finding has that id."),
-        PostCommentError.UnknownParent => Results.Problem(statusCode: StatusCodes.Status404NotFound,
+        PostCommentOutcome.UnknownParent => Results.Problem(statusCode: StatusCodes.Status404NotFound,
             type: "podkop:problem:unknown-parent", detail: "No comment has that parent id."),
-        PostCommentError.ParentIsAReply => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+        PostCommentOutcome.ParentIsAReply => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
             type: "podkop:problem:parent-is-a-reply",
             detail: "A reply cannot be replied to — threads are one level deep."),
-        PostCommentError.EmptyText => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+        PostCommentOutcome.EmptyText => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
             type: "podkop:problem:comment-empty", detail: "A comment needs text."),
-        PostCommentError.TextTooLong => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+        PostCommentOutcome.TextTooLong => Results.Problem(statusCode: StatusCodes.Status400BadRequest,
             type: "podkop:problem:comment-too-long",
             detail: $"A comment is at most {Comment.MaxTextLength} characters."),
-        _ => Results.Created($"/api/findings/{findingId}/comments", result.Comment),
+        _ => throw new UnreachableException($"Unmapped post outcome '{result.Outcome}'."),
     };
 
     private static IResult ToVoteResponse(CommentVoteResult result) => result.Error switch

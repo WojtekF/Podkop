@@ -6,8 +6,9 @@ namespace Podkop.FindingComments.Tests;
 ///     The Comment aggregate's creation rules (issue #17), unit-tested at the aggregate seam —
 ///     kept minimal per #13's testing decisions; the HTTP seam carries the spec. Text is
 ///     trimmed before validation and storage; empty-after-trim and over-5000 are rejected; a
-///     successful post raises CommentAdded. The depth invariant is not here — the aggregate
-///     cannot see other comments, so it lives where the parent can be loaded.
+///     successful post raises CommentAdded. The depth invariant is here too — the factory
+///     receives the loaded parent and rejects a reply to a reply; whether the parent exists at
+///     all is a lookup, specified at the HTTP seam.
 /// </summary>
 public class CommentPostTests
 {
@@ -15,9 +16,9 @@ public class CommentPostTests
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
     private static readonly DateTimeOffset CreatedAt = DateTimeOffset.Parse("2026-07-08T10:00:00+00:00");
 
-    private static PostCommentResult Post(string? text, Guid? parentCommentId = null)
+    private static PostCommentResult Post(string? text, Comment? parent = null)
     {
-        return Comment.Post(CommentId, FindingId, parentCommentId, "ada_lovelace", text, CreatedAt);
+        return Comment.Post(CommentId, FindingId, parent, "ada_lovelace", text, CreatedAt);
     }
 
     [Fact]
@@ -51,13 +52,29 @@ public class CommentPostTests
     [Fact]
     public void A_reply_carries_its_parent_id()
     {
-        var parentId = Guid.Parse("c0000000-0000-4000-8000-00000000000a");
+        var parent = new Comment(
+            Guid.Parse("c0000000-0000-4000-8000-00000000000a"),
+            FindingId, parentCommentId: null, "grace_hopper", "The original take.", CreatedAt);
 
-        var result = Post("An answer.", parentId);
+        var result = Post("An answer.", parent);
 
         Assert.Equal(PostCommentOutcome.Posted, result.Outcome);
-        Assert.Equal(parentId, result.Comment!.ParentCommentId);
+        Assert.Equal(parent.Id, result.Comment!.ParentCommentId);
         Assert.True(result.Comment.IsReply);
+    }
+
+    [Fact]
+    public void A_reply_to_a_reply_is_rejected()
+    {
+        var reply = new Comment(
+            Guid.Parse("c0000000-0000-4000-8000-00000000000b"),
+            FindingId, parentCommentId: Guid.Parse("c0000000-0000-4000-8000-00000000000a"),
+            "grace_hopper", "An answer.", CreatedAt);
+
+        var result = Post("A counter.", reply);
+
+        Assert.Equal(PostCommentOutcome.ParentIsAReply, result.Outcome);
+        Assert.Null(result.Comment);
     }
 
     [Fact]

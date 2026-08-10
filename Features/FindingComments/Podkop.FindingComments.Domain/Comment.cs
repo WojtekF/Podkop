@@ -53,21 +53,23 @@ public sealed class Comment
     public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents;
 
     /// <summary>
-    ///     Creates a newly posted comment (issue #17). Text is trimmed before validation and
-    ///     storage; text that is empty after trimming is rejected, as is text longer than
-    ///     <see cref="MaxTextLength" /> characters. A successful post raises
-    ///     <see cref="CommentAdded" />. Whether the parent is a valid top-level comment is not
-    ///     this factory's rule — the aggregate cannot see other comments, so the depth invariant
-    ///     is enforced where the parent can be loaded.
+    ///     Creates a newly posted comment (issue #17). A reply's parent is passed in loaded so
+    ///     the factory owns the depth invariant — a reply can never answer a reply; whether the
+    ///     parent exists at all is a lookup, checked where the repository is available. Text is
+    ///     trimmed before validation and storage; text that is empty after trimming is rejected,
+    ///     as is text longer than <see cref="MaxTextLength" /> characters. A successful post
+    ///     raises <see cref="CommentAdded" />.
     /// </summary>
     public static PostCommentResult Post(
         Guid id,
         Guid findingId,
-        Guid? parentCommentId,
+        Comment? parent,
         string author,
         string? text,
         DateTimeOffset createdAt)
     {
+        if (parent is { IsReply: true }) return new PostCommentResult(PostCommentOutcome.ParentIsAReply, null);
+
         if (string.IsNullOrWhiteSpace(text)) return new PostCommentResult(PostCommentOutcome.EmptyText, null);
 
         var trimmedText = text.Trim();
@@ -76,7 +78,7 @@ public sealed class Comment
         var comment = new Comment(
             id,
             findingId,
-            parentCommentId,
+            parent?.Id,
             author,
             trimmedText,
             createdAt);

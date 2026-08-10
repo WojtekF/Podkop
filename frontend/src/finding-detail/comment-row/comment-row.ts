@@ -3,12 +3,12 @@ import { CommentDto, CommentVoteDirection } from '../finding-comments.service';
 import { TimeAgoPipe } from './time-ago.pipe';
 import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatIcon } from '@angular/material/icon';
-import { MatIconButton, MatAnchor } from '@angular/material/button';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { CURRENT_USER } from '../current-user';
 
 @Component({
   selector: 'app-comment-row',
-  imports: [TimeAgoPipe, MatCard, MatCardContent, MatIconButton, MatIcon, MatAnchor],
+  imports: [TimeAgoPipe, MatCard, MatCardContent, MatIconButton, MatIcon, MatButton],
   templateUrl: './comment-row.html',
   styleUrl: './comment-row.scss',
 })

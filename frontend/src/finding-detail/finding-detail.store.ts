@@ -5,7 +5,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   concatMap,
   exhaustMap,
-  find,
   forkJoin,
   mergeMap,
   pipe,
@@ -182,36 +181,29 @@ export const FindingDetailStore = signalStore(
         threadId: string;
         appendAuthor: string | null;
       }): void => {
-        const { [threadId]: _opened, ...rest } = store.composers();
+        const { [threadId]: opened } = store.composers();
 
-        patchState(store, {
-          composers: {
-            ...rest,
-
-            [threadId]: {
-              draft: `${_opened ? _opened.draft.trim() + ' ' : ''}${appendAuthor ? `@${appendAuthor} ` : ''}`,
-              pending: false,
-            },
-          },
+        updateComposers(threadId, {
+          draft: `${opened ? opened.draft.trim() + ' ' : ''}${appendAuthor ? `@${appendAuthor} ` : ''}`,
+          pending: false,
         });
       };
 
       /** Records an edit to the composer's draft (issue #17). */
-      const updateComposerDraft = (_edit: { composerKey: string; text: string }): void => {
-        const { [_edit.composerKey]: _edited, ...rest } = store.composers();
-        patchState(store, {
-          composers: {
-            ...rest,
-            ...{ [_edit.composerKey]: { draft: _edit.text, pending: false } },
-          },
-        });
+      const updateComposerDraft = (edit: { composerKey: string; text: string }): void => {
+        const { [edit.composerKey]: edited, ...rest } = store.composers();
+        updateComposers(edit.composerKey, { draft: edit.text, pending: edited.pending });
+      };
+
+      const updateComposers = (composerKey: string, state: ComposerState) => {
+        patchState(store, { composers: { ...store.composers(), [composerKey]: state } });
       };
 
       /** Closes a reply composer and discards its draft (issue #17). */
-      const cancelReplyComposer = (_threadId: string): void => {
-        const { [_threadId]: _removed, ...rest } = store.composers();
+      const closeOrResetComposer = (threadId: string): void => {
+        const { [threadId]: _removed, ...rest } = store.composers();
         let clean = {};
-        if (_threadId === TOP_COMPOSER_KEY) {
+        if (threadId === TOP_COMPOSER_KEY) {
           clean = { [TOP_COMPOSER_KEY]: { draft: '', pending: false } };
         }
         patchState(store, { composers: { ...clean, ...rest } });
@@ -229,52 +221,45 @@ export const FindingDetailStore = signalStore(
        */
       const postComment = rxMethod<string>(
         pipe(
-          tap((_composerKey) => {
-            const { [_composerKey]: _posted, ...rest } = store.composers();
-            patchState(store, {
-              composers: { ...rest, [_composerKey]: { ..._posted, pending: true } },
-            });
+          tap((composerKey) => {
+            const { [composerKey]: posted } = store.composers();
+            updateComposers(composerKey, { ...posted, pending: true });
           }),
-          mergeMap((_composerKey) => {
+          mergeMap((composerKey) => {
             return commentsService
               .postComment(
                 store.finding()!.id,
-                store.composers()[_composerKey].draft,
-                _composerKey === TOP_COMPOSER_KEY ? null : _composerKey,
+                store.composers()[composerKey].draft,
+                composerKey === TOP_COMPOSER_KEY ? null : composerKey,
               )
               .pipe(
                 tapResponse({
                   next: (commentDto) => {
-                    cancelReplyComposer(_composerKey);
+                    closeOrResetComposer(composerKey);
 
-                    const finding = store.finding()!;
+                    const finding = { ...store.finding()! };
                     finding.commentCount++;
                     let comments: CommentThreadDto[] | null;
-                    if (_composerKey === TOP_COMPOSER_KEY) {
+                    if (composerKey === TOP_COMPOSER_KEY) {
                       comments = [{ ...commentDto, replies: [] }, ...(store.comments() || [])];
                     } else {
                       comments = [...store.comments()!];
-                      const threadIdx = comments.findIndex((t) => t.id === _composerKey);
+                      const threadIdx = comments.findIndex((t) => t.id === composerKey);
+                      comments[threadIdx] = { ...comments[threadIdx] };
                       comments[threadIdx].replies = [...comments[threadIdx].replies, commentDto];
                     }
                     patchState(store, { comments, finding });
                   },
                   error: () => {
-                    const { [_composerKey]: _notPosted, ...rest } = store.composers();
-                    patchState(store, {
-                      composers: { ...rest, [_composerKey]: { ..._notPosted, pending: false } },
-                    });
-                    snackBar.open('Some issues occured while posting a comment. Try again.');
+                    const { [composerKey]: notPosted } = store.composers();
+                    updateComposers(composerKey, { ...notPosted, pending: false });
+                    snackBar.open('Some issues occurred while posting a comment.');
                   },
                 }),
               );
           }),
         ),
       );
-
-      const doesContainComposer = (composerKey: string): boolean => {
-        return false;
-      };
 
       return {
         load,
@@ -283,7 +268,7 @@ export const FindingDetailStore = signalStore(
         voteOnFinding,
         openReplyComposer,
         updateComposerDraft,
-        cancelReplyComposer,
+        closeOrResetComposer,
         postComment,
       };
     },

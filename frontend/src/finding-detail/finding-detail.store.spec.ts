@@ -466,7 +466,7 @@ describe('FindingDetailStore', () => {
         store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
         store.updateComposerDraft({ composerKey: threadId(), text: 'Half a thought' });
 
-        store.cancelReplyComposer(threadId());
+        store.closeOrResetComposer(threadId());
         expect(store.composers()[threadId()]).toBeUndefined();
 
         store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
@@ -504,7 +504,7 @@ describe('FindingDetailStore', () => {
     });
 
     describe('in-flight and failure', () => {
-      it("posting marks only that composer pending — composers never block each other", () => {
+      it('posting marks only that composer pending — composers never block each other', () => {
         loadPage();
         store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: 'A fresh take.' });
         store.openReplyComposer({ threadId: threadId(), appendAuthor: null });

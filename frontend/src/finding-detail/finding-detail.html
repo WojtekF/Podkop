@@ -64,7 +64,6 @@
   </mat-card>
   <div id="comments">
     <app-comment-composer
-      (cancel)="store.cancelReplyComposer(TOP_COMPOSER_KEY)"
       (post)="store.postComment(TOP_COMPOSER_KEY)"
       [pending]="store.composers()[TOP_COMPOSER_KEY].pending"
       [draft]="store.composers()[TOP_COMPOSER_KEY].draft"
@@ -78,11 +77,8 @@
           (vote)="onVoteOnComment($event)"
           [composer]="store.composers()[thread.id]"
           (reply)="store.openReplyComposer($event)"
-          (composerDraftChange)="
-            store.updateComposerDraft({ composerKey: thread.id, text: $event })
-          "
           (composerPost)="store.postComment(thread.id)"
-          (composerCancel)="store.cancelReplyComposer(thread.id)"
+          (composerCancel)="store.closeOrResetComposer(thread.id)"
           (composerDraftChange)="
             store.updateComposerDraft({ composerKey: thread.id, text: $event })
           "
