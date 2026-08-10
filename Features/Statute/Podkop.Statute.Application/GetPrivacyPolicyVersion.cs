@@ -12,6 +12,12 @@ public sealed record GetPrivacyPolicyVersion(int Version) : IRequest<PrivacyPoli
 public sealed class GetPrivacyPolicyVersionHandler(IPrivacyPolicyRepository privacyPolicyRepository)
     : IRequestHandler<GetPrivacyPolicyVersion, PrivacyPolicyDetail?>
 {
-    public Task<PrivacyPolicyDetail?> Handle(GetPrivacyPolicyVersion request, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<PrivacyPolicyDetail?> Handle(GetPrivacyPolicyVersion request, CancellationToken cancellationToken)
+    {
+        var policies = await privacyPolicyRepository.GetAllVersionsAsync(cancellationToken);
+        var policy = policies
+            .FirstOrDefault(p => p.Version == request.Version);
+
+        return policy.ToPrivacyPolicyDetail();
+    }
 }

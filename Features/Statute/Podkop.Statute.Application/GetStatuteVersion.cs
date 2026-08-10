@@ -12,6 +12,12 @@ public sealed record GetStatuteVersion(int Version) : IRequest<StatuteDetail?>;
 public sealed class GetStatuteVersionHandler(IStatuteRepository statuteRepository)
     : IRequestHandler<GetStatuteVersion, StatuteDetail?>
 {
-    public Task<StatuteDetail?> Handle(GetStatuteVersion request, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<StatuteDetail?> Handle(GetStatuteVersion request, CancellationToken cancellationToken)
+    {
+        var statutes = await statuteRepository.GetAllVersionsAsync(cancellationToken);
+
+        var statute = statutes.SingleOrDefault(s => s.Version == request.Version);
+
+        return statute.ToStatuteDetail();
+    }
 }

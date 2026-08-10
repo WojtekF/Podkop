@@ -29,6 +29,15 @@ public sealed record StatutePointDetail(
 public sealed class GetCurrentStatuteHandler(IStatuteRepository statuteRepository)
     : IRequestHandler<GetCurrentStatute, StatuteDetail?>
 {
-    public Task<StatuteDetail?> Handle(GetCurrentStatute request, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<StatuteDetail?> Handle(GetCurrentStatute request, CancellationToken cancellationToken)
+    {
+        var statutes = await statuteRepository.GetAllVersionsAsync(cancellationToken);
+
+        var statute = statutes
+            .Where(s => s.EffectiveFrom <= DateTimeOffset.UtcNow)
+            .OrderByDescending(s => s.Version)
+            .FirstOrDefault();
+
+        return statute.ToStatuteDetail();
+    }
 }

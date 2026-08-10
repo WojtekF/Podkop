@@ -23,6 +23,14 @@ public sealed record PolicySectionDetail(
 public sealed class GetCurrentPrivacyPolicyHandler(IPrivacyPolicyRepository privacyPolicyRepository)
     : IRequestHandler<GetCurrentPrivacyPolicy, PrivacyPolicyDetail?>
 {
-    public Task<PrivacyPolicyDetail?> Handle(GetCurrentPrivacyPolicy request, CancellationToken cancellationToken)
-        => throw new NotImplementedException();
+    public async Task<PrivacyPolicyDetail?> Handle(GetCurrentPrivacyPolicy request, CancellationToken cancellationToken)
+    {
+        var policies = await privacyPolicyRepository.GetAllVersionsAsync(cancellationToken);
+        var latestPolicy = policies
+            .Where(policy => policy.EffectiveFrom <= DateTimeOffset.UtcNow)
+            .OrderByDescending(policy => policy.Version)
+            .FirstOrDefault();
+
+        return latestPolicy.ToPrivacyPolicyDetail();
+    }
 }
