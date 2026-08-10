@@ -15,6 +15,25 @@ session, use `CLAUDE.md` instead.)
 - [ ] Remove the `@ngrx/signals` override block in `frontend/package.json` (pins its
       `@angular/core`/`@angular/common` peers to the workspace Angular 22) once NgRx
       ships an Angular 22-compatible release, and bump `@ngrx/signals` to that release.
+- [ ] Governance & Moderation epic — design agreed 2026-08-10 (CONTEXT.md Documents/
+      Reporting & Moderation/Users sections; ADRs 0006–0008). Scope: Statute, Users,
+      Moderation slices; report flow; moderator queue; bans; erasure policy.
+
+## Deferred (Governance & Moderation epic)
+
+Explicitly out of scope for the first cut; revisit when their prerequisite lands
+(mostly real authentication replacing the `ICurrentUser` stub):
+
+- [ ] GDPR data export (Art. 20 "download my data")
+- [ ] Consent & acceptance tracking (accept Statute/Privacy Policy version at
+      registration; cookie consent if tracking ever appears)
+- [ ] Self-service erasure trigger (policy is modeled now; the button waits for auth)
+- [ ] Administrator role — moderator assignment/demotion, moderator discipline,
+      in-app statute authoring/publishing
+- [ ] Public transparency log of moderation actions
+- [ ] Moderation-log and ban-management screens (API supports lift-ban before it
+      has a dedicated UI)
+- [ ] Reporter outcome feedback ("my reports" view / notifications)
 
 ## Done
 
