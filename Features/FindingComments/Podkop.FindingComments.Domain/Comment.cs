@@ -8,6 +8,10 @@ namespace Podkop.FindingComments.Domain;
 /// </summary>
 public sealed class Comment
 {
+    /// <summary>The most text one comment may carry (issue #17); longer text is rejected.</summary>
+    public const int MaxTextLength = 5000;
+
+    private readonly List<IDomainEvent> _domainEvents = [];
     private readonly Dictionary<string, VoteDirection> _votes;
 
     public Comment(
@@ -46,6 +50,48 @@ public sealed class Comment
     public bool IsReply => ParentCommentId is not null;
     public int NetScore => UpvoteCount - DownvoteCount;
 
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents;
+
+    /// <summary>
+    ///     Creates a newly posted comment (issue #17). A reply's parent is passed in loaded so
+    ///     the factory owns the depth invariant — a reply can never answer a reply; whether the
+    ///     parent exists at all is a lookup, checked where the repository is available. Text is
+    ///     trimmed before validation and storage; text that is empty after trimming is rejected,
+    ///     as is text longer than <see cref="MaxTextLength" /> characters. A successful post
+    ///     raises <see cref="CommentAdded" />.
+    /// </summary>
+    public static PostCommentResult Post(
+        Guid id,
+        Guid findingId,
+        Comment? parent,
+        string author,
+        string? text,
+        DateTimeOffset createdAt)
+    {
+        if (parent is { IsReply: true }) return new PostCommentResult(PostCommentOutcome.ParentIsAReply, null);
+
+        if (string.IsNullOrWhiteSpace(text)) return new PostCommentResult(PostCommentOutcome.EmptyText, null);
+
+        var trimmedText = text.Trim();
+        if (trimmedText.Length > MaxTextLength) return new PostCommentResult(PostCommentOutcome.TextTooLong, null);
+
+        var comment = new Comment(
+            id,
+            findingId,
+            parent?.Id,
+            author,
+            trimmedText,
+            createdAt);
+
+        comment.RaiseCommentAdded();
+        return new PostCommentResult(
+            PostCommentOutcome.Posted,
+            comment
+        );
+    }
+
+    private void RaiseCommentAdded() => _domainEvents.Add(new CommentAdded(Id, FindingId));
+
     /// <summary>
     ///     Records the voter's vote (issue #18): a fresh vote or a one-step switch to the other
     ///     side; setting the side already held changes nothing. The counts and the tracked votes
@@ -70,8 +116,5 @@ public sealed class Comment
         return ActionOutcome.Applied;
     }
 
-    public VoteDirection? VoteBy(string voter)
-    {
-        return Votes.TryGetValue(voter, out var value) ? value : null;
-    }
+    public VoteDirection? VoteBy(string voter) => Votes.TryGetValue(voter, out var value) ? value : null;
 }

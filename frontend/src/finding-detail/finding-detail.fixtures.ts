@@ -1,4 +1,4 @@
-import { CommentThreadDto } from './finding-comments.service';
+import { CommentDto, CommentThreadDto } from './finding-comments.service';
 import { FindingDetailDto } from './finding-detail.service';
 
 // Shared test data for the finding-detail specs (component, store, service).
@@ -18,6 +18,19 @@ export const findingDetail = (overrides: Partial<FindingDetailDto> = {}): Findin
   commentCount: 9,
   createdAt: '2026-07-08T03:30:00Z',
   promotedAt: '2026-07-08T09:30:00Z',
+  ...overrides,
+});
+
+// The comment the POST endpoint answers 201 with (issue #17): authored by the stub user,
+// no votes yet, text echoed back trimmed.
+export const postedComment = (overrides: Partial<CommentDto> = {}): CommentDto => ({
+  id: 'c0000000-0000-4000-8000-0000000000ff',
+  author: 'ada_lovelace',
+  text: 'A fresh take.',
+  upvoteCount: 0,
+  downvoteCount: 0,
+  myVote: null,
+  createdAt: '2026-07-08T12:00:00Z',
   ...overrides,
 });
 

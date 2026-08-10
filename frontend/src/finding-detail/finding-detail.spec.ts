@@ -10,6 +10,7 @@ import {
   commentThreads,
   findingDetail as detail,
   findingId as id,
+  postedComment,
 } from './finding-detail.fixtures';
 import { FindingDetail } from './finding-detail';
 
@@ -420,6 +421,170 @@ describe('FindingDetail', () => {
 
       expect(digCount()?.textContent).toContain('123');
       expect(digButton()?.classList.contains('voted')).toBe(false);
+    });
+  });
+
+  describe('writing comments (issue #17)', () => {
+    const comments = () => element().querySelector('#comments')!;
+    const threadEls = () => element().querySelectorAll('.comment-thread');
+    const topComposer = () => comments().querySelector('app-comment-composer');
+    const composerIn = (scope: Element) => scope.querySelector('app-comment-composer');
+    const textareaOf = (composer: Element) =>
+      composer.querySelector<HTMLTextAreaElement>('textarea.comment-text');
+    const postButtonOf = (composer: Element) =>
+      composer.querySelector<HTMLButtonElement>('button.post-button');
+    const replyButtonOf = (scope: Element) =>
+      scope.querySelector<HTMLButtonElement>('button.reply-button');
+    const expectPostRequest = () => httpMock.expectOne(`/api/findings/${id}/comments`);
+
+    const loadPage = async () => {
+      await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
+      flushBoth();
+      harness.detectChanges();
+    };
+
+    const type = async (composer: Element, text: string) => {
+      const area = textareaOf(composer)!;
+      area.value = text;
+      area.dispatchEvent(new Event('input'));
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+    };
+
+    it('the composer sits at the top of the comments section, before every thread', async () => {
+      await loadPage();
+
+      const composer = topComposer();
+      expect(composer).not.toBeNull();
+      const firstThread = element().querySelector('.comment-thread')!;
+      // Document order: the composer precedes the first thread.
+      expect(
+        composer!.compareDocumentPosition(firstThread) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    });
+
+    it('posting from the top composer sends the text and renders the new comment first, cleared', async () => {
+      await loadPage();
+      await type(topComposer()!, 'A fresh take.');
+
+      postButtonOf(topComposer()!)!.click();
+      const req = expectPostRequest();
+      expect(req.request.method).toBe('POST');
+      expect(req.request.body).toEqual({ text: 'A fresh take.', parentCommentId: null });
+
+      req.flush(postedComment(), { status: 201, statusText: 'Created' });
+      harness.detectChanges();
+
+      // Pinned first for this session; the composer is empty again; no refetch happened.
+      expect(threadEls()[0].textContent).toContain('A fresh take.');
+      expect(textareaOf(topComposer()!)!.value).toBe('');
+      httpMock.expectNone(`/api/findings/${id}`);
+      httpMock.expectNone(`/api/findings/${id}/comments?`);
+    });
+
+    it('reply on a top-level comment opens an empty composer under that thread', async () => {
+      await loadPage();
+
+      // margaret_h's thread — the second one.
+      replyButtonOf(threadEls()[1].querySelector('.comment')!)!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      const inline = composerIn(threadEls()[1]);
+      expect(inline).not.toBeNull();
+      expect(textareaOf(inline!)!.value).toBe('');
+      // Only that thread gained a composer.
+      expect(composerIn(threadEls()[0])).toBeNull();
+    });
+
+    it("reply on a reply targets the same thread with the answered author's @name in the draft", async () => {
+      await loadPage();
+
+      // linus_t's reply lives in the first thread.
+      const replyRow = threadEls()[0].querySelectorAll('.replies .comment')[0];
+      replyButtonOf(replyRow)!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      const inline = composerIn(threadEls()[0]);
+      expect(inline).not.toBeNull();
+      expect(textareaOf(inline!)!.value).toMatch(/@linus_t\s$/);
+    });
+
+    it('posting a reply sends the thread as parent and appends it under the thread, composer closed', async () => {
+      await loadPage();
+      replyButtonOf(threadEls()[1].querySelector('.comment')!)!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      await type(composerIn(threadEls()[1])!, 'An answer.');
+
+      postButtonOf(composerIn(threadEls()[1])!)!.click();
+      const req = expectPostRequest();
+      expect(req.request.body).toEqual({
+        text: 'An answer.',
+        parentCommentId: commentThreads()[1].id,
+      });
+
+      req.flush(postedComment({ text: 'An answer.' }), { status: 201, statusText: 'Created' });
+      harness.detectChanges();
+
+      const replyTexts = Array.from(
+        threadEls()[1].querySelectorAll('.replies .comment .text'),
+      ).map((text) => text.textContent?.trim());
+      expect(replyTexts[replyTexts.length - 1]).toContain('An answer.');
+      expect(composerIn(threadEls()[1])).toBeNull();
+    });
+
+    it('cancel closes the inline composer and discards the draft', async () => {
+      await loadPage();
+      replyButtonOf(threadEls()[1].querySelector('.comment')!)!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      await type(composerIn(threadEls()[1])!, 'Half a thought');
+
+      composerIn(threadEls()[1])!
+        .querySelector<HTMLButtonElement>('button.cancel-button')!
+        .click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      expect(composerIn(threadEls()[1])).toBeNull();
+
+      replyButtonOf(threadEls()[1].querySelector('.comment')!)!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      expect(textareaOf(composerIn(threadEls()[1])!)!.value).toBe('');
+    });
+
+    it('an in-flight reply disables only its own composer', async () => {
+      await loadPage();
+      replyButtonOf(threadEls()[1].querySelector('.comment')!)!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      await type(composerIn(threadEls()[1])!, 'An answer.');
+
+      postButtonOf(composerIn(threadEls()[1])!)!.click();
+      harness.detectChanges();
+
+      expect(textareaOf(composerIn(threadEls()[1])!)!.disabled).toBe(true);
+      // The top composer sits out nothing.
+      expect(textareaOf(topComposer()!)!.disabled).toBe(false);
+
+      expectPostRequest().flush(postedComment({ text: 'An answer.' }), {
+        status: 201,
+        statusText: 'Created',
+      });
+    });
+
+    it('a failed post keeps the composer text so nothing typed is ever lost', async () => {
+      await loadPage();
+      await type(topComposer()!, 'A fresh take.');
+
+      postButtonOf(topComposer()!)!.click();
+      expectPostRequest().flush('boom', { status: 500, statusText: 'Server Error' });
+      harness.detectChanges();
+
+      expect(textareaOf(topComposer()!)!.value).toBe('A fresh take.');
+      expect(textareaOf(topComposer()!)!.disabled).toBe(false);
     });
   });
 });

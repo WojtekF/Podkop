@@ -1,0 +1,52 @@
+<!--
+  The comment composer (issue #17). The colocated comment-composer.spec.ts asserts this
+  behaviour. Bind against the `draft`, `pending`, and `cancellable` inputs, the `maxLength`,
+  `isOverLimit`, and `isSubmitDisabled` protected members, and the `draftChange` / `post` /
+  `cancel` outputs.
+
+  Render:
+
+  - A text area, class `comment-text`, showing the current draft. Every edit reports the new
+    text through the `draftChange` output. It is disabled while `pending`.
+
+  - A character counter, class `char-counter`, always visible, showing how many characters the
+    draft holds and the 5,000 cap. When the draft is over the cap the counter carries the class
+    `over-limit` so it can read as an error.
+
+  - A post control, class `post-button`, labelled "Post". Activating it emits the `post`
+    output. It is disabled exactly when `isSubmitDisabled` says so — empty/whitespace-only
+    draft, over-cap draft, or a post in flight.
+
+  - Only when `cancellable`: a cancel control, class `cancel-button`, labelled "Cancel",
+    emitting the `cancel` output.
+-->
+
+<mat-card class="comment-composer-container">
+  <mat-card-content>
+    <textarea
+      #ta
+      class="comment-text"
+      [disabled]="pending()"
+      [value]="draft()"
+      (input)="draftChange.emit(ta.value)"
+    ></textarea>
+    <div class="footer">
+      <span [class]="{ 'char-counter': true, 'over-limit': isOverLimit() }"
+        >{{ draft().length }}/{{ maxLength }}</span
+      >
+      <div class="composer-actions">
+        <button
+          mat-button
+          class="post-button"
+          [disabled]="isSubmitDisabled()"
+          (click)="post.emit()"
+        >
+          Post
+        </button>
+        @if (cancellable()) {
+          <button mat-button class="cancel-button" (click)="cancel.emit()">Cancel</button>
+        }
+      </div>
+    </div>
+  </mat-card-content>
+</mat-card>

@@ -29,5 +29,8 @@
       </div>
     </div>
     <div class="text">{{ comment().text }}</div>
+    <div class="comment-row-actions">
+      <button mat-button class="reply-button" (click)="reply.emit()">Reply</button>
+    </div>
   </mat-card-content>
 </mat-card>

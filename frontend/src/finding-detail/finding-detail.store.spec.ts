@@ -6,8 +6,9 @@ import {
   commentThreads,
   findingDetail as detail,
   findingId as id,
+  postedComment,
 } from './finding-detail.fixtures';
-import { FindingDetailStore } from './finding-detail.store';
+import { FindingDetailStore, TOP_COMPOSER_KEY } from './finding-detail.store';
 import { FindingDetailDto } from './finding-detail.service';
 
 describe('FindingDetailStore', () => {
@@ -370,6 +371,184 @@ describe('FindingDetailStore', () => {
       expect(store.finding()).toEqual(finding);
       expect(store.pendingFindingVote()).toBe(false);
       expect(snackBar.open).toHaveBeenCalled();
+    });
+  });
+
+  describe('posting comments (issue #17)', () => {
+    const threadId = () => commentThreads()[0].id;
+    const expectPostRequest = () => httpMock.expectOne(`/api/findings/${id}/comments`);
+
+    const loadPage = () => {
+      store.load(id);
+      expectDetailRequest(id).flush(detail({ commentCount: 9 }));
+      expectCommentsRequest(id).flush(commentThreads());
+    };
+
+    it('starts with only the permanent top composer, empty and idle', () => {
+      expect(store.composers()).toEqual({ top: { draft: '', pending: false } });
+    });
+
+    describe('the top-level composer', () => {
+      it('posting sends the draft with no parent', () => {
+        loadPage();
+        store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: 'A fresh take.' });
+
+        store.postComment(TOP_COMPOSER_KEY);
+
+        const req = expectPostRequest();
+        expect(req.request.method).toBe('POST');
+        expect(req.request.body).toEqual({ text: 'A fresh take.', parentCommentId: null });
+      });
+
+      it('a successful post pins the new comment first, clears the draft, and counts it', () => {
+        loadPage();
+        store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: 'A fresh take.' });
+
+        store.postComment(TOP_COMPOSER_KEY);
+        expectPostRequest().flush(postedComment(), { status: 201, statusText: 'Created' });
+
+        // Pinned to the top for this session — the real best-first position applies from
+        // the next load — rendered straight from the response, replies empty.
+        expect(store.comments()![0]).toEqual({ ...postedComment(), replies: [] });
+        expect(store.comments()!.length).toBe(commentThreads().length + 1);
+        expect(store.composers()[TOP_COMPOSER_KEY]).toEqual({ draft: '', pending: false });
+        // The count reconciles by local +1 — the contract event is the server's business.
+        expect(store.finding()!.commentCount).toBe(10);
+        httpMock.expectNone(`/api/findings/${id}`);
+      });
+
+      it('a second post pins above the first — newest post first', () => {
+        loadPage();
+        store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: 'First thought.' });
+        store.postComment(TOP_COMPOSER_KEY);
+        expectPostRequest().flush(postedComment({ id: 'c-first', text: 'First thought.' }), {
+          status: 201,
+          statusText: 'Created',
+        });
+
+        store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: 'Second thought.' });
+        store.postComment(TOP_COMPOSER_KEY);
+        expectPostRequest().flush(postedComment({ id: 'c-second', text: 'Second thought.' }), {
+          status: 201,
+          statusText: 'Created',
+        });
+
+        expect(store.comments()![0].text).toBe('Second thought.');
+        expect(store.comments()![1].text).toBe('First thought.');
+      });
+    });
+
+    describe('reply composers', () => {
+      it('opening creates independent, empty composer state for the thread', () => {
+        loadPage();
+
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
+
+        expect(store.composers()[threadId()]).toEqual({ draft: '', pending: false });
+        // The top composer is untouched.
+        expect(store.composers()[TOP_COMPOSER_KEY]).toEqual({ draft: '', pending: false });
+      });
+
+      it("opening for an answered reply appends '@author ' to the draft — nothing typed is lost", () => {
+        loadPage();
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
+        store.updateComposerDraft({ composerKey: threadId(), text: 'Good point' });
+
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: 'linus_t' });
+
+        const draft = store.composers()[threadId()].draft;
+        expect(draft).toContain('Good point');
+        expect(draft).toMatch(/@linus_t\s$/);
+      });
+
+      it('cancelling closes the composer and discards the draft', () => {
+        loadPage();
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
+        store.updateComposerDraft({ composerKey: threadId(), text: 'Half a thought' });
+
+        store.closeOrResetComposer(threadId());
+        expect(store.composers()[threadId()]).toBeUndefined();
+
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
+        expect(store.composers()[threadId()].draft).toBe('');
+      });
+
+      it('posting sends the draft with the thread as parent', () => {
+        loadPage();
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
+        store.updateComposerDraft({ composerKey: threadId(), text: 'An answer.' });
+
+        store.postComment(threadId());
+
+        const req = expectPostRequest();
+        expect(req.request.body).toEqual({ text: 'An answer.', parentCommentId: threadId() });
+      });
+
+      it('a successful reply appends to its thread chronologically, closes the composer, and counts it', () => {
+        loadPage();
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
+        store.updateComposerDraft({ composerKey: threadId(), text: 'An answer.' });
+
+        store.postComment(threadId());
+        expectPostRequest().flush(postedComment({ text: 'An answer.' }), {
+          status: 201,
+          statusText: 'Created',
+        });
+
+        const replies = store.comments()![0].replies;
+        expect(replies[replies.length - 1]).toEqual(postedComment({ text: 'An answer.' }));
+        expect(replies.length).toBe(commentThreads()[0].replies.length + 1);
+        expect(store.composers()[threadId()]).toBeUndefined();
+        expect(store.finding()!.commentCount).toBe(10);
+      });
+    });
+
+    describe('in-flight and failure', () => {
+      it('posting marks only that composer pending — composers never block each other', () => {
+        loadPage();
+        store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: 'A fresh take.' });
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
+        store.updateComposerDraft({ composerKey: threadId(), text: 'An answer.' });
+
+        store.postComment(threadId());
+
+        expect(store.composers()[threadId()].pending).toBe(true);
+        expect(store.composers()[TOP_COMPOSER_KEY].pending).toBe(false);
+
+        // The top composer can post while the reply is still in flight: two requests open.
+        store.postComment(TOP_COMPOSER_KEY);
+        const open = httpMock.match(`/api/findings/${id}/comments`);
+        expect(open.length).toBe(2);
+        open.forEach((req) => req.flush(postedComment(), { status: 201, statusText: 'Created' }));
+      });
+
+      it('a failed post announces itself and preserves the draft for another try', () => {
+        loadPage();
+        store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: 'A fresh take.' });
+
+        store.postComment(TOP_COMPOSER_KEY);
+        expectPostRequest().flush('boom', { status: 500, statusText: 'Server Error' });
+
+        expect(store.composers()[TOP_COMPOSER_KEY]).toEqual({
+          draft: 'A fresh take.',
+          pending: false,
+        });
+        expect(store.comments()).toEqual(commentThreads());
+        expect(store.finding()!.commentCount).toBe(9);
+        expect(snackBar.open).toHaveBeenCalled();
+      });
+
+      it('a failed reply keeps its composer open with the draft intact', () => {
+        loadPage();
+        store.openReplyComposer({ threadId: threadId(), appendAuthor: null });
+        store.updateComposerDraft({ composerKey: threadId(), text: 'An answer.' });
+
+        store.postComment(threadId());
+        expectPostRequest().flush('boom', { status: 500, statusText: 'Server Error' });
+
+        expect(store.composers()[threadId()]).toEqual({ draft: 'An answer.', pending: false });
+        expect(snackBar.open).toHaveBeenCalled();
+      });
     });
   });
 });

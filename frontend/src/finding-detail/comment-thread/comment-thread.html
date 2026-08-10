@@ -4,13 +4,25 @@
     [comment]="thread()"
     [votePending]="pendingVoteIds().includes(thread().id)"
     (vote)="vote.emit({ commentId: thread().id, direction: $event })"
+    (reply)="reply.emit({ threadId: thread().id, appendAuthor: null })"
   />
   <div class="replies">
-    @for (reply of thread().replies; track reply.id) {
+    @if (composer() !== undefined) {
+      <app-comment-composer
+        [cancellable]="true"
+        (cancel)="composerCancel.emit()"
+        (post)="composerPost.emit()"
+        (draftChange)="composerDraftChange.emit($event)"
+        [pending]="composer()!.pending"
+        [draft]="composer()!.draft"
+      />
+    }
+    @for (replyComment of thread().replies; track replyComment.id) {
       <app-comment-row
-        [comment]="reply"
-        [votePending]="pendingVoteIds().includes(reply.id)"
-        (vote)="vote.emit({ commentId: reply.id, direction: $event })"
+        [comment]="replyComment"
+        [votePending]="pendingVoteIds().includes(replyComment.id)"
+        (vote)="vote.emit({ commentId: replyComment.id, direction: $event })"
+        (reply)="reply.emit({ threadId: thread().id, appendAuthor: replyComment.author })"
       />
     }
   </div>

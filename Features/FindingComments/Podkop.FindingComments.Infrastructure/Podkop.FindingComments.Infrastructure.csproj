@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Podkop.FindingComments.Application\Podkop.FindingComments.Application.csproj" />
+    <ProjectReference Include="..\Podkop.FindingComments.Contracts\Podkop.FindingComments.Contracts.csproj" />
     <ProjectReference Include="..\..\..\Shared\Podkop.Shared.Infrastructure\Podkop.Shared.Infrastructure.csproj" />
   </ItemGroup>
 

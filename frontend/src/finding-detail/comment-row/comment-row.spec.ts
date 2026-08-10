@@ -114,4 +114,40 @@ describe('CommentRow', () => {
       expect(downButton()!.disabled).toBe(false);
     });
   });
+
+  describe('reply control (issue #17)', () => {
+    const replyButton = () => element().querySelector<HTMLButtonElement>('button.reply-button');
+
+    it('offers a reply control', async () => {
+      await createRow(comment);
+
+      expect(replyButton()).not.toBeNull();
+    });
+
+    it('reports that the reader wants to answer this comment', async () => {
+      await createRow(comment);
+      let replies = 0;
+      fixture.componentInstance.reply.subscribe(() => (replies += 1));
+
+      replyButton()!.click();
+
+      expect(replies).toBe(1);
+    });
+
+    it("stays live on the reader's own comment — replying to yourself is allowed", async () => {
+      // Only voting on own content is forbidden; follow-ups are not.
+      await createRow({ ...comment, author: 'ada_lovelace' });
+
+      expect(replyButton()!.disabled).toBe(false);
+    });
+
+    it('stays live while a vote request is in flight — votes and replies are separate', async () => {
+      await createRow({ ...comment, myVote: null });
+      fixture.componentRef.setInput('votePending', true);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(replyButton()!.disabled).toBe(false);
+    });
+  });
 });

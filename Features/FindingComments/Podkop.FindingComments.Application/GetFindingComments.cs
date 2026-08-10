@@ -62,22 +62,13 @@ public sealed class GetFindingCommentsHandler(
     }
 
     private static CommentThread ToCommentThread(Comment comment, ILookup<Guid, Comment> repliesByParent,
-        string currentUser)
-    {
-        return new CommentThread(comment.Id, comment.Author, comment.Text, comment.UpvoteCount, comment.DownvoteCount,
+        string currentUser) =>
+        new(comment.Id, comment.Author, comment.Text, comment.UpvoteCount, comment.DownvoteCount,
             comment.VoteBy(currentUser).ToApiString(),
             comment.CreatedAt,
             repliesByParent[comment.Id]
                 .OrderBy(cr => cr.CreatedAt)
                 .Select(reply =>
-                    new CommentReply(
-                        reply.Id,
-                        reply.Author,
-                        reply.Text,
-                        reply.UpvoteCount,
-                        reply.DownvoteCount,
-                        reply.VoteBy(currentUser).ToApiString(),
-                        reply.CreatedAt))
+                    reply.ToCommentReply(currentUser))
                 .ToList());
-    }
 }

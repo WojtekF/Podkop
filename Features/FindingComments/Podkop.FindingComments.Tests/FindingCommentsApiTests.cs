@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using MediatR;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -70,7 +71,8 @@ public class FindingCommentsApiTests
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings));
-                services.AddSingleton<ICommentRepository>(new InMemoryCommentRepository(comments));
+                services.AddSingleton<ICommentRepository>(provider =>
+                    new InMemoryCommentRepository(comments, provider.GetRequiredService<IPublisher>()));
             }));
     }
 
