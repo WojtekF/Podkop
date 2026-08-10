@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 
 export interface StatutePointDto {
   id: string;
@@ -44,10 +44,10 @@ export class DocumentsService {
   private readonly http = inject(HttpClient);
 
   getCurrentStatute(): Observable<StatuteDto> {
-    throw new Error('not implemented');
+    return this.http.get<StatuteDto>('/api/statute').pipe(timeout(5000));
   }
 
   getCurrentPrivacyPolicy(): Observable<PrivacyPolicyDto> {
-    throw new Error('not implemented');
+    return this.http.get<PrivacyPolicyDto>('/api/privacy-policy').pipe(timeout(5000));
   }
 }

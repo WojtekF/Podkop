@@ -13,3 +13,30 @@
 
   The server orders sections and paragraphs; render them as-is.
 -->
+@if (loading()) {
+  <div class="document-state loading">
+    <mat-spinner />
+  </div>
+} @else if (error()) {
+  <div class="document-state error">
+    <h2>Couldn't load the Privacy Policy.</h2>
+  </div>
+} @else {
+  <div class="document-state">
+    <h2 class="version-line">
+      {{ `Version ${policy().version} effective from ${(policy().effectiveFrom | date)}` }}
+    </h2>
+    @for (section of policy().sections; track section.number) {
+      <article>
+        <h3 class="section-title">
+          {{ `#${section.number}: ${section.title}` }}
+        </h3>
+        @for (point of section.paragraphs; track $index) {
+          <p class="paragraph">
+            {{ point }}
+          </p>
+        }
+      </article>
+    }
+  </div>
+}

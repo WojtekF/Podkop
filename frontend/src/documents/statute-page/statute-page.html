@@ -17,3 +17,33 @@
 
   The server orders sections and points; render them as-is.
 -->
+@if (loading()) {
+  <div class="document-state loading">
+    <mat-spinner />
+  </div>
+} @else if (error()) {
+  <div class="document-state error">
+    <h2>Couldn't load the Statute.</h2>
+  </div>
+} @else {
+  <div class="document-state">
+    <h2 class="version-line">
+      {{ `Version ${statute().version} effective from ${(statute().effectiveFrom | date)}` }}
+    </h2>
+    @for (section of statute().sections; track section.number) {
+      <article>
+        <h3 class="section-title">
+          {{ `#${section.number}: ${section.title}` }}
+        </h3>
+        @for (point of section.points; track point.number) {
+          <p class="point">
+            <span class="point-number">{{ `${section.number}.${point.number}` }}</span>
+            <span class="point-text">
+              {{ point.text }}
+            </span>
+          </p>
+        }
+      </article>
+    }
+  </div>
+}
