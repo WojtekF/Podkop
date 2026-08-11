@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 
 /** The my-report state of one finding: whether the current user already reported it (issue #32). */
 export interface MyReportDto {
@@ -30,11 +30,13 @@ export class FindingReportService {
 
   /** Whether the current user already reported the finding. */
   getMyReport(findingId: string): Observable<MyReportDto> {
-    throw new Error('not implemented');
+    return this.http.get<MyReportDto>(`/api/findings/${findingId}/my-report`).pipe(timeout(5000));
   }
 
   /** Files the current user's one report on the finding; answers the fresh my-report state. */
   fileReport(findingId: string, intent: FileReportIntent): Observable<MyReportDto> {
-    throw new Error('not implemented');
+    return this.http
+      .post<MyReportDto>(`/api/findings/${findingId}/my-report`, intent)
+      .pipe(timeout(5000));
   }
 }

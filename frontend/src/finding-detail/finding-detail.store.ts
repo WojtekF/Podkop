@@ -1,3 +1,4 @@
+import { myReport } from './finding-detail.fixtures';
 import { LoadResult, asResult } from '../shared/as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
@@ -24,7 +25,7 @@ import {
   FindingDetailService,
   FindingVoteIntent,
 } from './finding-detail.service';
-import { FileReportIntent } from './finding-report.service';
+import { FileReportIntent, FindingReportService, MyReportDto } from './finding-report.service';
 import { tapResponse } from '@ngrx/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -79,23 +80,31 @@ export const FindingDetailStore = signalStore(
       store,
       service = inject(FindingDetailService),
       commentsService = inject(FindingCommentsService),
+      reportService = inject(FindingReportService),
       snackBar = inject(MatSnackBar),
     ) => {
       const load = rxMethod<string>(
         pipe(
           tap({
             next: (id: string) => {
-              patchState(store, { status: 'loading', id, finding: null, comments: null });
+              patchState(store, {
+                status: 'loading',
+                id,
+                finding: null,
+                comments: null,
+                myReport: null,
+              });
             },
           }),
           switchMap((id) =>
             forkJoin({
               finding: asResult(service.getFinding(id)),
               comments: asResult(commentsService.getComments(id)),
+              myReport: asResult(reportService.getMyReport(id)),
             }).pipe(
               tap({
-                next: ({ finding, comments }) => {
-                  patchState(store, toPatch(finding, comments));
+                next: ({ finding, comments, myReport }) => {
+                  patchState(store, toPatch(finding, comments, myReport));
                 },
               }),
             ),
@@ -327,16 +336,20 @@ const applyVotes = (
 const toPatch = (
   finding: LoadResult<FindingDetailDto>,
   comments: LoadResult<CommentThreadDto[]>,
+  myReport: LoadResult<MyReportDto>,
 ): Partial<FindingDetailState> => {
-  if (isNotFound(finding) || isNotFound(comments)) return { status: 'notFound' };
+  if (isNotFound(finding) || isNotFound(comments) || isNotFound(myReport))
+    return { status: 'notFound' };
   if (
     finding instanceof HttpErrorResponse ||
     comments instanceof HttpErrorResponse ||
+    myReport instanceof HttpErrorResponse ||
     finding instanceof TimeoutError ||
-    comments instanceof TimeoutError
+    comments instanceof TimeoutError ||
+    myReport instanceof TimeoutError
   )
     return { status: 'error' };
-  return { status: 'loaded', finding, comments };
+  return { status: 'loaded', finding, comments, myReport: myReport.reported };
 };
 
 const isNotFound = <T>(input: T | HttpErrorResponse): boolean => {
