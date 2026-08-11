@@ -41,7 +41,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapFindings();
 app.MapFindingComments();
-app.MapStatute();
+app.MapDocuments();
 
 app.MapDefaultEndpoints();
 

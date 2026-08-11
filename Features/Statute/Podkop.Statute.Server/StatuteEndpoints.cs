@@ -8,7 +8,7 @@ namespace Podkop.Statute.Server;
 
 public static class StatuteEndpoints
 {
-    public static IEndpointRouteBuilder MapStatute(this IEndpointRouteBuilder routes)
+    public static IEndpointRouteBuilder MapDocuments(this IEndpointRouteBuilder routes)
     {
         var statute = routes.MapGroup("/api/statute");
 
