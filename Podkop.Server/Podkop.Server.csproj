@@ -23,7 +23,7 @@
       <ProjectReference Include="..\Features\FindingComments\Podkop.FindingComments.Infrastructure\Podkop.FindingComments.Infrastructure.csproj" />
       <ProjectReference Include="..\Features\Findings\Podkop.Findings.Server\Podkop.Findings.Server.csproj" />
       <ProjectReference Include="..\Features\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
-      <ProjectReference Include="..\Features\Statute\Podkop.Statute.Server\Podkop.Statute.Server.csproj" />
-      <ProjectReference Include="..\Features\Statute\Podkop.Statute.Infrastructure\Podkop.Statute.Infrastructure.csproj" />
+      <ProjectReference Include="..\Features\Documents\Podkop.Documents.Server\Podkop.Documents.Server.csproj" />
+      <ProjectReference Include="..\Features\Documents\Podkop.Documents.Infrastructure\Podkop.Documents.Infrastructure.csproj" />
     </ItemGroup>
 </Project>

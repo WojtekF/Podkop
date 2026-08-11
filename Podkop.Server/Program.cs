@@ -4,8 +4,8 @@ using Podkop.FindingComments.Server;
 using Podkop.Findings.Infrastructure;
 using Podkop.Findings.Server;
 using Podkop.Server;
-using Podkop.Statute.Infrastructure;
-using Podkop.Statute.Server;
+using Podkop.Documents.Infrastructure;
+using Podkop.Documents.Server;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,9 +18,11 @@ builder.Services.AddProblemDetails();
 // Both slices seed from SampleSeed so the sample data stays coherent across them (issue #16).
 builder.Services.AddFindings(() => SampleSeed.Findings);
 builder.Services.AddFindingComments(() => SampleSeed.Comments);
-builder.Services.AddStatute(() => SampleSeed.StatuteVersions, () => SampleSeed.PrivacyPolicyVersions);
+builder.Services.AddDocuments(() => SampleSeed.StatuteVersions, () => SampleSeed.PrivacyPolicyVersions);
 builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
 builder.Services.AddSingleton<ICurrentUser, StubCurrentUser>();
+builder.Services.AddSingleton(TimeProvider.System);
+
 // The Findings slice owns its own current-user port (ADR 0003); the same stub backs it (issue #15).
 builder.Services.AddSingleton<Podkop.Findings.Application.ICurrentUser, StubCurrentUser>();
 

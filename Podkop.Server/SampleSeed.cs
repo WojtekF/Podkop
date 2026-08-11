@@ -2,7 +2,7 @@ using Podkop.FindingComments.Domain;
 using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
-using Podkop.Statute.Infrastructure;
+using Podkop.Documents.Infrastructure;
 
 namespace Podkop.Server;
 
@@ -22,16 +22,16 @@ internal static class SampleSeed
 
     // The statute documents are independent of the finding/comment coherence pact, so they get
     // their own lazies: hitting a document endpoint never generates findings, and vice versa.
-    private static readonly Lazy<IReadOnlyList<Podkop.Statute.Domain.StatuteVersion>> Statutes =
+    private static readonly Lazy<IReadOnlyList<Podkop.Documents.Domain.StatuteVersion>> Statutes =
         new(SampleStatuteVersions.Generate);
 
-    private static readonly Lazy<IReadOnlyList<Podkop.Statute.Domain.PrivacyPolicyVersion>> PrivacyPolicies =
+    private static readonly Lazy<IReadOnlyList<Podkop.Documents.Domain.PrivacyPolicyVersion>> PrivacyPolicies =
         new(SamplePrivacyPolicyVersions.Generate);
 
     public static IReadOnlyList<Finding> Findings => Data.Value.Findings;
     public static IReadOnlyList<Comment> Comments => Data.Value.Comments;
-    public static IReadOnlyList<Podkop.Statute.Domain.StatuteVersion> StatuteVersions => Statutes.Value;
-    public static IReadOnlyList<Podkop.Statute.Domain.PrivacyPolicyVersion> PrivacyPolicyVersions => PrivacyPolicies.Value;
+    public static IReadOnlyList<Podkop.Documents.Domain.StatuteVersion> StatuteVersions => Statutes.Value;
+    public static IReadOnlyList<Podkop.Documents.Domain.PrivacyPolicyVersion> PrivacyPolicyVersions => PrivacyPolicies.Value;
 
     private static (IReadOnlyList<Finding> Findings, IReadOnlyList<Comment> Comments) Generate()
     {
