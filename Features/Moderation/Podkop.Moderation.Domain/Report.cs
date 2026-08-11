@@ -66,6 +66,13 @@ public sealed class Report
         if (trimmedNote?.Length > MaxNoteLength) return new FileReportResult(FileReportOutcome.NoteTooLong, null);
 
         return new FileReportResult(FileReportOutcome.Filed,
-            new Report(id, reporter, findingId, statutePointId, statuteVersion, trimmedNote, filedAt));
+            new Report(
+                id,
+                reporter,
+                findingId,
+                statutePointId,
+                statuteVersion,
+                string.IsNullOrWhiteSpace(trimmedNote) ? null : trimmedNote,
+                filedAt));
     }
 }
