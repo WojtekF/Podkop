@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.8.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Podkop.Server\Podkop.Server.csproj" />
+    <ProjectReference Include="..\Podkop.Moderation.Domain\Podkop.Moderation.Domain.csproj" />
+    <ProjectReference Include="..\Podkop.Moderation.Infrastructure\Podkop.Moderation.Infrastructure.csproj" />
+    <!-- The HTTP seam runs through the composition root, so seeding a report scenario also
+         means seeding the finding it targets and the Statute versions it cites — hence the
+         references into the Findings and Documents slices. Production code never crosses
+         slices like this; tests at the composition root may. -->
+    <ProjectReference Include="..\..\Findings\Podkop.Findings.Domain\Podkop.Findings.Domain.csproj" />
+    <ProjectReference Include="..\..\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Documents\Podkop.Documents.Domain\Podkop.Documents.Domain.csproj" />
+    <ProjectReference Include="..\..\Documents\Podkop.Documents.Infrastructure\Podkop.Documents.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
