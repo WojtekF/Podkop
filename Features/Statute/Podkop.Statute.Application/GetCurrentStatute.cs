@@ -26,7 +26,7 @@ public sealed record StatutePointDetail(
     string Text,
     bool IsReportable);
 
-public sealed class GetCurrentStatuteHandler(IStatuteRepository statuteRepository)
+public sealed class GetCurrentStatuteHandler(IStatuteRepository statuteRepository, TimeProvider timeProvider)
     : IRequestHandler<GetCurrentStatute, StatuteDetail?>
 {
     public async Task<StatuteDetail?> Handle(GetCurrentStatute request, CancellationToken cancellationToken)
@@ -34,7 +34,7 @@ public sealed class GetCurrentStatuteHandler(IStatuteRepository statuteRepositor
         var statutes = await statuteRepository.GetAllVersionsAsync(cancellationToken);
 
         var statute = statutes
-            .Where(s => s.EffectiveFrom <= DateTimeOffset.UtcNow)
+            .Where(s => s.EffectiveFrom <= timeProvider.GetUtcNow())
             .OrderByDescending(s => s.Version)
             .FirstOrDefault();
 

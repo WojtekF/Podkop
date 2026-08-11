@@ -20,14 +20,16 @@ public sealed record PolicySectionDetail(
     string Title,
     IReadOnlyList<string> Paragraphs);
 
-public sealed class GetCurrentPrivacyPolicyHandler(IPrivacyPolicyRepository privacyPolicyRepository)
+public sealed class GetCurrentPrivacyPolicyHandler(
+    IPrivacyPolicyRepository privacyPolicyRepository,
+    TimeProvider timeProvider)
     : IRequestHandler<GetCurrentPrivacyPolicy, PrivacyPolicyDetail?>
 {
     public async Task<PrivacyPolicyDetail?> Handle(GetCurrentPrivacyPolicy request, CancellationToken cancellationToken)
     {
         var policies = await privacyPolicyRepository.GetAllVersionsAsync(cancellationToken);
         var latestPolicy = policies
-            .Where(policy => policy.EffectiveFrom <= DateTimeOffset.UtcNow)
+            .Where(policy => policy.EffectiveFrom <= timeProvider.GetUtcNow())
             .OrderByDescending(policy => policy.Version)
             .FirstOrDefault();
 

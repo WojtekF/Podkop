@@ -4,7 +4,7 @@ namespace Podkop.Statute.Application;
 
 public static class StatuteVersionExtensions
 {
-    public static StatuteDetail ToStatuteDetail(this StatuteVersion? statuteVersion) =>
+    public static StatuteDetail? ToStatuteDetail(this StatuteVersion? statuteVersion) =>
         statuteVersion is not null
             ? new StatuteDetail(
                 statuteVersion.Version,

@@ -16,7 +16,7 @@ public sealed class GetStatuteVersionHandler(IStatuteRepository statuteRepositor
     {
         var statutes = await statuteRepository.GetAllVersionsAsync(cancellationToken);
 
-        var statute = statutes.SingleOrDefault(s => s.Version == request.Version);
+        var statute = statutes.FirstOrDefault(s => s.Version == request.Version);
 
         return statute.ToStatuteDetail();
     }

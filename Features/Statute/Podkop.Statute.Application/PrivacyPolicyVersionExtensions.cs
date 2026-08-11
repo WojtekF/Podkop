@@ -4,7 +4,7 @@ namespace Podkop.Statute.Application;
 
 public static class PrivacyPolicyVersionExtensions
 {
-    public static PrivacyPolicyDetail ToPrivacyPolicyDetail(this PrivacyPolicyVersion? policyVersion) =>
+    public static PrivacyPolicyDetail? ToPrivacyPolicyDetail(this PrivacyPolicyVersion? policyVersion) =>
         policyVersion is not null
             ? new PrivacyPolicyDetail(
                 policyVersion.Version,

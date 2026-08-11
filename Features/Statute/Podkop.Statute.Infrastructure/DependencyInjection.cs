@@ -11,6 +11,7 @@ public static class DependencyInjection
         Func<IReadOnlyList<StatuteVersion>> statuteSeed,
         Func<IReadOnlyList<PrivacyPolicyVersion>> privacyPolicySeed)
     {
+        services.AddSingleton(TimeProvider.System);
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<GetCurrentStatute>());
         // The seeds are lazy factories: hosts and tests that override the repositories never
         // trigger (or pay for) sample-content generation.
