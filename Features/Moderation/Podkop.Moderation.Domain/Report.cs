@@ -58,6 +58,14 @@ public sealed class Report
         string? note,
         DateTimeOffset filedAt)
     {
-        throw new NotImplementedException();
+        if (reporter == findingAuthor) return new FileReportResult(FileReportOutcome.OwnFinding, null);
+        if (findingId == Guid.Empty) return new FileReportResult(FileReportOutcome.UnknownFinding, null);
+        if (statutePointId == Guid.Empty) return new FileReportResult(FileReportOutcome.NotReportablePoint, null);
+
+        var trimmedNote = note?.Trim();
+        if (trimmedNote?.Length > MaxNoteLength) return new FileReportResult(FileReportOutcome.NoteTooLong, null);
+
+        return new FileReportResult(FileReportOutcome.Filed,
+            new Report(id, reporter, findingId, statutePointId, statuteVersion, trimmedNote, filedAt));
     }
 }

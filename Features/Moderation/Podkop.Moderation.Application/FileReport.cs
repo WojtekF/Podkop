@@ -24,8 +24,30 @@ public sealed class FileReportHandler(
     TimeProvider timeProvider)
     : IRequestHandler<FileReport, FileReportOutcome>
 {
-    public Task<FileReportOutcome> Handle(FileReport request, CancellationToken cancellationToken)
+    public async Task<FileReportOutcome> Handle(FileReport request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var report = await
+            reportsRepository.GetByReporterAndFindingAsync(currentUser.UserName, request.FindingId, cancellationToken);
+
+        if (report is not null) return FileReportOutcome.AlreadyReported;
+
+        var findingLookup = await targetLookup.GetAsync(request.FindingId, cancellationToken);
+        var statute = await statuteLookup.GetCurrentAsync(cancellationToken);
+        var statutePoint = statute?.ReportablePointIds.FirstOrDefault(p => p == request.StatutePointId);
+
+        var fileReportResult = Report.File(
+            Guid.CreateVersion7(),
+            currentUser.UserName,
+            findingLookup?.Author,
+            findingLookup?.Id ?? Guid.Empty,
+            statutePoint ?? Guid.Empty,
+            statute?.Version ?? 0,
+            request.Note,
+            timeProvider.GetUtcNow());
+
+        if (fileReportResult.Outcome == FileReportOutcome.Filed)
+            await reportsRepository.AddAsync(fileReportResult!.Report, cancellationToken);
+
+        return fileReportResult.Outcome;
     }
 }
