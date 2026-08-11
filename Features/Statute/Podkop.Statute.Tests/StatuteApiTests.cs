@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Podkop.Statute.Application;
 using Podkop.Statute.Domain;
 using Podkop.Statute.Infrastructure;
@@ -45,18 +46,23 @@ public class StatuteApiTests
             ]),
         ]);
 
-    private static WebApplicationFactory<Program> CreateFactory(params StatuteVersion[] versions)
+    // Which version is "in force" is a fact about an instant, so every spec pins the clock
+    // (FakeTimeProvider) instead of inheriting whatever instant the test run happens at.
+    private static WebApplicationFactory<Program> CreateFactory(DateTimeOffset now, params StatuteVersion[] versions)
         => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
-                services.AddSingleton<IStatuteRepository>(new InMemoryStatuteRepository(versions))));
+            {
+                services.AddSingleton<TimeProvider>(new FakeTimeProvider(now));
+                services.AddSingleton<IStatuteRepository>(new InMemoryStatuteRepository(versions));
+            }));
 
     [Fact]
-    public async Task Current_statute_is_the_version_in_force_today()
+    public async Task Current_statute_is_the_version_in_force_at_the_pinned_instant()
     {
-        // Falsifiable on purpose: version 3 is published but not yet in force, so every plausible
-        // wrong rule — highest version, lowest version, first seeded, last seeded, latest
-        // effective-from — picks a different version than the specified "in force today" (v2).
-        using var factory = CreateFactory(
+        // Falsifiable on purpose: version 3 is published but not yet in force at the pinned
+        // instant, so every plausible wrong rule — highest version, lowest version, first seeded,
+        // last seeded, latest effective-from — picks a different version than the in-force v2.
+        using var factory = CreateFactory(At("2026-07-01T00:00:00Z"),
             Version(3, At("2099-01-01T00:00:00Z")),
             Version(2, At("2026-06-01T00:00:00Z")),
             Version(1, At("2025-01-01T00:00:00Z")));
@@ -74,7 +80,7 @@ public class StatuteApiTests
     [Fact]
     public async Task Current_statute_carries_sections_and_numbered_points_with_reportable_flags()
     {
-        using var factory = CreateFactory(Version(1, At("2025-01-01T00:00:00Z")));
+        using var factory = CreateFactory(At("2026-07-01T00:00:00Z"), Version(1, At("2025-01-01T00:00:00Z")));
         using var client = factory.CreateClient();
 
         var statute = await client.GetFromJsonAsync<StatuteResponse>("/api/statute");
@@ -99,7 +105,7 @@ public class StatuteApiTests
     [Fact]
     public async Task Historical_version_stays_readable_by_number()
     {
-        using var factory = CreateFactory(
+        using var factory = CreateFactory(At("2026-07-01T00:00:00Z"),
             Version(1, At("2025-01-01T00:00:00Z")),
             Version(2, At("2026-06-01T00:00:00Z")));
         using var client = factory.CreateClient();
@@ -116,7 +122,7 @@ public class StatuteApiTests
     [Fact]
     public async Task Unknown_version_is_a_404()
     {
-        using var factory = CreateFactory(
+        using var factory = CreateFactory(At("2026-07-01T00:00:00Z"),
             Version(1, At("2025-01-01T00:00:00Z")),
             Version(2, At("2026-06-01T00:00:00Z")));
         using var client = factory.CreateClient();
@@ -129,14 +135,48 @@ public class StatuteApiTests
     [Fact]
     public async Task Current_statute_is_a_404_when_no_version_is_in_force_yet()
     {
-        // A single published-but-future version: nothing is in force, so there is no current
-        // statute to serve.
-        using var factory = CreateFactory(Version(1, At("2099-01-01T00:00:00Z")));
+        // The clock is pinned before v1's effective-from: nothing is in force at that instant,
+        // however far in the past the version looks to the test run's real clock.
+        using var factory = CreateFactory(At("2024-12-31T23:59:59Z"), Version(1, At("2025-01-01T00:00:00Z")));
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/statute");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Previous_version_stays_in_force_until_the_amendment_instant()
+    {
+        // One second before the amendment's effective-from, the old version still rules —
+        // even though the amendment is long in force by the test run's real clock.
+        using var factory = CreateFactory(At("2026-05-31T23:59:59Z"),
+            Version(1, At("2025-01-01T00:00:00Z")),
+            Version(2, At("2026-06-01T00:00:00Z")));
+        using var client = factory.CreateClient();
+
+        var statute = await client.GetFromJsonAsync<StatuteResponse>("/api/statute");
+
+        Assert.NotNull(statute);
+        Assert.Equal(1, statute.Version);
+        Assert.Equal(At("2025-01-01T00:00:00Z"), statute.EffectiveFrom);
+    }
+
+    [Fact]
+    public async Task Amendment_takes_force_at_exactly_its_effective_instant()
+    {
+        // The boundary is inclusive: at the effective instant itself the amendment already
+        // rules. The far-future date keeps the real clock on the wrong side of the boundary,
+        // so only a handler consulting the injected clock can pass.
+        using var factory = CreateFactory(At("2099-01-01T00:00:00Z"),
+            Version(1, At("2025-01-01T00:00:00Z")),
+            Version(2, At("2099-01-01T00:00:00Z")));
+        using var client = factory.CreateClient();
+
+        var statute = await client.GetFromJsonAsync<StatuteResponse>("/api/statute");
+
+        Assert.NotNull(statute);
+        Assert.Equal(2, statute.Version);
     }
 
     private sealed record StatuteResponse(

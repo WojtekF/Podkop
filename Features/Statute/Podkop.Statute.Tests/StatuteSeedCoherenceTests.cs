@@ -1,20 +1,29 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Podkop.Statute.Tests;
 
 /// <summary>
-///     Runs the app exactly as shipped — the real seed generators, no repository overrides —
-///     through the same HTTP surface the frontend uses. Red until
-///     <c>SampleStatuteVersions</c> / <c>SamplePrivacyPolicyVersions</c> are implemented.
+///     Runs the app as shipped — the real seed generators, no repository overrides — through
+///     the same HTTP surface the frontend uses. Only the clock is pinned: which shipped version
+///     is "in force" is judged at a fixed instant after the seeded amendment's effective-from,
+///     so these assertions never drift as real time passes or future-dated versions ship.
 /// </summary>
 public class StatuteSeedCoherenceTests
 {
+    private static WebApplicationFactory<Program> CreateFactory()
+        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureServices(services =>
+                services.AddSingleton<TimeProvider>(
+                    new FakeTimeProvider(new DateTimeOffset(2026, 8, 1, 0, 0, 0, TimeSpan.Zero)))));
+
     [Fact]
     public async Task Seeded_statute_is_in_force_with_reportable_conduct_rules_and_nonreportable_framing()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/statute");
@@ -35,7 +44,7 @@ public class StatuteSeedCoherenceTests
     [Fact]
     public async Task Seeded_statute_keeps_version_1_readable()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var statute = await client.GetFromJsonAsync<StatuteResponse>("/api/statute/versions/1");
@@ -47,7 +56,7 @@ public class StatuteSeedCoherenceTests
     [Fact]
     public async Task Seeded_privacy_policy_is_in_force_with_readable_sections()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/privacy-policy");

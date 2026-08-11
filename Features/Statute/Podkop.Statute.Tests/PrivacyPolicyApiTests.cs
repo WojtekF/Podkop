@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Podkop.Statute.Application;
 using Podkop.Statute.Domain;
 using Podkop.Statute.Infrastructure;
@@ -27,17 +28,22 @@ public class PrivacyPolicyApiTests
             ]),
         ]);
 
-    private static WebApplicationFactory<Program> CreateFactory(params PrivacyPolicyVersion[] versions)
+    // Same discipline as the statute suite: "in force" is a fact about an instant, so every
+    // spec pins the clock (FakeTimeProvider) rather than inheriting the test run's.
+    private static WebApplicationFactory<Program> CreateFactory(DateTimeOffset now, params PrivacyPolicyVersion[] versions)
         => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
-                services.AddSingleton<IPrivacyPolicyRepository>(new InMemoryPrivacyPolicyRepository(versions))));
+            {
+                services.AddSingleton<TimeProvider>(new FakeTimeProvider(now));
+                services.AddSingleton<IPrivacyPolicyRepository>(new InMemoryPrivacyPolicyRepository(versions));
+            }));
 
     [Fact]
-    public async Task Current_privacy_policy_is_the_version_in_force_today()
+    public async Task Current_privacy_policy_is_the_version_in_force_at_the_pinned_instant()
     {
         // Same falsifiable seeding as the statute's: the future-dated version 3 makes every
         // plausible wrong rule pick a different version than the in-force v2.
-        using var factory = CreateFactory(
+        using var factory = CreateFactory(At("2026-06-01T00:00:00Z"),
             Version(3, At("2099-01-01T00:00:00Z")),
             Version(2, At("2026-05-01T00:00:00Z")),
             Version(1, At("2025-02-01T00:00:00Z")));
@@ -55,7 +61,7 @@ public class PrivacyPolicyApiTests
     [Fact]
     public async Task Current_privacy_policy_carries_sections_and_paragraphs()
     {
-        using var factory = CreateFactory(Version(1, At("2025-02-01T00:00:00Z")));
+        using var factory = CreateFactory(At("2026-06-01T00:00:00Z"), Version(1, At("2025-02-01T00:00:00Z")));
         using var client = factory.CreateClient();
 
         var policy = await client.GetFromJsonAsync<PolicyResponse>("/api/privacy-policy");
@@ -75,7 +81,7 @@ public class PrivacyPolicyApiTests
     [Fact]
     public async Task Historical_version_stays_readable_by_number()
     {
-        using var factory = CreateFactory(
+        using var factory = CreateFactory(At("2026-06-01T00:00:00Z"),
             Version(1, At("2025-02-01T00:00:00Z")),
             Version(2, At("2026-05-01T00:00:00Z")));
         using var client = factory.CreateClient();
@@ -90,12 +96,30 @@ public class PrivacyPolicyApiTests
     [Fact]
     public async Task Unknown_version_is_a_404()
     {
-        using var factory = CreateFactory(Version(1, At("2025-02-01T00:00:00Z")));
+        using var factory = CreateFactory(At("2026-06-01T00:00:00Z"), Version(1, At("2025-02-01T00:00:00Z")));
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/privacy-policy/versions/9");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Previous_version_stays_in_force_until_the_amendment_instant()
+    {
+        // The statute suite carries the full boundary matrix; this one spec holds the policy
+        // handler to the same rule: one second before the amendment's effective-from, the old
+        // version still rules, however long the amendment has been in force by the real clock.
+        using var factory = CreateFactory(At("2026-04-30T23:59:59Z"),
+            Version(1, At("2025-02-01T00:00:00Z")),
+            Version(2, At("2026-05-01T00:00:00Z")));
+        using var client = factory.CreateClient();
+
+        var policy = await client.GetFromJsonAsync<PolicyResponse>("/api/privacy-policy");
+
+        Assert.NotNull(policy);
+        Assert.Equal(1, policy.Version);
+        Assert.Equal(At("2025-02-01T00:00:00Z"), policy.EffectiveFrom);
     }
 
     private sealed record PolicyResponse(
