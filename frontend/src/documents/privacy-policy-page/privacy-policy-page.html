@@ -1,0 +1,27 @@
+@if (state.loading()) {
+  <div class="document-state loading">
+    <mat-spinner />
+  </div>
+} @else if (state.error()) {
+  <div class="document-state error">
+    <h2>Couldn't load the Privacy Policy.</h2>
+  </div>
+} @else if (state.data(); as policy) {
+  <div class="document-state">
+    <h2 class="version-line">
+      {{ `Version ${policy.version} effective from ${(policy.effectiveFrom | date)}` }}
+    </h2>
+    @for (section of policy.sections; track section.number) {
+      <article>
+        <h3 class="section-title">
+          {{ `#${section.number}: ${section.title}` }}
+        </h3>
+        @for (paragraph of section.paragraphs; track $index) {
+          <p class="paragraph">
+            {{ paragraph }}
+          </p>
+        }
+      </article>
+    }
+  </div>
+}

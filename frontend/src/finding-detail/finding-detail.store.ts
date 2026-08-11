@@ -1,4 +1,4 @@
-import { LoadResult, asResult } from './as-result';
+import { LoadResult, asResult } from '../shared/as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
