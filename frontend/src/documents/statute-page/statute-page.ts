@@ -1,11 +1,12 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { DocumentsService } from '../documents.service';
+import { Component, computed, inject } from '@angular/core';
+import { DocumentsService, StatuteDto } from '../documents.service';
 import { asResult } from '../../shared/as-result';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TimeoutError } from 'rxjs/internal/operators/timeout';
+import { TimeoutError } from 'rxjs';
+import { getCallState } from '../getCallState.helper';
 
 @Component({
   selector: 'app-statute-page',
@@ -16,13 +17,5 @@ import { TimeoutError } from 'rxjs/internal/operators/timeout';
 export class StatutePage {
   protected readonly documents = inject(DocumentsService);
 
-  protected statute = toSignal(asResult(this.documents.getCurrentStatute()), {
-    initialValue: undefined,
-  });
-
-  protected loading = computed(() => this.statute() === undefined);
-
-  protected error = computed(
-    () => this.statute() instanceof HttpErrorResponse || this.statute() instanceof TimeoutError,
-  );
+  protected state = getCallState<StatuteDto>(() => this.documents.getCurrentStatute());
 }
