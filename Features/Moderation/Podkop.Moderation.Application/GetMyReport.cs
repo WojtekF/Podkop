@@ -21,8 +21,16 @@ public sealed class GetMyReportHandler(
     ICurrentUser currentUser)
     : IRequestHandler<GetMyReport, MyReportStatus?>
 {
-    public Task<MyReportStatus?> Handle(GetMyReport request, CancellationToken cancellationToken)
+    public async Task<MyReportStatus?> Handle(GetMyReport request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var reportTarget =
+            await targetLookup.GetAsync(request.FindingId, cancellationToken);
+        if (reportTarget is null) return null;
+
+        var lookup =
+            await reportsRepository.GetByReporterAndFindingAsync(currentUser.UserName, request.FindingId,
+                cancellationToken);
+
+        return new MyReportStatus(lookup is not null);
     }
 }
