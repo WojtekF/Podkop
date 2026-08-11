@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { DocumentsService, PrivacyPolicyDto } from '../documents.service';
 import { DatePipe } from '@angular/common';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
-import { getCallState } from '../getCallState.helper';
+import { getCallState } from '../get-call-state.helper';
 
 @Component({
   selector: 'app-privacy-policy-page',
@@ -13,5 +13,5 @@ import { getCallState } from '../getCallState.helper';
 export class PrivacyPolicyPage {
   protected readonly documents = inject(DocumentsService);
 
-  protected state = getCallState<PrivacyPolicyDto>(() => this.documents.getCurrentPrivacyPolicy());
+  protected state = getCallState<PrivacyPolicyDto>(this.documents.getCurrentPrivacyPolicy());
 }

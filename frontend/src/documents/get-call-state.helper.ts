@@ -4,8 +4,8 @@ import { Observable, TimeoutError } from 'rxjs';
 import { computed } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 
-export const getCallState = <T>(method: () => Observable<T>) => {
-  const value = toSignal<LoadResult<T> | undefined>(asResult(method()), {
+export const getCallState = <T>(source: Observable<T>) => {
+  const value = toSignal<LoadResult<T> | undefined>(asResult(source), {
     initialValue: undefined,
   });
 

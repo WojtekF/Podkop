@@ -1,7 +1,27 @@
-/*
-  Styling for the Statute page (issue #30): a readable legal-document layout — a clear hierarchy
-  from the version line through section titles down to numbered points, with a comfortable
-  reading width and spacing that fits the app's existing look. The template's hook classes
-  (.document-state.loading, .document-state.error, .version-line, .section-title, .point,
-  .point-number, .point-text) are the seams to hang styles on.
-*/
+@use 'mixins';
+
+.document-state {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  &.error {
+    @include mixins.in-container-message;
+  }
+  &.loading {
+    @include mixins.viewport-center;
+  }
+
+  article {
+    border-radius: 1rem;
+    background: var(--mat-sys-surface-container);
+    .section-title {
+      padding-left: 1rem;
+    }
+    .point {
+      padding: 0 2rem;
+      .point-number {
+        padding-right: 1rem;
+      }
+    }
+  }
+}

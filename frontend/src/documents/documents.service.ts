@@ -34,7 +34,7 @@ export interface PrivacyPolicyDto {
 }
 
 /**
- * HTTP client for the Statute slice (issue #30): the two public documents, each served as the
+ * HTTP client for the Documents slice (issue #30): the two public documents, each served as the
  * version currently in force.
  */
 @Injectable({

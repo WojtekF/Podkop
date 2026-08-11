@@ -16,9 +16,9 @@
         <h3 class="section-title">
           {{ `#${section.number}: ${section.title}` }}
         </h3>
-        @for (point of section.paragraphs; track $index) {
+        @for (paragraph of section.paragraphs; track $index) {
           <p class="paragraph">
-            {{ point }}
+            {{ paragraph }}
           </p>
         }
       </article>

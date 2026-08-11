@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { DocumentsService, StatuteDto } from '../documents.service';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { DatePipe } from '@angular/common';
-import { getCallState } from '../getCallState.helper';
+import { getCallState } from '../get-call-state.helper';
 
 @Component({
   selector: 'app-statute-page',
@@ -13,5 +13,5 @@ import { getCallState } from '../getCallState.helper';
 export class StatutePage {
   protected readonly documents = inject(DocumentsService);
 
-  protected state = getCallState<StatuteDto>(() => this.documents.getCurrentStatute());
+  protected state = getCallState<StatuteDto>(this.documents.getCurrentStatute());
 }
