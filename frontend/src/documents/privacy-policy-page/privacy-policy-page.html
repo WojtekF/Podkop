@@ -6,14 +6,12 @@
   <div class="document-state error">
     <h2>Couldn't load the Privacy Policy.</h2>
   </div>
-} @else {
+} @else if (state.data(); as policy) {
   <div class="document-state">
     <h2 class="version-line">
-      {{
-        `Version ${state.value().version} effective from ${(state.value().effectiveFrom | date)}`
-      }}
+      {{ `Version ${policy.version} effective from ${(policy.effectiveFrom | date)}` }}
     </h2>
-    @for (section of state.value().sections; track section.number) {
+    @for (section of policy.sections; track section.number) {
       <article>
         <h3 class="section-title">
           {{ `#${section.number}: ${section.title}` }}

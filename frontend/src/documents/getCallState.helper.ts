@@ -13,5 +13,13 @@ export const getCallState = <T>(method: () => Observable<T>) => {
     value,
     loading: computed(() => value() === undefined),
     error: computed(() => value() instanceof HttpErrorResponse || value() instanceof TimeoutError),
+    // The loaded payload, narrowed to T: templates read this instead of value() so the
+    // type-checker knows the error/pending cases are already excluded.
+    data: computed(() => {
+      const v = value();
+      return v === undefined || v instanceof HttpErrorResponse || v instanceof TimeoutError
+        ? undefined
+        : v;
+    }),
   };
 };
