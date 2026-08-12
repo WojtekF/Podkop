@@ -6,3 +6,7 @@ export type LoadResult<T> = T | HttpErrorResponse | TimeoutError;
 export function asResult<T>(source: Observable<T>): Observable<LoadResult<T>> {
   return source.pipe(catchError((error: HttpErrorResponse | TimeoutError) => of(error)));
 }
+
+export const isLoadFailure = <T>(result: LoadResult<T>) => {
+  return result instanceof HttpErrorResponse || result instanceof TimeoutError;
+};

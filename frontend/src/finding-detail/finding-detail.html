@@ -55,7 +55,18 @@
           }
         </div>
       </div>
+      <mat-card-actions>
+        <button
+          mat-button
+          (click)="openReportDialog()"
+          [class]="{ 'report-button': true, reported: store.myReport() }"
+          [disabled]="isReportButtonDisabled()"
+        >
+          {{ store.myReport() ? 'Reported' : 'Report' }}
+        </button>
+      </mat-card-actions>
     </mat-card-content>
+
     @if (hasThumbnail()) {
       <img class="thumbnail" [src]="finding.thumbnailUrl" alt="" />
     } @else {

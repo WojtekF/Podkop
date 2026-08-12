@@ -25,5 +25,7 @@
       <ProjectReference Include="..\Features\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
       <ProjectReference Include="..\Features\Documents\Podkop.Documents.Server\Podkop.Documents.Server.csproj" />
       <ProjectReference Include="..\Features\Documents\Podkop.Documents.Infrastructure\Podkop.Documents.Infrastructure.csproj" />
+      <ProjectReference Include="..\Features\Moderation\Podkop.Moderation.Server\Podkop.Moderation.Server.csproj" />
+      <ProjectReference Include="..\Features\Moderation\Podkop.Moderation.Infrastructure\Podkop.Moderation.Infrastructure.csproj" />
     </ItemGroup>
 </Project>

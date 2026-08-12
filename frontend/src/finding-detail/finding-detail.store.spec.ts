@@ -6,6 +6,7 @@ import {
   commentThreads,
   findingDetail as detail,
   findingId as id,
+  myReport,
   postedComment,
 } from './finding-detail.fixtures';
 import { FindingDetailStore, TOP_COMPOSER_KEY } from './finding-detail.store';
@@ -22,6 +23,8 @@ describe('FindingDetailStore', () => {
     httpMock.expectOne(`/api/findings/${findingId}`);
   const expectCommentsRequest = (findingId: string) =>
     httpMock.expectOne(`/api/findings/${findingId}/comments`);
+  const expectMyReportRequest = (findingId: string) =>
+    httpMock.expectOne({ method: 'GET', url: `/api/findings/${findingId}/my-report` });
 
   beforeEach(() => {
     snackBar = { open: vi.fn() };
@@ -37,45 +40,63 @@ describe('FindingDetailStore', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  it('starts loading with no finding and no discussion', () => {
+  it('starts loading with no finding, no discussion, and no my-report state', () => {
     expect(store.status()).toBe('loading');
     expect(store.finding()).toBeNull();
     expect(store.comments()).toBeNull();
+    expect(store.myReport()).toBeNull();
   });
 
-  it('load requests the finding and its discussion in parallel', () => {
+  it('load requests the finding, its discussion, and my report state in parallel', () => {
     store.load(id);
 
     expectDetailRequest(id);
     expectCommentsRequest(id);
+    expectMyReportRequest(id);
   });
 
-  it('stays loading until both answers are in — the finding alone is not enough', () => {
+  it('stays loading until all three answers are in — the finding alone is not enough', () => {
     store.load(id);
 
     expectDetailRequest(id).flush(detail());
     expect(store.status()).toBe('loading');
 
     expectCommentsRequest(id).flush(commentThreads());
+    expect(store.status()).toBe('loading');
+
+    expectMyReportRequest(id).flush(myReport());
     expect(store.status()).toBe('loaded');
     expect(store.finding()).toEqual(detail());
     expect(store.comments()).toEqual(commentThreads());
+    expect(store.myReport()).toBe(false);
   });
 
-  it('stays loading until both answers are in — the discussion alone is not enough', () => {
+  it('stays loading until all three answers are in — the discussion and report alone are not enough', () => {
     store.load(id);
 
     expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush(myReport());
     expect(store.status()).toBe('loading');
 
     expectDetailRequest(id).flush(detail());
     expect(store.status()).toBe('loaded');
+  });
+
+  it('surfaces an already-reported finding right from the load', () => {
+    store.load(id);
+
+    expectDetailRequest(id).flush(detail());
+    expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush(myReport({ reported: true }));
+
+    expect(store.myReport()).toBe(true);
   });
 
   it('keeps the threads exactly as the server ordered them', () => {
     store.load(id);
     expectDetailRequest(id).flush(detail());
     expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush(myReport());
 
     expect(store.comments()?.map((t) => t.id)).toEqual(commentThreads().map((t) => t.id));
     expect(store.comments()?.[0].replies.map((r) => r.id)).toEqual(
@@ -88,6 +109,7 @@ describe('FindingDetailStore', () => {
 
     expectDetailRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
     expectCommentsRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
+    expectMyReportRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
 
     expect(store.status()).toBe('notFound');
     expect(store.finding()).toBeNull();
@@ -98,6 +120,17 @@ describe('FindingDetailStore', () => {
 
     expectDetailRequest(id).flush(detail());
     expectCommentsRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
+    expectMyReportRequest(id).flush(myReport());
+
+    expect(store.status()).toBe('notFound');
+  });
+
+  it('a 404 on my report alone is still not-found — only an unknown finding answers it', () => {
+    store.load(id);
+
+    expectDetailRequest(id).flush(detail());
+    expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
 
     expect(store.status()).toBe('notFound');
   });
@@ -107,6 +140,7 @@ describe('FindingDetailStore', () => {
 
     expectDetailRequest(id).flush('boom', { status: 500, statusText: 'Server Error' });
     expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush(myReport());
 
     expect(store.status()).toBe('error');
   });
@@ -116,6 +150,17 @@ describe('FindingDetailStore', () => {
 
     expectDetailRequest(id).flush(detail());
     expectCommentsRequest(id).flush('boom', { status: 500, statusText: 'Server Error' });
+    expectMyReportRequest(id).flush(myReport());
+
+    expect(store.status()).toBe('error');
+  });
+
+  it('a failing my-report request is a load error even when the rest arrived', () => {
+    store.load(id);
+
+    expectDetailRequest(id).flush(detail());
+    expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush('boom', { status: 500, statusText: 'Server Error' });
 
     expect(store.status()).toBe('error');
   });
@@ -125,6 +170,7 @@ describe('FindingDetailStore', () => {
     try {
       store.load(id);
       expectCommentsRequest(id).flush(commentThreads());
+      expectMyReportRequest(id).flush(myReport());
 
       vi.advanceTimersByTime(4999);
       expect(store.status()).toBe('loading');
@@ -142,6 +188,7 @@ describe('FindingDetailStore', () => {
     try {
       store.load(id);
       expectDetailRequest(id).flush(detail());
+      expectMyReportRequest(id).flush(myReport());
 
       vi.advanceTimersByTime(5000);
       expect(store.status()).toBe('error');
@@ -150,32 +197,37 @@ describe('FindingDetailStore', () => {
     }
   });
 
-  it('retry re-requests both the finding and the discussion for the id that failed', () => {
+  it('retry re-requests the finding, the discussion, and my report state for the id that failed', () => {
     store.load(id);
     expectDetailRequest(id).flush('boom', { status: 500, statusText: 'Server Error' });
     expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush(myReport());
 
     store.retry();
 
     expectDetailRequest(id).flush(detail());
     expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush(myReport());
     expect(store.status()).toBe('loaded');
     expect(store.finding()).toEqual(detail());
     expect(store.comments()).toEqual(commentThreads());
   });
 
-  it('loading a different id replaces the finding and the discussion it holds', () => {
+  it('loading a different id replaces the finding, the discussion, and my report state', () => {
     store.load(id);
     expectDetailRequest(id).flush(detail());
     expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush(myReport({ reported: true }));
 
     store.load(otherId);
     expectDetailRequest(otherId).flush(detail({ id: otherId, title: 'Another finding' }));
     expectCommentsRequest(otherId).flush([]);
+    expectMyReportRequest(otherId).flush(myReport());
 
     expect(store.finding()?.id).toBe(otherId);
     expect(store.finding()?.title).toBe('Another finding');
     expect(store.comments()).toEqual([]);
+    expect(store.myReport()).toBe(false);
   });
 
   describe('voting on a comment (issue #18)', () => {
@@ -192,6 +244,7 @@ describe('FindingDetailStore', () => {
       store.load(id);
       expectDetailRequest(id).flush(detail());
       expectCommentsRequest(id).flush(commentThreads());
+      expectMyReportRequest(id).flush(myReport());
     };
 
     it('voting on a comment without a vote PUTs the chosen direction', () => {
@@ -299,6 +352,7 @@ describe('FindingDetailStore', () => {
       store.load(id);
       expectDetailRequest(id).flush(finding);
       expectCommentsRequest(id).flush(commentThreads());
+      expectMyReportRequest(id).flush(myReport());
     };
 
     it('digging a finding with no vote PUTs a dig', () => {
@@ -382,6 +436,7 @@ describe('FindingDetailStore', () => {
       store.load(id);
       expectDetailRequest(id).flush(detail({ commentCount: 9 }));
       expectCommentsRequest(id).flush(commentThreads());
+      expectMyReportRequest(id).flush(myReport());
     };
 
     it('starts with only the permanent top composer, empty and idle', () => {
@@ -549,6 +604,116 @@ describe('FindingDetailStore', () => {
         expect(store.composers()[threadId()]).toEqual({ draft: 'An answer.', pending: false });
         expect(snackBar.open).toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('reporting the finding (issue #32)', () => {
+    // From the statute fixture's reportable conduct rules.
+    const spamPointId = 'aaaa0000-0000-4000-8000-000000000002';
+
+    // A finding the stub user did not author, so its report action is live.
+    const reportable = () => detail({ author: 'grace_hopper' });
+
+    const expectFileRequest = () =>
+      httpMock.expectOne({ method: 'POST', url: `/api/findings/${id}/my-report` });
+
+    const loadReportable = (report = myReport()) => {
+      store.load(id);
+      expectDetailRequest(id).flush(reportable());
+      expectCommentsRequest(id).flush(commentThreads());
+      expectMyReportRequest(id).flush(report);
+    };
+
+    it('filing POSTs the cited point and note to my-report', () => {
+      loadReportable();
+
+      store.fileReport({ statutePointId: spamPointId, note: 'Links a spam farm.' });
+
+      const req = expectFileRequest();
+      expect(req.request.body).toEqual({
+        statutePointId: spamPointId,
+        note: 'Links a spam farm.',
+      });
+    });
+
+    it('a successful filing marks the finding reported and confirms in a snackbar', () => {
+      loadReportable();
+
+      store.fileReport({ statutePointId: spamPointId, note: null });
+      expectFileRequest().flush(myReport({ reported: true }), {
+        status: 201,
+        statusText: 'Created',
+      });
+
+      expect(store.myReport()).toBe(true);
+      expect(store.reportPending()).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+      expect(String(snackBar.open.mock.calls[0]?.[0])).toContain('Report submitted');
+    });
+
+    it('marks the report pending while its request is in flight, and only then', () => {
+      loadReportable();
+
+      store.fileReport({ statutePointId: spamPointId, note: null });
+      expect(store.reportPending()).toBe(true);
+
+      expectFileRequest().flush(myReport({ reported: true }), {
+        status: 201,
+        statusText: 'Created',
+      });
+      expect(store.reportPending()).toBe(false);
+    });
+
+    it('a second filing while one is in flight is ignored — a single request goes out', () => {
+      loadReportable();
+
+      store.fileReport({ statutePointId: spamPointId, note: null });
+      store.fileReport({ statutePointId: spamPointId, note: null });
+
+      const open = httpMock.match({ method: 'POST', url: `/api/findings/${id}/my-report` });
+      expect(open.length).toBe(1);
+      open[0].flush(myReport({ reported: true }), { status: 201, statusText: 'Created' });
+    });
+
+    it('the duplicate refusal also marks the finding reported — the server already holds my report', () => {
+      loadReportable();
+
+      store.fileReport({ statutePointId: spamPointId, note: null });
+      expectFileRequest().flush(
+        { type: 'podkop:problem:already-reported' },
+        { status: 409, statusText: 'Conflict' },
+      );
+
+      expect(store.myReport()).toBe(true);
+      expect(store.reportPending()).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+      expect(String(snackBar.open.mock.calls[0]?.[0])).toContain('already reported');
+    });
+
+    it('any other failure leaves the state untouched and announces itself', () => {
+      loadReportable();
+
+      store.fileReport({ statutePointId: spamPointId, note: null });
+      expectFileRequest().flush('boom', { status: 500, statusText: 'Server Error' });
+
+      expect(store.myReport()).toBe(false);
+      expect(store.reportPending()).toBe(false);
+      expect(snackBar.open).toHaveBeenCalled();
+      expect(String(snackBar.open.mock.calls[0]?.[0])).toContain("Couldn't submit the report");
+    });
+
+    it('filing never touches the finding itself — no score, no vote, no refetch (ADR 0008)', () => {
+      loadReportable();
+      const before = store.finding();
+
+      store.fileReport({ statutePointId: spamPointId, note: null });
+      expectFileRequest().flush(myReport({ reported: true }), {
+        status: 201,
+        statusText: 'Created',
+      });
+
+      expect(store.finding()).toEqual(before);
+      httpMock.expectNone(`/api/findings/${id}`);
     });
   });
 });

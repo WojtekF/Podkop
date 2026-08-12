@@ -22,9 +22,17 @@
     <Project Path="Features/Documents/Podkop.Documents.Server/Podkop.Documents.Server.csproj" />
     <Project Path="Features/Documents/Podkop.Documents.Tests/Podkop.Documents.Tests.csproj" />
   </Folder>
+  <Folder Name="/Features/Moderation/">
+    <Project Path="Features/Moderation/Podkop.Moderation.Application/Podkop.Moderation.Application.csproj" />
+    <Project Path="Features/Moderation/Podkop.Moderation.Domain/Podkop.Moderation.Domain.csproj" />
+    <Project Path="Features/Moderation/Podkop.Moderation.Infrastructure/Podkop.Moderation.Infrastructure.csproj" />
+    <Project Path="Features/Moderation/Podkop.Moderation.Server/Podkop.Moderation.Server.csproj" />
+    <Project Path="Features/Moderation/Podkop.Moderation.Tests/Podkop.Moderation.Tests.csproj" />
+  </Folder>
   <Folder Name="/Shared/">
     <Project Path="Shared/Podkop.Shared.Infrastructure/Podkop.Shared.Infrastructure.csproj" />
   </Folder>
   <Project Path="Podkop.AppHost/Podkop.AppHost.csproj" />
   <Project Path="Podkop.Server/Podkop.Server.csproj" />
+  <Project Path="Podkop.Server.Tests/Podkop.Server.Tests.csproj" />
 </Solution>
