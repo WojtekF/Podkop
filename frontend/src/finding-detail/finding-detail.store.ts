@@ -1,4 +1,4 @@
-import { LoadResult, asResult } from '../shared/as-result';
+import { LoadResult, asResult, isLoadFailure } from '../shared/as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -364,14 +364,7 @@ const toPatch = (
 ): Partial<FindingDetailState> => {
   if (isNotFound(finding) || isNotFound(comments) || isNotFound(myReport))
     return { status: 'notFound' };
-  if (
-    finding instanceof HttpErrorResponse ||
-    comments instanceof HttpErrorResponse ||
-    myReport instanceof HttpErrorResponse ||
-    finding instanceof TimeoutError ||
-    comments instanceof TimeoutError ||
-    myReport instanceof TimeoutError
-  )
+  if (isLoadFailure(finding) || isLoadFailure(comments) || isLoadFailure(myReport))
     return { status: 'error' };
   return { status: 'loaded', finding, comments, myReport: myReport.reported };
 };

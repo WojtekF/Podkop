@@ -34,15 +34,15 @@ public sealed class FileReportHandler(
         if (report is not null) return FileReportOutcome.AlreadyReported;
 
         var statute = await statuteLookup.GetCurrentAsync(cancellationToken);
-        var statutePoint = statute?.ReportablePointIds.FirstOrDefault(p => p == request.StatutePointId);
-        if (statute is null || statutePoint is null) return FileReportOutcome.NotReportablePoint;
+        if (statute is null || !statute.ReportablePointIds.Contains(request.StatutePointId))
+            return FileReportOutcome.NotReportablePoint;
 
         var fileReportResult = Report.File(
             Guid.CreateVersion7(),
             currentUser.UserName,
             reportTarget.Author,
             reportTarget.Id,
-            statutePoint.Value,
+            request.StatutePointId,
             statute.Version,
             request.Note,
             timeProvider.GetUtcNow());

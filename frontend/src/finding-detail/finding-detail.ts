@@ -60,7 +60,7 @@ export class FindingDetail {
 
   private readonly dialog = inject(MatDialog);
   protected isReportButtonDisabled() {
-    return this.store.finding()?.author === CURRENT_USER || this.store.myReport()! === true;
+    return this.store.finding()?.author === CURRENT_USER || this.store.myReport() === true;
   }
 
   protected openReportDialog() {
@@ -84,7 +84,6 @@ export class FindingDetail {
 
     dialogRef.componentInstance.fileReport.subscribe((report) => {
       this.store.fileReport(report);
-      if (this.store.myReport()) dialogRef.close();
     });
 
     dialogRef.afterClosed().subscribe(() => {

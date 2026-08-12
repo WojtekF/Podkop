@@ -5,6 +5,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- The slice boundary is enforced at compile time (ADR 0003): Podkop.Server drags every
+         slice in transitively, so without this a cross-slice using would silently compile. -->
+    <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
   </PropertyGroup>
 
   <ItemGroup>
@@ -22,16 +25,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Podkop.Server\Podkop.Server.csproj" />
+    <ProjectReference Include="..\Podkop.Moderation.Application\Podkop.Moderation.Application.csproj" />
     <ProjectReference Include="..\Podkop.Moderation.Domain\Podkop.Moderation.Domain.csproj" />
     <ProjectReference Include="..\Podkop.Moderation.Infrastructure\Podkop.Moderation.Infrastructure.csproj" />
-    <!-- The HTTP seam runs through the composition root, so seeding a report scenario also
-         means seeding the finding it targets and the Statute versions it cites — hence the
-         references into the Findings and Documents slices. Production code never crosses
-         slices like this; tests at the composition root may. -->
-    <ProjectReference Include="..\..\Findings\Podkop.Findings.Domain\Podkop.Findings.Domain.csproj" />
-    <ProjectReference Include="..\..\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\Documents\Podkop.Documents.Domain\Podkop.Documents.Domain.csproj" />
-    <ProjectReference Include="..\..\Documents\Podkop.Documents.Infrastructure\Podkop.Documents.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

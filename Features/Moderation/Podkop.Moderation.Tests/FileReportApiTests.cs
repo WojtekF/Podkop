@@ -4,12 +4,6 @@ using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
-using Podkop.Documents.Application;
-using Podkop.Documents.Domain;
-using Podkop.Documents.Infrastructure;
-using Podkop.Findings.Application;
-using Podkop.Findings.Domain;
-using Podkop.Findings.Infrastructure;
 using Podkop.Moderation.Application;
 using Podkop.Moderation.Domain;
 using Podkop.Moderation.Infrastructure;
@@ -18,11 +12,13 @@ namespace Podkop.Moderation.Tests;
 
 /// <summary>
 ///     Filing a report (issue #32) through the HTTP seam: POST my-report files the stub user's
-///     one report on a finding, citing a reportable point of the Statute version in force at the
-///     pinned filing instant (ADR 0006). Duplicates and self-reports are refused, filing never
-///     touches a score or promotion (ADR 0008), and every error answer carries a stable
-///     <c>podkop:problem:&lt;slug&gt;</c> ProblemDetails type so same-status outcomes stay
-///     distinguishable.
+///     one report on a finding, citing a reportable point of the current Statute and pinning its
+///     version (ADR 0006). Duplicates and self-reports are refused, and every error answer
+///     carries a stable <c>podkop:problem:&lt;slug&gt;</c> ProblemDetails type so same-status
+///     outcomes stay distinguishable. The world outside the slice enters only through its own
+///     ports (ADR 0003), stubbed here; the composition-root adapters behind them — and the
+///     ADR 0008 proof that filing touches no score, which reads the finding through another
+///     slice's public surface — are specified in Podkop.Server.Tests.
 /// </summary>
 public class FileReportApiTests
 {
@@ -30,10 +26,11 @@ public class FileReportApiTests
     private static readonly Guid TargetFindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
     private static readonly Guid OwnFindingId = Guid.Parse("0d4f9a3e-2222-4222-8333-444455556666");
 
-    // Point ids are the stable identity a report cites (ADR 0006). The seeded versions below
-    // are arranged so every wrong validation source picks a different answer: the purpose
-    // point exists in the current version but is never reportable, the retired point is
-    // reportable only in the superseded v1, the future point only in the not-yet-in-force v3.
+    // Point ids are the stable identity a report cites (ADR 0006). The statute port answers
+    // only the reportable point ids of the version in force, so every wrong way to cite a
+    // point looks the same to this slice — absent from that list. The ids below document the
+    // distinct upstream reasons a point is absent; which version is in force, and why, is the
+    // Documents slice's concern, specified with its adapter in Podkop.Server.Tests.
     private static readonly Guid PurposePointId = Guid.Parse("aaaa0000-0000-4000-8000-000000000001");
     private static readonly Guid SpamPointId = Guid.Parse("aaaa0000-0000-4000-8000-000000000002");
     private static readonly Guid HatePointId = Guid.Parse("aaaa0000-0000-4000-8000-000000000003");
@@ -41,80 +38,32 @@ public class FileReportApiTests
     private static readonly Guid FuturePointId = Guid.Parse("aaaa0000-0000-4000-8000-000000000005");
     private static readonly Guid UnknownPointId = Guid.Parse("aaaa0000-0000-4000-8000-00000000ffff");
 
-    /// <summary>The filing instant every spec pins: v2 is in force (v1 superseded, v3 not yet).</summary>
-    private static readonly DateTimeOffset Now =
-        At("2026-07-01T12:00:00Z");
+    /// <summary>The current Statute as the port answers it: v2, citing spam and hate as reportable.</summary>
+    private static readonly CurrentStatute CurrentStatuteV2 = new(2, [SpamPointId, HatePointId]);
+
+    /// <summary>The filing instant every spec pins.</summary>
+    private static readonly DateTimeOffset Now = At("2026-07-01T12:00:00Z");
 
     private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
 
-    private static StatuteVersion[] SeededVersions() =>
-    [
-        new(1, At("2025-01-01T00:00:00Z"),
-        [
-            new StatuteSection(1, "Purpose of the service",
-            [
-                new StatutePoint(PurposePointId, 1, "Podkop is a community for sharing findings. (v1)", false),
-            ]),
-            new StatuteSection(2, "Rules of conduct",
-            [
-                new StatutePoint(SpamPointId, 1, "Do not post spam. (v1)", true),
-                new StatutePoint(RetiredPointId, 2, "Do not post off-topic content. (v1)", true),
-            ]),
-        ]),
-        new(2, At("2026-06-01T00:00:00Z"),
-        [
-            new StatuteSection(1, "Purpose of the service",
-            [
-                new StatutePoint(PurposePointId, 1, "Podkop is a community for sharing findings. (v2)", false),
-            ]),
-            new StatuteSection(2, "Rules of conduct",
-            [
-                new StatutePoint(SpamPointId, 1, "Do not post spam. (v2)", true),
-                new StatutePoint(HatePointId, 2, "Do not post hateful content. (v2)", true),
-            ]),
-        ]),
-        new(3, At("2099-01-01T00:00:00Z"),
-        [
-            new StatuteSection(2, "Rules of conduct",
-            [
-                new StatutePoint(SpamPointId, 1, "Do not post spam. (v3)", true),
-                new StatutePoint(HatePointId, 2, "Do not post hateful content. (v3)", true),
-                new StatutePoint(FuturePointId, 3, "Do not impersonate other users. (v3)", true),
-            ]),
-        ]),
-    ];
-
-    private static Finding CreateFinding(Guid id, string author) =>
-        new(
-            id: id,
-            title: "A finding under scrutiny",
-            description: "The finding the report targets.",
-            source: new Uri("https://blog.example.org/posts/42"),
-            thumbnail: null,
-            author: author,
-            tags: ["angular"],
-            createdAt: At("2026-06-08T03:30:00Z"),
-            promotedAt: At("2026-06-08T09:30:00Z"),
-            commentCount: 0);
-
     /// <summary>
-    ///     Hosts the full composition root with every collaborator pinned: the clock, both
-    ///     findings (one authored by the stub user), the three Statute versions, and a report
-    ///     repository the spec keeps a reference to — reports are invisible over HTTP by design,
-    ///     so the stored report's facts are asserted through the slice's own repository port.
+    ///     Hosts the composition root with every collaborator the slice sees pinned through its
+    ///     own ports: the clock, both report targets (one authored by the stub user), the current
+    ///     Statute, and a report repository the spec keeps a reference to — reports are invisible
+    ///     over HTTP by design, so the stored report's facts are asserted through the slice's own
+    ///     repository port.
     /// </summary>
     private static WebApplicationFactory<Program> CreateFactory(
-        InMemoryReportRepository reports, DateTimeOffset? now = null) =>
+        InMemoryReportRepository reports, bool statuteInForce = true) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
-                services.AddSingleton<TimeProvider>(new FakeTimeProvider(now ?? Now));
-                services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(
-                [
-                    CreateFinding(TargetFindingId, "grace_hopper"),
-                    CreateFinding(OwnFindingId, StubUser),
-                ]));
-                services.AddSingleton<IStatuteRepository>(new InMemoryStatuteRepository(SeededVersions()));
+                services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
+                services.AddSingleton<IReportTargetLookup>(new StubReportTargetLookup(
+                    new ReportTarget(TargetFindingId, "grace_hopper"),
+                    new ReportTarget(OwnFindingId, StubUser)));
+                services.AddSingleton<IStatuteLookup>(
+                    new StubStatuteLookup(statuteInForce ? CurrentStatuteV2 : null));
                 services.AddSingleton<IReportRepository>(reports);
             }));
 
@@ -154,7 +103,7 @@ public class FileReportApiTests
         Assert.Equal(StubUser, stored.Reporter);
         Assert.Equal(TargetFindingId, stored.FindingId);
         Assert.Equal(SpamPointId, stored.StatutePointId);
-        // The version in force at the pinned instant — not the oldest (1), not the highest (3).
+        // The version the statute port answered at the pinned filing instant (ADR 0006).
         Assert.Equal(2, stored.StatuteVersion);
         Assert.Equal("Links a spam farm.", stored.Note);
         Assert.Equal(Now, stored.FiledAt);
@@ -225,7 +174,8 @@ public class FileReportApiTests
     [Fact]
     public async Task A_point_that_is_not_reportable_cannot_be_cited()
     {
-        // The purpose point exists in the current version — it is just never reportable.
+        // The purpose point exists in the current version — it is just never reportable, so
+        // the port never lists it.
         using var factory = CreateFactory(new InMemoryReportRepository([]));
         using var client = factory.CreateClient();
 
@@ -239,8 +189,9 @@ public class FileReportApiTests
     [Fact]
     public async Task A_point_dropped_by_the_current_version_cannot_be_cited()
     {
-        // Reportable in the superseded v1 only: reportability is a fact about the version in
-        // force at filing time, not about any version that ever existed.
+        // Reportable in the superseded v1 only, so absent from the current version's list:
+        // reportability is a fact about the version in force at filing time, not about any
+        // version that ever existed.
         using var factory = CreateFactory(new InMemoryReportRepository([]));
         using var client = factory.CreateClient();
 
@@ -280,9 +231,9 @@ public class FileReportApiTests
     [Fact]
     public async Task When_no_statute_version_is_in_force_nothing_can_be_cited()
     {
-        // The clock is pinned before v1's effective-from: no version is in force, so even a
-        // point that will be reportable later cannot be cited.
-        using var factory = CreateFactory(new InMemoryReportRepository([]), At("2024-12-31T23:59:59Z"));
+        // The port answers null — no version in force yet — so even a point that will be
+        // reportable later cannot be cited.
+        using var factory = CreateFactory(new InMemoryReportRepository([]), statuteInForce: false);
         using var client = factory.CreateClient();
 
         var response = await Post(client, TargetFindingId, SpamPointId);
@@ -343,30 +294,7 @@ public class FileReportApiTests
         Assert.Equal("podkop:problem:unknown-finding", problem!.Type);
     }
 
-    [Fact]
-    public async Task Filing_changes_no_score_vote_or_promotion_state()
-    {
-        // ADR 0008: a report is a moderation signal only. The finding is re-read through the
-        // same public surface the frontend uses, before and after filing.
-        using var factory = CreateFactory(new InMemoryReportRepository([]));
-        using var client = factory.CreateClient();
-
-        var before = await client.GetFromJsonAsync<FindingDetailResponse>($"/api/findings/{TargetFindingId}");
-
-        var response = await Post(client, TargetFindingId, SpamPointId, "Links a spam farm.");
-        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-
-        var after = await client.GetFromJsonAsync<FindingDetailResponse>($"/api/findings/{TargetFindingId}");
-        Assert.Equal(before, after);
-    }
-
     private sealed record MyReportResponse(bool Reported);
 
     private sealed record ProblemResponse(string Type);
-
-    private sealed record FindingDetailResponse(
-        int DigCount,
-        string? MyVote,
-        int CommentCount,
-        DateTimeOffset? PromotedAt);
 }

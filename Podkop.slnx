@@ -34,4 +34,5 @@
   </Folder>
   <Project Path="Podkop.AppHost/Podkop.AppHost.csproj" />
   <Project Path="Podkop.Server/Podkop.Server.csproj" />
+  <Project Path="Podkop.Server.Tests/Podkop.Server.Tests.csproj" />
 </Solution>

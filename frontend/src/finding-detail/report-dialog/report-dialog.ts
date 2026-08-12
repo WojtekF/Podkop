@@ -3,7 +3,7 @@ import { MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/mat
 import { DocumentsService } from '../../documents/documents.service';
 import { FileReportIntent } from '../finding-report.service';
 import { TimeoutError } from 'rxjs';
-import { asResult } from '../../shared/as-result';
+import { asResult, isLoadFailure } from '../../shared/as-result';
 import { HttpErrorResponse } from '@angular/common/http';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatButton } from '@angular/material/button';
@@ -85,7 +85,7 @@ export class ReportDialog {
 
     asResult(this.documentsService.getCurrentStatute()).subscribe({
       next: (response) => {
-        if (response instanceof HttpErrorResponse || response instanceof TimeoutError) {
+        if (isLoadFailure(response)) {
           this.status.set('error');
         } else {
           const points = response.sections.flatMap((section) =>
