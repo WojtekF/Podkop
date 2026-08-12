@@ -1,8 +1,8 @@
 <!--
   The report dialog (issue #32). The colocated report-dialog.spec.ts asserts this behaviour.
-  Bind against the `status`, `points`, `selectedPointId`, and `note` signals, the
-  `maxNoteLength`, `isOverLimit`, and `isSubmitDisabled` members, the `retryStatute` and
-  `submitReport` methods, and the `cancel` output.
+  Bind against the `status`, `points`, `selectedPointId`, and `note` signals, the `pending`
+  input, the `maxNoteLength`, `isOverLimit`, and `isSubmitDisabled` members, the
+  `retryStatute` and `submitReport` methods, and the `cancel` output.
 
   The dialog lets the member report the finding: it offers only the reportable Statute Points
   of the current Statute, the member picks exactly one, optionally adds a short note, and
@@ -31,7 +31,10 @@
 
   - A submit control, class `submit-report-button`, labelled "Submit report", triggering
     `submitReport`. It is disabled exactly when `isSubmitDisabled` says so — no point picked
-    yet, or the note over the cap.
+    yet, the note over the cap, or a filing in flight.
+
+  - While a filing is in flight (the `pending` input): the note field is disabled too, and
+    everything the member entered stays put.
 
   - A cancel control, class `cancel-report-button`, labelled "Cancel", emitting the `cancel`
     output.
@@ -71,6 +74,7 @@
           class="report-note"
           [value]="note()"
           (input)="note.set(ta.value)"
+          [disabled]="pending()"
         ></textarea>
         <mat-hint [class]="{ 'note-counter': true, 'over-limit': isOverLimit() }">
           {{ note().length }}/{{ maxNoteLength }}

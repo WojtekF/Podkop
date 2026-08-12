@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { provideRouter, Router, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { CommentThreadDto } from './finding-comments.service';
@@ -65,6 +66,10 @@ describe('FindingDetail', () => {
         ),
         provideHttpClient(),
         provideHttpClientTesting(),
+        // jsdom reports no reduced-motion preference, so Material would run its dialog
+        // open/close transitions on real timers that whenStable() never awaits; disabling
+        // animations makes overlay teardown observable to these specs.
+        { provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } },
       ],
     });
     httpMock = TestBed.inject(HttpTestingController);
@@ -682,7 +687,84 @@ describe('FindingDetail', () => {
       expect(reportButton()?.disabled).toBe(false);
     });
 
-    it('submitting the dialog files the report, closes it, and marks the finding reported', async () => {
+    it('submitting the dialog files the report and waits, submit disabled, until it lands', async () => {
+      await loadPage();
+      await openDialog();
+      httpMock.expectOne('/api/statute').flush(statute());
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      dialog()!.querySelectorAll<HTMLElement>('.report-point')[0].click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      dialog()!.querySelector<HTMLButtonElement>('button.submit-report-button')!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      const req = httpMock.expectOne({
+        method: 'POST',
+        url: `/api/findings/${id}/my-report`,
+      });
+      expect(req.request.body).toEqual({
+        statutePointId: 'aaaa0000-0000-4000-8000-000000000002',
+        note: null,
+      });
+
+      // The filing is in flight: the dialog is still up, its submit sitting disabled.
+      expect(dialog()).not.toBeNull();
+      expect(
+        dialog()!.querySelector<HTMLButtonElement>('button.submit-report-button')!.disabled,
+      ).toBe(true);
+
+      req.flush(myReport({ reported: true }), { status: 201, statusText: 'Created' });
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      expect(dialog()).toBeNull();
+      expect(reportButton()?.textContent).toContain('Reported');
+      expect(reportButton()?.disabled).toBe(true);
+    });
+
+    it('a failed filing keeps the dialog open with the choice and note intact', async () => {
+      await loadPage();
+      await openDialog();
+      httpMock.expectOne('/api/statute').flush(statute());
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      dialog()!.querySelectorAll<HTMLElement>('.report-point')[1].click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      const noteArea = dialog()!.querySelector<HTMLTextAreaElement>('textarea.report-note')!;
+      noteArea.value = 'Links a spam farm.';
+      noteArea.dispatchEvent(new Event('input'));
+      harness.detectChanges();
+      dialog()!.querySelector<HTMLButtonElement>('button.submit-report-button')!.click();
+
+      httpMock
+        .expectOne({ method: 'POST', url: `/api/findings/${id}/my-report` })
+        .flush('boom', { status: 500, statusText: 'Server Error' });
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      // The member's work survives the failure: same point picked, note still there,
+      // submit live again for a retry, and the finding not marked reported.
+      expect(dialog()).not.toBeNull();
+      expect(
+        dialog()!.querySelectorAll<HTMLElement>('.report-point')[1].classList.contains(
+          'selected',
+        ),
+      ).toBe(true);
+      expect(dialog()!.querySelector<HTMLTextAreaElement>('textarea.report-note')!.value).toBe(
+        'Links a spam farm.',
+      );
+      expect(
+        dialog()!.querySelector<HTMLButtonElement>('button.submit-report-button')!.disabled,
+      ).toBe(false);
+      expect(reportButton()?.classList.contains('reported')).toBe(false);
+    });
+
+    it('the duplicate refusal also closes the dialog — the server already holds my report', async () => {
       await loadPage();
       await openDialog();
       httpMock.expectOne('/api/statute').flush(statute());
@@ -694,16 +776,12 @@ describe('FindingDetail', () => {
       harness.detectChanges();
       dialog()!.querySelector<HTMLButtonElement>('button.submit-report-button')!.click();
 
-      const req = httpMock.expectOne({
-        method: 'POST',
-        url: `/api/findings/${id}/my-report`,
-      });
-      expect(req.request.body).toEqual({
-        statutePointId: 'aaaa0000-0000-4000-8000-000000000002',
-        note: null,
-      });
-
-      req.flush(myReport({ reported: true }), { status: 201, statusText: 'Created' });
+      httpMock
+        .expectOne({ method: 'POST', url: `/api/findings/${id}/my-report` })
+        .flush(
+          { type: 'podkop:problem:already-reported' },
+          { status: 409, statusText: 'Conflict' },
+        );
       await harness.fixture.whenStable();
       harness.detectChanges();
 

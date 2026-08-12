@@ -1,6 +1,14 @@
 import { CURRENT_USER } from './current-user';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { Component, ElementRef, effect, inject, input, viewChildren } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  Injector,
+  effect,
+  inject,
+  input,
+  viewChildren,
+} from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FindingDetailStore, TOP_COMPOSER_KEY } from './finding-detail.store';
 import { MatButton } from '@angular/material/button';
@@ -55,17 +63,34 @@ export class FindingDetail {
     return this.store.finding()?.author === CURRENT_USER || this.store.myReport()! === true;
   }
   protected openReportDialog() {
-    const dialogRef = this.dialog.open(ReportDialog);
+    const dialogRef = this.dialog.open(ReportDialog, { exitAnimationDuration: 0 });
+    const sync = effect(
+      () => dialogRef.componentRef?.setInput('pending', this.store.reportPending()),
+      { injector: this.injector },
+    );
+    const closeOnReported = effect(
+      () => {
+        if (this.store.myReport()) dialogRef.close();
+      },
+      { injector: this.injector },
+    );
 
     dialogRef.componentInstance.cancel.subscribe(() => {
       dialogRef.close();
     });
+
     dialogRef.componentInstance.fileReport.subscribe((report) => {
       this.store.fileReport(report);
       if (this.store.myReport()) dialogRef.close();
     });
+
+    dialogRef.afterClosed().subscribe(() => {
+      sync.destroy();
+      closeOnReported.destroy();
+    });
   }
 
+  private readonly injector = inject(Injector);
   protected readonly store = inject(FindingDetailStore);
 
   protected readonly id = input.required<string>();

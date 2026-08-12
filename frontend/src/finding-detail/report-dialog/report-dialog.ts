@@ -1,4 +1,4 @@
-import { Component, computed, output, signal, inject, effect } from '@angular/core';
+import { Component, computed, input, output, signal, inject, effect } from '@angular/core';
 import { MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/material/dialog';
 import { DocumentsService } from '../../documents/documents.service';
 import { FileReportIntent } from '../finding-report.service';
@@ -28,6 +28,9 @@ export type ReportDialogStatus = 'loading' | 'error' | 'loaded';
  * DocumentsService and offers only its reportable points — the member picks exactly one,
  * optionally adds a short note, and submits. Submitting emits the `fileReport` intent (the
  * note trimmed, or null when empty) and nothing else — filing itself is the store's business.
+ * The opener reports the filing's progress back in through `pending` and closes the dialog
+ * once the finding is reported; on any other failure the dialog stays open, the member's
+ * choice and note intact.
  */
 @Component({
   selector: 'app-report-dialog',
@@ -51,6 +54,9 @@ export class ReportDialog {
   constructor() {
     this.retryStatute();
   }
+  /** Whether a filing is in flight — pushed in by the opener while the report request runs. */
+  readonly pending = input(false);
+
   readonly fileReport = output<FileReportIntent>();
   readonly cancel = output<void>();
 
@@ -64,7 +70,7 @@ export class ReportDialog {
   protected readonly maxNoteLength = REPORT_NOTE_MAX_LENGTH;
   protected readonly isOverLimit = computed(() => this.note().length > REPORT_NOTE_MAX_LENGTH);
   protected readonly isSubmitDisabled = computed(
-    () => this.selectedPointId() === null || this.isOverLimit(),
+    () => this.selectedPointId() === null || this.isOverLimit() || this.pending(),
   );
 
   protected onOptionClicked = (id: string) => {

@@ -149,6 +149,24 @@ describe('ReportDialog', () => {
     expect(submitButton()?.disabled).toBe(false);
   });
 
+  it('disables the note field and submit while a filing is in flight, and re-enables after', () => {
+    loadStatute();
+    selectPoint(0);
+    typeNote('Links a spam farm.');
+
+    fixture.componentRef.setInput('pending', true);
+    fixture.detectChanges();
+
+    expect(noteArea()?.disabled).toBe(true);
+    expect(submitButton()?.disabled).toBe(true);
+
+    fixture.componentRef.setInput('pending', false);
+    fixture.detectChanges();
+
+    expect(noteArea()?.disabled).toBe(false);
+    expect(submitButton()?.disabled).toBe(false);
+  });
+
   it('submitting emits the picked point with the note trimmed', () => {
     loadStatute();
     let emitted: FileReportIntent | undefined;
