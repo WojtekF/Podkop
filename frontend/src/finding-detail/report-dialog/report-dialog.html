@@ -36,3 +36,57 @@
   - A cancel control, class `cancel-report-button`, labelled "Cancel", emitting the `cancel`
     output.
 -->
+<div class="report-dialog">
+  <h2 mat-dialog-title class="report-title">Report finding</h2>
+  @if (status() === 'loading') {
+    <mat-dialog-content class="report-state loading">
+      <mat-spinner />
+    </mat-dialog-content>
+  } @else if (status() === 'error') {
+    <mat-dialog-content class="report-state error">
+      <h3>Couldn't load the Statute.</h3>
+      <mat-dialog-actions align="end">
+        <button mat-button class="retry-button" (click)="retryStatute()">Retry</button>
+      </mat-dialog-actions>
+    </mat-dialog-content>
+  } @else {
+    <mat-dialog-content class="report-state">
+      <mat-selection-list [multiple]="false">
+        @for (point of points(); track point.id) {
+          <mat-list-option
+            [class]="{ 'report-point': true, selected: selectedPointId() === point.id }"
+            (click)="onOptionClicked(point.id)"
+            [selected]="selectedPointId() === point.id"
+          >
+            <span class="point-citation">{{ point.citation }}</span>
+            <span class="point-text">{{ point.text }}</span>
+          </mat-list-option>
+        }
+      </mat-selection-list>
+      <mat-form-field>
+        <mat-label> Add a note (optional)</mat-label>
+        <textarea
+          #ta
+          matInput
+          class="report-note"
+          [value]="note()"
+          (input)="note.set(ta.value)"
+        ></textarea>
+        <mat-hint [class]="{ 'note-counter': true, 'over-limit': isOverLimit() }">
+          {{ note().length }}/{{ maxNoteLength }}
+        </mat-hint>
+      </mat-form-field>
+      <mat-dialog-actions align="end">
+        <button mat-button class="cancel-report-button" (click)="cancel.emit()">Cancel</button>
+        <button
+          mat-button
+          class="submit-report-button"
+          (click)="submitReport()"
+          [disabled]="isSubmitDisabled()"
+        >
+          Submit report
+        </button>
+      </mat-dialog-actions>
+    </mat-dialog-content>
+  }
+</div>

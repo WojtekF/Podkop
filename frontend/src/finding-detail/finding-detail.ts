@@ -1,14 +1,17 @@
+import { CURRENT_USER } from './current-user';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { Component, ElementRef, effect, inject, input, viewChildren } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FindingDetailStore, TOP_COMPOSER_KEY } from './finding-detail.store';
 import { MatButton } from '@angular/material/button';
 import { DatePipe } from '@angular/common';
-import { MatCard, MatCardContent } from '@angular/material/card';
+import { MatCard, MatCardActions, MatCardContent } from '@angular/material/card';
 import { CommentThread, CommentVote } from './comment-thread/comment-thread';
 import { FindingVote } from './finding-vote/finding-vote';
 import { BuryReason } from './finding-detail.service';
 import { CommentComposer } from './comment-composer/comment-composer';
+import { MatDialog } from '@angular/material/dialog';
+import { ReportDialog } from './report-dialog/report-dialog';
 
 @Component({
   selector: 'app-finding-detail',
@@ -22,6 +25,7 @@ import { CommentComposer } from './comment-composer/comment-composer';
     CommentThread,
     FindingVote,
     CommentComposer,
+    MatCardActions,
   ],
   providers: [FindingDetailStore],
   templateUrl: './finding-detail.html',
@@ -44,6 +48,22 @@ export class FindingDetail {
 
   protected hasThumbnail() {
     return !!this.store.finding()?.thumbnailUrl;
+  }
+
+  private readonly dialog = inject(MatDialog);
+  protected isReportButtonDisabled() {
+    return this.store.finding()?.author === CURRENT_USER || this.store.myReport()! === true;
+  }
+  protected openReportDialog() {
+    const dialogRef = this.dialog.open(ReportDialog);
+
+    dialogRef.componentInstance.cancel.subscribe(() => {
+      dialogRef.close();
+    });
+    dialogRef.componentInstance.fileReport.subscribe((report) => {
+      this.store.fileReport(report);
+      if (this.store.myReport()) dialogRef.close();
+    });
   }
 
   protected readonly store = inject(FindingDetailStore);
