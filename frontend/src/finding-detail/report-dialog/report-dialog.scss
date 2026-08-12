@@ -2,3 +2,24 @@
 // the point rows are scannable (citation and text visually distinct) and the selected row is
 // unmistakable; the note field spans the panel's width; the counter reads as an error while
 // over the cap. The how is yours.
+@use 'mixins';
+
+.report-dialog {
+  .report-state {
+    mat-form-field {
+      width: 100%;
+    }
+    .report-note {
+      height: 3lh;
+      resize: none;
+    }
+    .report-point {
+      // Let the row grow with its point instead of the one-line 48px cap.
+      --mat-list-list-item-one-line-container-height: auto;
+
+      .point-text {
+        white-space: normal; // undo the list's nowrap; the whole point wraps and shows
+      }
+    }
+  }
+}
