@@ -1,6 +1,15 @@
-import { Component, computed, output, signal, inject } from '@angular/core';
+import { Component, computed, output, signal, inject, effect } from '@angular/core';
+import { MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/material/dialog';
 import { DocumentsService } from '../../documents/documents.service';
 import { FileReportIntent } from '../finding-report.service';
+import { TimeoutError } from 'rxjs';
+import { asResult } from '../../shared/as-result';
+import { HttpErrorResponse } from '@angular/common/http';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { MatButton } from '@angular/material/button';
+import { MatSelectionList, MatListOption } from '@angular/material/list';
+import { MatFormField, MatLabel, MatHint } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
 
 /** The most text one report note may carry (issue #32); mirrors the backend's Report.MaxNoteLength. */
 export const REPORT_NOTE_MAX_LENGTH = 500;
@@ -22,11 +31,26 @@ export type ReportDialogStatus = 'loading' | 'error' | 'loaded';
  */
 @Component({
   selector: 'app-report-dialog',
-  imports: [],
+  imports: [
+    MatDialogTitle,
+    MatDialogContent,
+    MatDialogActions,
+    MatProgressSpinner,
+    MatButton,
+    MatSelectionList,
+    MatListOption,
+    MatFormField,
+    MatInput,
+    MatLabel,
+    MatHint,
+  ],
   templateUrl: './report-dialog.html',
   styleUrl: './report-dialog.scss',
 })
 export class ReportDialog {
+  constructor() {
+    this.retryStatute();
+  }
   readonly fileReport = output<FileReportIntent>();
   readonly cancel = output<void>();
 
@@ -43,13 +67,45 @@ export class ReportDialog {
     () => this.selectedPointId() === null || this.isOverLimit(),
   );
 
+  protected onOptionClicked = (id: string) => {
+    this.selectedPointId.set(id);
+  };
+
   /** Requests the current Statute again after a failed load. */
   protected retryStatute(): void {
-    throw new Error('not implemented');
+    this.status.set('loading');
+    this.points.set([]);
+    this.selectedPointId.set(null);
+
+    asResult(this.documentsService.getCurrentStatute()).subscribe({
+      next: (response) => {
+        if (response instanceof HttpErrorResponse || response instanceof TimeoutError) {
+          this.status.set('error');
+        } else {
+          const points = response.sections.flatMap((section) =>
+            section.points
+              .filter((point) => point.isReportable)
+              .map(
+                (point) =>
+                  ({
+                    id: point.id,
+                    text: point.text,
+                    citation: `${section.number}.${point.number}`,
+                  }) as ReportablePointOption,
+              ),
+          );
+          this.points.set(points);
+          this.status.set('loaded');
+        }
+      },
+    });
   }
 
   /** Emits the `fileReport` intent for the picked point, the note normalized. */
   protected submitReport(): void {
-    throw new Error('not implemented');
+    this.fileReport.emit({
+      note: this.note().trim() == '' ? null : this.note().trim(),
+      statutePointId: this.selectedPointId()!,
+    });
   }
 }
