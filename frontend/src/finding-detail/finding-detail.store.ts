@@ -1,4 +1,3 @@
-import { myReport } from './finding-detail.fixtures';
 import { LoadResult, asResult } from '../shared/as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
@@ -289,29 +288,34 @@ export const FindingDetailStore = signalStore(
        * other failure leaves the state untouched and announces itself in a snackbar. Filing
        * never touches the finding's score or vote state (ADR 0008).
        */
-      const fileReport = (intent: FileReportIntent): void => {
-        if (!store.reportPending()) {
-          patchState(store, { reportPending: true });
-          asResult(reportService.fileReport(store.finding()!.id, intent)).subscribe({
-            next: (result: LoadResult<MyReportDto>) => {
-              if (result instanceof TimeoutError) {
-                snackBar.open('The report request has timed out. Try again.');
-              } else if (result instanceof HttpErrorResponse) {
-                if (result.status === 409) {
-                  patchState(store, { myReport: true });
-                  snackBar.open('The finding is already reported.');
-                } else {
-                  snackBar.open("Couldn't submit the report");
-                }
-              } else {
-                patchState(store, { myReport: result.reported });
-                snackBar.open('Report submitted');
-              }
-              patchState(store, { reportPending: false });
-            },
-          });
-        }
-      };
+      const fileReport = rxMethod<FileReportIntent>(
+        pipe(
+          tap(() => {
+            patchState(store, { reportPending: true });
+          }),
+          exhaustMap((intent) =>
+            reportService.fileReport(store.finding()!.id, intent).pipe(
+              tapResponse({
+                next: (result) => {
+                  patchState(store, { myReport: result.reported, reportPending: false });
+                  snackBar.open('Report submitted');
+                },
+                error: (error) => {
+                  if (error instanceof TimeoutError) {
+                    snackBar.open('The report request has timed out. Try again.');
+                  } else if (error instanceof HttpErrorResponse && error.status === 409) {
+                    patchState(store, { myReport: true });
+                    snackBar.open('The finding is already reported.');
+                  } else {
+                    snackBar.open("Couldn't submit the report");
+                  }
+                  patchState(store, { reportPending: false });
+                },
+              }),
+            ),
+          ),
+        ),
+      );
 
       return {
         load,

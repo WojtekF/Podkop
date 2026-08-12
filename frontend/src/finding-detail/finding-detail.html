@@ -62,7 +62,7 @@
           [class]="{ 'report-button': true, reported: store.myReport() }"
           [disabled]="isReportButtonDisabled()"
         >
-          {{ store.myReport()! ? 'Reported' : 'Report' }}
+          {{ store.myReport() ? 'Reported' : 'Report' }}
         </button>
       </mat-card-actions>
     </mat-card-content>

@@ -62,12 +62,15 @@ export class FindingDetail {
   protected isReportButtonDisabled() {
     return this.store.finding()?.author === CURRENT_USER || this.store.myReport()! === true;
   }
+
   protected openReportDialog() {
     const dialogRef = this.dialog.open(ReportDialog, { exitAnimationDuration: 0 });
+
     const sync = effect(
       () => dialogRef.componentRef?.setInput('pending', this.store.reportPending()),
       { injector: this.injector },
     );
+
     const closeOnReported = effect(
       () => {
         if (this.store.myReport()) dialogRef.close();

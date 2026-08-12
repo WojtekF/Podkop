@@ -52,7 +52,7 @@ export type ReportDialogStatus = 'loading' | 'error' | 'loaded';
 })
 export class ReportDialog {
   constructor() {
-    this.retryStatute();
+    this.loadStatute();
   }
   /** Whether a filing is in flight — pushed in by the opener while the report request runs. */
   readonly pending = input(false);
@@ -78,7 +78,7 @@ export class ReportDialog {
   };
 
   /** Requests the current Statute again after a failed load. */
-  protected retryStatute(): void {
+  protected loadStatute(): void {
     this.status.set('loading');
     this.points.set([]);
     this.selectedPointId.set(null);
@@ -91,14 +91,11 @@ export class ReportDialog {
           const points = response.sections.flatMap((section) =>
             section.points
               .filter((point) => point.isReportable)
-              .map(
-                (point) =>
-                  ({
-                    id: point.id,
-                    text: point.text,
-                    citation: `${section.number}.${point.number}`,
-                  }) as ReportablePointOption,
-              ),
+              .map((point) => ({
+                id: point.id,
+                text: point.text,
+                citation: `${section.number}.${point.number}`,
+              })),
           );
           this.points.set(points);
           this.status.set('loaded');
@@ -110,7 +107,7 @@ export class ReportDialog {
   /** Emits the `fileReport` intent for the picked point, the note normalized. */
   protected submitReport(): void {
     this.fileReport.emit({
-      note: this.note().trim() == '' ? null : this.note().trim(),
+      note: this.note().trim() === '' ? null : this.note().trim(),
       statutePointId: this.selectedPointId()!,
     });
   }

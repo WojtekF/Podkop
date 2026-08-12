@@ -27,10 +27,10 @@ public sealed class GetMyReportHandler(
             await targetLookup.GetAsync(request.FindingId, cancellationToken);
         if (reportTarget is null) return null;
 
-        var lookup =
+        var report =
             await reportsRepository.GetByReporterAndFindingAsync(currentUser.UserName, request.FindingId,
                 cancellationToken);
 
-        return new MyReportStatus(lookup is not null);
+        return new MyReportStatus(report is not null);
     }
 }

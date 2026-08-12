@@ -59,8 +59,6 @@ public sealed class Report
         DateTimeOffset filedAt)
     {
         if (reporter == findingAuthor) return new FileReportResult(FileReportOutcome.OwnFinding, null);
-        if (findingId == Guid.Empty) return new FileReportResult(FileReportOutcome.UnknownFinding, null);
-        if (statutePointId == Guid.Empty) return new FileReportResult(FileReportOutcome.NotReportablePoint, null);
 
         var trimmedNote = note?.Trim();
         if (trimmedNote?.Length > MaxNoteLength) return new FileReportResult(FileReportOutcome.NoteTooLong, null);
