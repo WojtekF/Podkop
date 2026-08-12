@@ -7,10 +7,16 @@ public sealed class InMemoryReportRepository(IEnumerable<Report> reports) : IRep
 {
     private readonly List<Report> _reports = reports.ToList();
 
-    public Task<Report?> GetByReporterAndFindingAsync(string reporter, Guid findingId,
+    public Task<Report?> GetByReporterAndTargetAsync(string reporter, ReportTargetKind targetKind, Guid targetId,
         CancellationToken cancellationToken) =>
         Task.FromResult(_reports.FirstOrDefault(report =>
-            report.Reporter == reporter && report.FindingId == findingId));
+            report.Reporter == reporter && report.TargetKind == targetKind && report.TargetId == targetId));
+
+    public Task<IReadOnlyList<Report>> GetByReporterAndKindAsync(string reporter, ReportTargetKind targetKind,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Report>>(_reports
+            .Where(report => report.Reporter == reporter && report.TargetKind == targetKind)
+            .ToList());
 
     public Task AddAsync(Report report, CancellationToken cancellationToken)
     {

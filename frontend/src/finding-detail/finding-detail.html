@@ -81,6 +81,12 @@
       (draftChange)="store.updateComposerDraft({ composerKey: TOP_COMPOSER_KEY, text: $event })"
     />
     @for (thread of store.comments(); track thread.id) {
+      <!--
+        Issue #33 — each thread additionally learns which comments the current user already
+        reported (the store's myCommentReports) through its `reportedCommentIds`, and its
+        `report` output — the tapped comment's id — goes to onReportComment. The colocated
+        specs define done.
+      -->
       <mat-card class="comment-thread">
         <app-comment-thread
           [thread]="thread"

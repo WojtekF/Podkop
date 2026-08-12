@@ -26,11 +26,12 @@ public sealed class FileReportHandler(
 {
     public async Task<FileReportOutcome> Handle(FileReport request, CancellationToken cancellationToken)
     {
-        var reportTarget = await targetLookup.GetAsync(request.FindingId, cancellationToken);
-        if (reportTarget is null) return FileReportOutcome.UnknownFinding;
+        var reportTarget =
+            await targetLookup.GetAsync(ReportTargetKind.Finding, request.FindingId, cancellationToken);
+        if (reportTarget is null) return FileReportOutcome.UnknownTarget;
 
-        var report = await
-            reportsRepository.GetByReporterAndFindingAsync(currentUser.UserName, request.FindingId, cancellationToken);
+        var report = await reportsRepository.GetByReporterAndTargetAsync(
+            currentUser.UserName, ReportTargetKind.Finding, request.FindingId, cancellationToken);
         if (report is not null) return FileReportOutcome.AlreadyReported;
 
         var statute = await statuteLookup.GetCurrentAsync(cancellationToken);
@@ -41,6 +42,7 @@ public sealed class FileReportHandler(
             Guid.CreateVersion7(),
             currentUser.UserName,
             reportTarget.Author,
+            ReportTargetKind.Finding,
             reportTarget.Id,
             request.StatutePointId,
             statute.Version,

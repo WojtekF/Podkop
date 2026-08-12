@@ -24,7 +24,12 @@ import {
   FindingDetailService,
   FindingVoteIntent,
 } from './finding-detail.service';
-import { FileReportIntent, FindingReportService, MyReportDto } from './finding-report.service';
+import {
+  FileCommentReportIntent,
+  FileReportIntent,
+  FindingReportService,
+  MyReportDto,
+} from './finding-report.service';
 import { tapResponse } from '@ngrx/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
@@ -57,6 +62,15 @@ export interface FindingDetailState {
    */
   myReport: boolean | null;
   reportPending: boolean;
+  /**
+   * Ids of the comments in this finding's discussion — top-level and replies alike — the
+   * current user already reported (issue #33), null until the load answers. Loading it is part
+   * of the page load: the batch my-reports state arrives with the finding, its discussion, and
+   * the finding's own my-report state, and the page shows one state for all four.
+   */
+  myCommentReports: readonly string[] | null;
+  /** The comment whose report filing is in flight (issue #33) — null while none is. */
+  commentReportPendingId: string | null;
   composers: Readonly<Record<string, ComposerState>>;
 }
 
@@ -69,6 +83,8 @@ const initialState: FindingDetailState = {
   pendingFindingVote: false,
   myReport: null,
   reportPending: false,
+  myCommentReports: null,
+  commentReportPendingId: null,
   composers: { [TOP_COMPOSER_KEY]: { draft: '', pending: false } },
 };
 
@@ -317,6 +333,22 @@ export const FindingDetailStore = signalStore(
         ),
       );
 
+      /**
+       * Files the current user's report on one comment of this discussion (issue #33), citing
+       * one reportable Statute Point and optionally carrying a short note, through the
+       * FindingReportService. Exactly one comment filing may be in flight — the pending state
+       * names its comment, and repeat calls while pending are ignored. Success adds the comment
+       * to my reported comments and confirms in a snackbar ('Report submitted'). The duplicate
+       * refusal (HTTP 409 — the server already holds my report) also marks it reported, with
+       * its own snackbar ('The comment is already reported.'). A timeout announces itself
+       * ('The report request has timed out. Try again.'); any other failure leaves the state
+       * untouched ("Couldn't submit the report"). Filing never touches any score or vote state
+       * (ADR 0008).
+       */
+      const fileCommentReport = (intent: FileCommentReportIntent): void => {
+        throw new Error('not implemented');
+      };
+
       return {
         load,
         retry,
@@ -327,6 +359,7 @@ export const FindingDetailStore = signalStore(
         closeOrResetComposer,
         postComment,
         fileReport,
+        fileCommentReport,
       };
     },
   ),

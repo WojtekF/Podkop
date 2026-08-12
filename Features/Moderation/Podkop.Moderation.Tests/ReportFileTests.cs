@@ -20,9 +20,10 @@ public class ReportFileTests
     private static readonly DateTimeOffset FiledAt =
         DateTimeOffset.Parse("2026-07-01T12:00:00Z", CultureInfo.InvariantCulture);
 
-    private static FileReportResult File(string reporter = "ada_lovelace", string findingAuthor = "grace_hopper",
+    private static FileReportResult File(string reporter = "ada_lovelace", string targetAuthor = "grace_hopper",
         string? note = "It breaks this rule.") =>
-        Report.File(ReportId, reporter, findingAuthor, FindingId, PointId, statuteVersion: 2, note, FiledAt);
+        Report.File(ReportId, reporter, targetAuthor, ReportTargetKind.Finding, FindingId, PointId,
+            statuteVersion: 2, note, FiledAt);
 
     [Fact]
     public void Filing_carries_every_fact_of_the_report()
@@ -33,7 +34,8 @@ public class ReportFileTests
         Assert.NotNull(result.Report);
         Assert.Equal(ReportId, result.Report.Id);
         Assert.Equal("ada_lovelace", result.Report.Reporter);
-        Assert.Equal(FindingId, result.Report.FindingId);
+        Assert.Equal(ReportTargetKind.Finding, result.Report.TargetKind);
+        Assert.Equal(FindingId, result.Report.TargetId);
         Assert.Equal(PointId, result.Report.StatutePointId);
         Assert.Equal(2, result.Report.StatuteVersion);
         Assert.Equal("It breaks this rule.", result.Report.Note);
@@ -99,9 +101,9 @@ public class ReportFileTests
     [Fact]
     public void The_findings_author_cannot_report_their_own_finding()
     {
-        var result = File(reporter: "grace_hopper", findingAuthor: "grace_hopper");
+        var result = File(reporter: "grace_hopper", targetAuthor: "grace_hopper");
 
-        Assert.Equal(FileReportOutcome.OwnFinding, result.Outcome);
+        Assert.Equal(FileReportOutcome.OwnContent, result.Outcome);
         Assert.Null(result.Report);
     }
 }

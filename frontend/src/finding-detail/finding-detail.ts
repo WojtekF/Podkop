@@ -63,6 +63,17 @@ export class FindingDetail {
     return this.store.finding()?.author === CURRENT_USER || this.store.myReport() === true;
   }
 
+  /**
+   * Opens the same report dialog for one comment of the discussion (issue #33): the dialog is
+   * told it targets a comment, its filing intent goes to the store's fileCommentReport tagged
+   * with this comment's id, its pending state mirrors the store's comment-report pending state,
+   * and it closes once this comment is among my reported comments — on any other failure it
+   * stays open, the member's choice and note intact. Cancel just closes it.
+   */
+  protected onReportComment(commentId: string): void {
+    throw new Error('not implemented');
+  }
+
   protected openReportDialog() {
     const dialogRef = this.dialog.open(ReportDialog, { exitAnimationDuration: 0 });
 

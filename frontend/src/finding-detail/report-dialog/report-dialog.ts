@@ -57,6 +57,12 @@ export class ReportDialog {
   /** Whether a filing is in flight — pushed in by the opener while the report request runs. */
   readonly pending = input(false);
 
+  /**
+   * The kind of content being reported (issue #33) — the dialog serves findings and comments
+   * with the same flow, naming the target kind in its title only.
+   */
+  readonly targetLabel = input<'finding' | 'comment'>('finding');
+
   readonly fileReport = output<FileReportIntent>();
   readonly cancel = output<void>();
 

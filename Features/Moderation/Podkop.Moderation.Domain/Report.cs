@@ -1,12 +1,13 @@
 namespace Podkop.Moderation.Domain;
 
 /// <summary>
-///     A member's formal claim that a specific finding violates a specific reportable Statute
-///     Point, optionally explained with a short note (CONTEXT.md). A report cites the point by
-///     its stable id and pins the Statute version current at filing time, so amendments never
-///     falsify or orphan what was filed (ADR 0006). Reports feed moderation only — they are
-///     invisible to regular users and never touch a score, vote, or promotion (ADR 0008,
-///     issue #32).
+///     A member's formal claim that a specific finding or comment violates a specific reportable
+///     Statute Point, optionally explained with a short note (CONTEXT.md). The target is named by
+///     kind + id (issue #33) — every rule is the same whichever kind is reported. A report cites
+///     the point by its stable id and pins the Statute version current at filing time, so
+///     amendments never falsify or orphan what was filed (ADR 0006). Reports feed moderation only
+///     — they are invisible to regular users and never touch a score, vote, or promotion
+///     (ADR 0008, issues #32/#33).
 /// </summary>
 public sealed class Report
 {
@@ -16,7 +17,8 @@ public sealed class Report
     public Report(
         Guid id,
         string reporter,
-        Guid findingId,
+        ReportTargetKind targetKind,
+        Guid targetId,
         Guid statutePointId,
         int statuteVersion,
         string? note,
@@ -24,7 +26,8 @@ public sealed class Report
     {
         Id = id;
         Reporter = reporter;
-        FindingId = findingId;
+        TargetKind = targetKind;
+        TargetId = targetId;
         StatutePointId = statutePointId;
         StatuteVersion = statuteVersion;
         Note = note;
@@ -33,32 +36,34 @@ public sealed class Report
 
     public Guid Id { get; }
     public string Reporter { get; }
-    public Guid FindingId { get; }
+    public ReportTargetKind TargetKind { get; }
+    public Guid TargetId { get; }
     public Guid StatutePointId { get; }
     public int StatuteVersion { get; }
     public string? Note { get; }
     public DateTimeOffset FiledAt { get; }
 
     /// <summary>
-    ///     Files a new report (issue #32). The factory owns the rules decidable from its own
-    ///     arguments: the finding's author can never report their own finding, and the note is
+    ///     Files a new report (issues #32/#33). The factory owns the rules decidable from its own
+    ///     arguments: the target's author can never report their own content, and the note is
     ///     trimmed before validation and storage — a note that is empty after trimming is stored
     ///     as no note at all, and a trimmed note longer than <see cref="MaxNoteLength" />
-    ///     characters is rejected. Whether the finding exists, whether the cited point is a
+    ///     characters is rejected. Whether the target exists, whether the cited point is a
     ///     reportable point of the current Statute, and whether the reporter already reported
-    ///     this finding are lookups, checked where the ports and repository are available.
+    ///     this target are lookups, checked where the ports and repository are available.
     /// </summary>
     public static FileReportResult File(
         Guid id,
         string reporter,
-        string findingAuthor,
-        Guid findingId,
+        string targetAuthor,
+        ReportTargetKind targetKind,
+        Guid targetId,
         Guid statutePointId,
         int statuteVersion,
         string? note,
         DateTimeOffset filedAt)
     {
-        if (reporter == findingAuthor) return new FileReportResult(FileReportOutcome.OwnFinding, null);
+        if (reporter == targetAuthor) return new FileReportResult(FileReportOutcome.OwnContent, null);
 
         var trimmedNote = note?.Trim();
         if (trimmedNote?.Length > MaxNoteLength) return new FileReportResult(FileReportOutcome.NoteTooLong, null);
@@ -67,7 +72,8 @@ public sealed class Report
             new Report(
                 id,
                 reporter,
-                findingId,
+                targetKind,
+                targetId,
                 statutePointId,
                 statuteVersion,
                 string.IsNullOrWhiteSpace(trimmedNote) ? null : trimmedNote,

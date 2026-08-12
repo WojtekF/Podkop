@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { CommentDto, CommentVoteDirection } from '../finding-comments.service';
 import { commentThreads } from '../finding-detail.fixtures';
 import { CommentRow } from './comment-row';
@@ -19,7 +20,12 @@ describe('CommentRow', () => {
   const element = (): HTMLElement => fixture.nativeElement;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [CommentRow] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [CommentRow],
+      // jsdom runs no reduced-motion preference, so Material would animate any overlay on
+      // real timers whenStable() never awaits; disabling animations keeps menus observable.
+      providers: [{ provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } }],
+    }).compileComponents();
   });
 
   it('is one voice in the discussion: a root element marked `comment`', async () => {
@@ -148,6 +154,74 @@ describe('CommentRow', () => {
       fixture.detectChanges();
 
       expect(replyButton()!.disabled).toBe(false);
+    });
+  });
+
+  describe('report action (issue #33)', () => {
+    const menuButton = () =>
+      element().querySelector<HTMLButtonElement>('button.comment-menu-button');
+    // The opened menu may render in an overlay outside the row — search the whole document.
+    const reportItem = () => document.querySelector<HTMLButtonElement>('button.report-menu-item');
+
+    const openMenu = async () => {
+      menuButton()!.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    afterEach(() => {
+      // An overlay-hosted menu outlives its fixture — torn down so specs stay independent.
+      document.querySelectorAll('.cdk-overlay-container').forEach((el) => el.remove());
+    });
+
+    it("offers the actions menu on someone else's comment", async () => {
+      await createRow(comment);
+
+      expect(menuButton()).not.toBeNull();
+      expect(menuButton()!.getAttribute('aria-label')).toBe('Comment actions');
+    });
+
+    it("shows no actions menu on the reader's own comment — self-reports are refused", async () => {
+      // Guard against a trivially-empty template: someone else's comment carries the menu…
+      await createRow(comment);
+      expect(menuButton()).not.toBeNull();
+
+      // …while the stub user's (current-user.ts) own comment shows none at all.
+      await createRow({ ...comment, author: 'ada_lovelace' });
+      expect(menuButton()).toBeNull();
+    });
+
+    it('the opened menu offers Report, live while the comment is not yet reported', async () => {
+      await createRow(comment);
+
+      await openMenu();
+
+      expect(reportItem()).not.toBeNull();
+      expect(reportItem()!.textContent).toContain('Report');
+      expect(reportItem()!.disabled).toBe(false);
+    });
+
+    it('choosing Report reports that the reader wants to report this comment', async () => {
+      await createRow(comment);
+      let reports = 0;
+      fixture.componentInstance.report.subscribe(() => (reports += 1));
+
+      await openMenu();
+      reportItem()!.click();
+
+      expect(reports).toBe(1);
+    });
+
+    it("an already-reported comment's entry reads Reported and is disabled", async () => {
+      await createRow(comment);
+      fixture.componentRef.setInput('reportedByMe', true);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      await openMenu();
+
+      expect(reportItem()!.textContent).toContain('Reported');
+      expect(reportItem()!.disabled).toBe(true);
     });
   });
 });

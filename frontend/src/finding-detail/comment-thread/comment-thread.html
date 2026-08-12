@@ -1,3 +1,10 @@
+<!--
+  Issue #33 — report requests travel through this thread (the colocated specs define done):
+  - Every row, the top-level comment and each reply alike, learns its `reportedByMe` state
+    from this thread's slice of `reportedCommentIds`.
+  - A row's `report` output bubbles up through this component's `report` output carrying that
+    row's own comment id — a reply names itself, never its thread.
+-->
 <mat-card class="thread">
   <app-comment-row
     [isReply]="false"

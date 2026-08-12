@@ -60,8 +60,8 @@ public class FileReportApiTests
             {
                 services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
                 services.AddSingleton<IReportTargetLookup>(new StubReportTargetLookup(
-                    new ReportTarget(TargetFindingId, "grace_hopper"),
-                    new ReportTarget(OwnFindingId, StubUser)));
+                    (ReportTargetKind.Finding, new ReportTarget(TargetFindingId, "grace_hopper")),
+                    (ReportTargetKind.Finding, new ReportTarget(OwnFindingId, StubUser))));
                 services.AddSingleton<IStatuteLookup>(
                     new StubStatuteLookup(statuteInForce ? CurrentStatuteV2 : null));
                 services.AddSingleton<IReportRepository>(reports);
@@ -97,11 +97,12 @@ public class FileReportApiTests
         var response = await Post(client, TargetFindingId, SpamPointId, "  Links a spam farm. \n");
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var stored = await reports.GetByReporterAndFindingAsync(StubUser, TargetFindingId,
-            CancellationToken.None);
+        var stored = await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
+            TargetFindingId, CancellationToken.None);
         Assert.NotNull(stored);
         Assert.Equal(StubUser, stored.Reporter);
-        Assert.Equal(TargetFindingId, stored.FindingId);
+        Assert.Equal(ReportTargetKind.Finding, stored.TargetKind);
+        Assert.Equal(TargetFindingId, stored.TargetId);
         Assert.Equal(SpamPointId, stored.StatutePointId);
         // The version the statute port answered at the pinned filing instant (ADR 0006).
         Assert.Equal(2, stored.StatuteVersion);
@@ -119,8 +120,8 @@ public class FileReportApiTests
         var response = await Post(client, TargetFindingId, SpamPointId, note: null);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var stored = await reports.GetByReporterAndFindingAsync(StubUser, TargetFindingId,
-            CancellationToken.None);
+        var stored = await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
+            TargetFindingId, CancellationToken.None);
         Assert.NotNull(stored);
         Assert.Null(stored.Note);
     }
@@ -147,7 +148,8 @@ public class FileReportApiTests
     public async Task A_report_filed_in_an_earlier_session_also_refuses_a_duplicate()
     {
         var earlier = new Report(Guid.Parse("d0000000-0000-4000-8000-000000000001"), StubUser,
-            TargetFindingId, SpamPointId, statuteVersion: 1, note: null, At("2026-05-01T00:00:00Z"));
+            ReportTargetKind.Finding, TargetFindingId, SpamPointId, statuteVersion: 1, note: null,
+            At("2026-05-01T00:00:00Z"));
         using var factory = CreateFactory(new InMemoryReportRepository([earlier]));
         using var client = factory.CreateClient();
 

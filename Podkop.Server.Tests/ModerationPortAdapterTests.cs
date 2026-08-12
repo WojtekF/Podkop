@@ -9,6 +9,7 @@ using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 using Podkop.Moderation.Application;
+using Podkop.Moderation.Domain;
 
 namespace Podkop.Server.Tests;
 
@@ -132,7 +133,7 @@ public class ModerationPortAdapterTests
         using var factory = CreateFactory();
         var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
 
-        var target = await lookup.GetAsync(FindingId, CancellationToken.None);
+        var target = await lookup.GetAsync(ReportTargetKind.Finding, FindingId, CancellationToken.None);
 
         Assert.NotNull(target);
         Assert.Equal(FindingId, target.Id);
@@ -145,8 +146,8 @@ public class ModerationPortAdapterTests
         using var factory = CreateFactory();
         var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
 
-        var target = await lookup.GetAsync(Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"),
-            CancellationToken.None);
+        var target = await lookup.GetAsync(ReportTargetKind.Finding,
+            Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"), CancellationToken.None);
 
         Assert.Null(target);
     }

@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.Moderation.Domain;
 
 namespace Podkop.Moderation.Application;
 
@@ -24,12 +25,11 @@ public sealed class GetMyReportHandler(
     public async Task<MyReportStatus?> Handle(GetMyReport request, CancellationToken cancellationToken)
     {
         var reportTarget =
-            await targetLookup.GetAsync(request.FindingId, cancellationToken);
+            await targetLookup.GetAsync(ReportTargetKind.Finding, request.FindingId, cancellationToken);
         if (reportTarget is null) return null;
 
-        var report =
-            await reportsRepository.GetByReporterAndFindingAsync(currentUser.UserName, request.FindingId,
-                cancellationToken);
+        var report = await reportsRepository.GetByReporterAndTargetAsync(
+            currentUser.UserName, ReportTargetKind.Finding, request.FindingId, cancellationToken);
 
         return new MyReportStatus(report is not null);
     }

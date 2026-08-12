@@ -16,11 +16,24 @@ export interface FileReportIntent {
   note: string | null;
 }
 
+/** A comment-targeted filing (issue #33): the same report intent plus the comment it targets. */
+export interface FileCommentReportIntent extends FileReportIntent {
+  commentId: string;
+}
+
 /**
- * HTTP client for the Moderation slice's my-report endpoints (issue #32). Reports are invisible
- * to regular users — the one member-visible fact is whether the current user already reported a
- * finding, and filing one. A duplicate filing is refused with a 409 whose problem type is
- * `podkop:problem:already-reported`.
+ * The batch my-reports state of one finding's discussion (issue #33): the ids of the comments —
+ * top-level and replies alike — the current user already reported.
+ */
+export interface MyCommentReportsDto {
+  reportedCommentIds: string[];
+}
+
+/**
+ * HTTP client for the Moderation slice's my-report endpoints (issues #32/#33). Reports are
+ * invisible to regular users — the member-visible facts are whether the current user already
+ * reported a finding or a comment, and filing one. A duplicate filing is refused with a 409
+ * whose problem type is `podkop:problem:already-reported`.
  */
 @Injectable({
   providedIn: 'root',
@@ -38,5 +51,18 @@ export class FindingReportService {
     return this.http
       .post<MyReportDto>(`/api/findings/${findingId}/my-report`, intent)
       .pipe(timeout(5000));
+  }
+
+  /**
+   * Which comments of the finding's discussion the current user already reported — one batch
+   * request for the whole thread list, loaded with the page (issue #33).
+   */
+  getMyCommentReports(findingId: string): Observable<MyCommentReportsDto> {
+    throw new Error('not implemented');
+  }
+
+  /** Files the current user's one report on the comment; answers the fresh my-report state. */
+  fileCommentReport(commentId: string, intent: FileReportIntent): Observable<MyReportDto> {
+    throw new Error('not implemented');
   }
 }

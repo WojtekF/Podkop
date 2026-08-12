@@ -1,3 +1,8 @@
+<!--
+  Issue #33 — the same dialog now serves both target kinds: the title names what is being
+  reported per `targetLabel` — "Report finding" or "Report comment". Everything else reads
+  identically for both. The colocated specs define done.
+-->
 <div class="report-dialog">
   <h2 mat-dialog-title class="report-title">Report finding</h2>
   @if (status() === 'loading') {
