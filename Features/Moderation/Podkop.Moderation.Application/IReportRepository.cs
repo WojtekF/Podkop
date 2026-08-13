@@ -12,11 +12,16 @@ public interface IReportRepository
         string reporter, ReportTargetKind targetKind, Guid targetId, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Every report the reporter filed against targets of one kind — the lookup behind the
-    ///     batch my-reports state a finding's discussion loads with (issue #33).
+    ///     The reports the reporter filed against the named targets of one kind — the lookup
+    ///     behind the batch my-reports state a finding's discussion loads with (issue #33).
+    ///     Moderation stores no finding-to-comment relation (ADR 0003), so the caller names the
+    ///     discussion's comments — from <see cref="IFindingCommentsLookup" /> — and the store
+    ///     narrows to them rather than answering with every report the reporter ever filed.
+    ///     Naming no targets yields no reports.
     /// </summary>
-    Task<IReadOnlyList<Report>> GetByReporterAndKindAsync(
-        string reporter, ReportTargetKind targetKind, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Report>> GetByReporterAndTargetsAsync(
+        string reporter, ReportTargetKind targetKind, IReadOnlyList<Guid> targetIds,
+        CancellationToken cancellationToken);
 
     Task AddAsync(Report report, CancellationToken cancellationToken);
 }

@@ -25,8 +25,36 @@ public sealed class FileCommentReportHandler(
     TimeProvider timeProvider)
     : IRequestHandler<FileCommentReport, FileReportOutcome>
 {
-    public Task<FileReportOutcome> Handle(FileCommentReport request, CancellationToken cancellationToken)
+    public async Task<FileReportOutcome> Handle(FileCommentReport request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var previousReport = await reportsRepository.GetByReporterAndTargetAsync(
+            currentUser.UserName,
+            ReportTargetKind.Comment,
+            request.CommentId,
+            cancellationToken);
+
+        if (previousReport is not null) return FileReportOutcome.AlreadyReported;
+
+        var reportedComment =
+            await targetLookup.GetAsync(ReportTargetKind.Comment, request.CommentId, cancellationToken);
+        if (reportedComment is null) return FileReportOutcome.UnknownTarget;
+
+        var statute = await statuteLookup.GetCurrentAsync(cancellationToken);
+        if (statute is null || !statute.ReportablePointIds.Contains(request.StatutePointId))
+            return FileReportOutcome.NotReportablePoint;
+
+        var fileReportResult = Report.File(
+            Guid.CreateVersion7(),
+            currentUser.UserName,
+            reportedComment.Author,
+            ReportTargetKind.Comment,
+            request.CommentId,
+            request.StatutePointId,
+            statute.Version,
+            request.Note,
+            timeProvider.GetUtcNow());
+
+        await reportsRepository.AddAsync(fileReportResult.Report!, cancellationToken);
+        return fileReportResult.Outcome;
     }
 }

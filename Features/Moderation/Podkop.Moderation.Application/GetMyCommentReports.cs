@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.Moderation.Domain;
 
 namespace Podkop.Moderation.Application;
 
@@ -22,8 +23,16 @@ public sealed class GetMyCommentReportsHandler(
     ICurrentUser currentUser)
     : IRequestHandler<GetMyCommentReports, MyCommentReportsStatus?>
 {
-    public Task<MyCommentReportsStatus?> Handle(GetMyCommentReports request, CancellationToken cancellationToken)
+    public async Task<MyCommentReportsStatus?> Handle(GetMyCommentReports request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var comments = await commentsLookup.GetCommentIdsAsync(request.FindingId, cancellationToken);
+        if (comments is null) return null;
+
+        var existingReports = await reportsRepository.GetByReporterAndTargetsAsync(
+            currentUser.UserName,
+            ReportTargetKind.Comment,
+            comments,
+            cancellationToken);
+        return new MyCommentReportsStatus(existingReports.Select(report => report.TargetId).ToList());
     }
 }
