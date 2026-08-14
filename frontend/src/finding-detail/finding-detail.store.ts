@@ -28,6 +28,7 @@ import {
   FileCommentReportIntent,
   FileReportIntent,
   FindingReportService,
+  MyCommentReportsDto,
   MyReportDto,
 } from './finding-report.service';
 import { tapResponse } from '@ngrx/operators';
@@ -108,6 +109,7 @@ export const FindingDetailStore = signalStore(
                 finding: null,
                 comments: null,
                 myReport: null,
+                myCommentReports: null,
               });
             },
           }),
@@ -116,10 +118,11 @@ export const FindingDetailStore = signalStore(
               finding: asResult(service.getFinding(id)),
               comments: asResult(commentsService.getComments(id)),
               myReport: asResult(reportService.getMyReport(id)),
+              myCommentReports: asResult(reportService.getMyCommentReports(id)),
             }).pipe(
               tap({
-                next: ({ finding, comments, myReport }) => {
-                  patchState(store, toPatch(finding, comments, myReport));
+                next: ({ finding, comments, myReport, myCommentReports }) => {
+                  patchState(store, toPatch(finding, comments, myReport, myCommentReports));
                 },
               }),
             ),
@@ -345,9 +348,39 @@ export const FindingDetailStore = signalStore(
        * untouched ("Couldn't submit the report"). Filing never touches any score or vote state
        * (ADR 0008).
        */
-      const fileCommentReport = (intent: FileCommentReportIntent): void => {
-        throw new Error('not implemented');
-      };
+      const fileCommentReport = rxMethod<FileCommentReportIntent>(
+        pipe(
+          tap((intent) => {
+            patchState(store, { commentReportPendingId: intent.commentId });
+          }),
+          exhaustMap(({ commentId, note, statutePointId }) =>
+            reportService.fileCommentReport(commentId, { note, statutePointId }).pipe(
+              tapResponse({
+                next: (result) => {
+                  patchState(store, {
+                    myCommentReports: [...(store.myCommentReports() ?? []), commentId],
+                    commentReportPendingId: null,
+                  });
+                  snackBar.open('Report submitted');
+                },
+                error: (error) => {
+                  if (error instanceof TimeoutError) {
+                    snackBar.open('The report request has timed out. Try again.');
+                  } else if (error instanceof HttpErrorResponse && error.status === 409) {
+                    patchState(store, {
+                      myCommentReports: [...(store.myCommentReports() ?? []), commentId],
+                    });
+                    snackBar.open('The comment is already reported.');
+                  } else {
+                    snackBar.open("Couldn't submit the report");
+                  }
+                  patchState(store, { commentReportPendingId: null });
+                },
+              }),
+            ),
+          ),
+        ),
+      );
 
       return {
         load,
@@ -394,12 +427,29 @@ const toPatch = (
   finding: LoadResult<FindingDetailDto>,
   comments: LoadResult<CommentThreadDto[]>,
   myReport: LoadResult<MyReportDto>,
+  myCommentReports: LoadResult<MyCommentReportsDto>,
 ): Partial<FindingDetailState> => {
-  if (isNotFound(finding) || isNotFound(comments) || isNotFound(myReport))
+  if (
+    isNotFound(finding) ||
+    isNotFound(comments) ||
+    isNotFound(myReport) ||
+    isNotFound(myCommentReports)
+  )
     return { status: 'notFound' };
-  if (isLoadFailure(finding) || isLoadFailure(comments) || isLoadFailure(myReport))
+  if (
+    isLoadFailure(finding) ||
+    isLoadFailure(comments) ||
+    isLoadFailure(myReport) ||
+    isLoadFailure(myCommentReports)
+  )
     return { status: 'error' };
-  return { status: 'loaded', finding, comments, myReport: myReport.reported };
+  return {
+    status: 'loaded',
+    finding,
+    comments,
+    myReport: myReport.reported,
+    myCommentReports: myCommentReports.reportedCommentIds,
+  };
 };
 
 const isNotFound = <T>(input: T | HttpErrorResponse): boolean => {
