@@ -36,7 +36,8 @@ public static class ModerationEndpoints
                 if (request.StatutePointId is null) return PointRequiredProblem();
 
                 var outcome = await sender.Send(
-                    new FileReport(findingId, request.StatutePointId.Value, request.Note), cancellationToken);
+                    new FileReport(ReportTargetKind.Finding, findingId, request.StatutePointId.Value, request.Note),
+                    cancellationToken);
                 return ToFileResponse(outcome, $"/api/findings/{findingId}/my-report", FindingProblems);
             })
             .WithName("FileFindingReport");
@@ -47,7 +48,8 @@ public static class ModerationEndpoints
                 if (request.StatutePointId is null) return PointRequiredProblem();
 
                 var outcome = await sender.Send(
-                    new FileCommentReport(commentId, request.StatutePointId.Value, request.Note), cancellationToken);
+                    new FileReport(ReportTargetKind.Comment, commentId, request.StatutePointId.Value, request.Note),
+                    cancellationToken);
                 return ToFileResponse(outcome, $"/api/comments/{commentId}/my-report", CommentProblems);
             })
             .WithName("FileCommentReport");
