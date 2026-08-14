@@ -889,6 +889,25 @@ describe('FindingDetailStore', () => {
       open[0].flush(myReport({ reported: true }), { status: 201, statusText: 'Created' });
     });
 
+    it('a filing for another comment while one is in flight is dropped whole — no request, no state', () => {
+      loadDiscussion();
+
+      store.fileCommentReport({ commentId: targetId(), statutePointId: spamPointId, note: null });
+      store.fileCommentReport({ commentId: replyId(), statutePointId: spamPointId, note: null });
+
+      // The in-flight filing still names its own comment — the dropped one never took the slot,
+      // so nothing can un-pend unfiled when the first one completes.
+      expect(store.commentReportPendingId()).toBe(targetId());
+      httpMock.expectNone({ method: 'POST', url: `/api/comments/${replyId()}/my-report` });
+
+      expectFileRequest(targetId()).flush(myReport({ reported: true }), {
+        status: 201,
+        statusText: 'Created',
+      });
+      expect(store.myCommentReportIds()).toEqual([targetId()]);
+      expect(store.commentReportPendingId()).toBeNull();
+    });
+
     it('the duplicate refusal also marks the comment reported — the server already holds my report', () => {
       loadDiscussion();
 

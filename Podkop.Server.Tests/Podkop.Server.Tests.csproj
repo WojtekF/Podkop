@@ -27,6 +27,9 @@
     <ProjectReference Include="..\Features\Documents\Podkop.Documents.Application\Podkop.Documents.Application.csproj" />
     <ProjectReference Include="..\Features\Documents\Podkop.Documents.Domain\Podkop.Documents.Domain.csproj" />
     <ProjectReference Include="..\Features\Documents\Podkop.Documents.Infrastructure\Podkop.Documents.Infrastructure.csproj" />
+    <ProjectReference Include="..\Features\FindingComments\Podkop.FindingComments.Application\Podkop.FindingComments.Application.csproj" />
+    <ProjectReference Include="..\Features\FindingComments\Podkop.FindingComments.Domain\Podkop.FindingComments.Domain.csproj" />
+    <ProjectReference Include="..\Features\FindingComments\Podkop.FindingComments.Infrastructure\Podkop.FindingComments.Infrastructure.csproj" />
     <ProjectReference Include="..\Features\Findings\Podkop.Findings.Application\Podkop.Findings.Application.csproj" />
     <ProjectReference Include="..\Features\Findings\Podkop.Findings.Domain\Podkop.Findings.Domain.csproj" />
     <ProjectReference Include="..\Features\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />

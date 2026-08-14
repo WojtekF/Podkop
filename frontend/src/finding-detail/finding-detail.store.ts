@@ -310,11 +310,12 @@ export const FindingDetailStore = signalStore(
       }: FileReportConfig<U>) =>
         rxMethod<U>(
           pipe(
-            tap((intent) => {
+            // The pending patch lives inside exhaustMap's projection so it runs only for the
+            // filing that is actually sent — an intent dropped while another is in flight must
+            // not touch state, or its dialog would show a pending report that never files.
+            exhaustMap((intent) => {
               patchState(store, patchBefore(intent));
-            }),
-            exhaustMap((intent) =>
-              actionObservable(intent).pipe(
+              return actionObservable(intent).pipe(
                 tapResponse({
                   next: () => {
                     patchState(store, successPatch(intent));
@@ -332,8 +333,8 @@ export const FindingDetailStore = signalStore(
                     patchState(store, finalErrorPatch);
                   },
                 }),
-              ),
-            ),
+              );
+            }),
           ),
         );
 
