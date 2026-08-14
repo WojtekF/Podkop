@@ -4,6 +4,9 @@
   // mangles Angular templates. Prettier reads frontend/.prettierrc (it walks up from each file).
   // C# is deliberately absent: the .NET side is edited in Rider, which drives its own formatting
   // from the root .editorconfig and Podkop.sln.DotSettings.
+  //
+  // Mirrored in Podkop.code-workspace, which is rooted at frontend/ and so never sees this file.
+  // These settings apply when the repo is opened as a plain folder. Change one, change the other.
   "editor.formatOnSave": true,
   "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
   "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },

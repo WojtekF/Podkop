@@ -1,0 +1,32 @@
+{
+  // The VSCode workspace for Podkop: frontend/ only. The .NET side is edited in Rider, so nothing
+  // above frontend/ needs to be in the tree here.
+  //
+  // Rooting at frontend/ rather than the repo root is also what makes template diagnostics work.
+  // The Angular Language Service resolves @angular/core from the workspace folder's root; opened
+  // at the repo root that lookup walks D:\repo\Podkop\node_modules and upwards, never reaching
+  // frontend/node_modules, so the service never attaches and .html files get nothing at all — a
+  // missing required input goes unmarked in the editor even though `ng build` fails on it (NG8008).
+  "folders": [
+    {
+      "path": "frontend"
+    }
+  ],
+  // Mirrors .vscode/settings.json, which no longer applies to anything here: the repo root isn't a
+  // workspace folder, so these workspace-level entries are the only thing covering frontend files.
+  // Without them the HTML formatter falls back to the VSCode built-in, which mangles Angular
+  // templates. Keep the two in sync — .vscode/settings.json is what applies when someone opens the
+  // repo as a plain folder instead of through this workspace.
+  "settings": {
+    "editor.formatOnSave": true,
+    "[typescript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "[javascript]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "[html]": { "editor.defaultFormatter": "esbenp.prettier-vscode" },
+    "[scss]": { "editor.defaultFormatter": "esbenp.prettier-vscode" }
+  },
+  // Mirrors .vscode/extensions.json for the same reason — folder-level recommendations from the
+  // repo root are out of scope once the workspace is rooted at frontend/.
+  "extensions": {
+    "recommendations": ["esbenp.prettier-vscode", "editorconfig.editorconfig", "angular.ng-template"]
+  }
+}
