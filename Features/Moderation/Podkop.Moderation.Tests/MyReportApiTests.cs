@@ -26,8 +26,8 @@ public class MyReportApiTests
     private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
 
     private static Report ReportBy(string reporter) =>
-        new(Guid.Parse("d0000000-0000-4000-8000-000000000001"), reporter, FindingId, SpamPointId,
-            statuteVersion: 2, note: null, At("2026-07-01T12:00:00Z"));
+        new(Guid.Parse("d0000000-0000-4000-8000-000000000001"), reporter, ReportTargetKind.Finding,
+            FindingId, SpamPointId, statuteVersion: 2, note: null, At("2026-07-01T12:00:00Z"));
 
     private static WebApplicationFactory<Program> CreateFactory(IReadOnlyList<Report> reports) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -39,7 +39,7 @@ public class MyReportApiTests
                 services.AddSingleton<IStatuteLookup>(
                     new StubStatuteLookup(new CurrentStatute(2, [SpamPointId])));
                 services.AddSingleton<IReportTargetLookup>(new StubReportTargetLookup(
-                    new ReportTarget(FindingId, "grace_hopper")));
+                    (ReportTargetKind.Finding, new ReportTarget(FindingId, "grace_hopper"))));
                 services.AddSingleton<IReportRepository>(new InMemoryReportRepository(reports));
             }));
 

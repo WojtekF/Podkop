@@ -1,6 +1,6 @@
 import { CommentDto, CommentThreadDto } from './finding-comments.service';
 import { FindingDetailDto } from './finding-detail.service';
-import { MyReportDto } from './finding-report.service';
+import { MyCommentReportsDto, MyReportDto } from './report.service';
 
 // Shared test data for the finding-detail specs (component, store, service).
 export const findingId = '0d4f9a3e-1111-4222-8333-444455556666';
@@ -9,6 +9,15 @@ export const findingId = '0d4f9a3e-1111-4222-8333-444455556666';
 // user has not reported it unless a spec says otherwise.
 export const myReport = (overrides: Partial<MyReportDto> = {}): MyReportDto => ({
   reported: false,
+  ...overrides,
+});
+
+// The batch my-reports state the Moderation slice answers for the finding's discussion
+// (issue #33): the stub user has reported no comment unless a spec says otherwise.
+export const myCommentReports = (
+  overrides: Partial<MyCommentReportsDto> = {},
+): MyCommentReportsDto => ({
+  reportedCommentIds: [],
   ...overrides,
 });
 

@@ -1,12 +1,16 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
+using MediatR;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Podkop.Documents.Application;
 using Podkop.Documents.Domain;
 using Podkop.Documents.Infrastructure;
+using Podkop.FindingComments.Application;
+using Podkop.FindingComments.Domain;
+using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
@@ -14,14 +18,17 @@ using Podkop.Findings.Infrastructure;
 namespace Podkop.Server.Tests;
 
 /// <summary>
-///     ADR 0008 end to end: a report is a moderation signal only, so filing one changes no
-///     score, vote, or promotion state. The proof reads the finding through the Findings
-///     slice's public surface before and after filing — a cross-slice observation that belongs
-///     to the composition root's tests, where the full wiring is under test (ADR 0003).
+///     ADR 0008 end to end: a report is a moderation signal only, so filing one — against the
+///     finding (issue #32) or against a comment (issue #33) — changes no score, vote, or
+///     promotion state. The proof reads the finding and its discussion through the same public
+///     surfaces the frontend uses, before and after filing — a cross-slice observation that
+///     belongs to the composition root's tests, where the full wiring is under test (ADR 0003).
 /// </summary>
 public class ReportSideEffectsTests
 {
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
+    private static readonly Guid CommentId = Guid.Parse("0d4f9a3e-3333-4222-8333-444455556666");
+    private static readonly Guid ReplyId = Guid.Parse("0d4f9a3e-4444-4222-8333-444455556666");
     private static readonly Guid SpamPointId = Guid.Parse("aaaa0000-0000-4000-8000-000000000002");
 
     private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
@@ -56,6 +63,17 @@ public class ReportSideEffectsTests
                         promotedAt: At("2026-06-08T09:30:00Z"),
                         commentCount: 0),
                 ]));
+                // The discussion under scrutiny: a voted-on top-level comment and a reply, both
+                // authored by others, so the comment report action is live and the vote counts
+                // the filing must not touch are non-trivial.
+                services.AddSingleton<ICommentRepository>(provider => new InMemoryCommentRepository(
+                [
+                    new Comment(CommentId, FindingId, null, "grace_hopper",
+                        "A comment under scrutiny.", At("2026-06-08T10:00:00Z"),
+                        new Dictionary<string, VoteDirection> { ["linus_torvalds"] = VoteDirection.Up }),
+                    new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
+                        "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
+                ], provider.GetRequiredService<IPublisher>()));
             }));
 
     [Fact]
@@ -74,6 +92,25 @@ public class ReportSideEffectsTests
 
         var after = await client.GetFromJsonAsync<FindingDetailResponse>($"/api/findings/{FindingId}");
         Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public async Task Filing_a_comment_report_changes_no_vote_count_or_discussion_state()
+    {
+        // The discussion and the finding are re-read raw through the same public surfaces the
+        // frontend uses — byte-equal answers mean no count, vote, or promotion state moved.
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var discussionBefore = await client.GetStringAsync($"/api/findings/{FindingId}/comments");
+        var findingBefore = await client.GetStringAsync($"/api/findings/{FindingId}");
+
+        var response = await client.PostAsJsonAsync($"/api/comments/{CommentId}/my-report",
+            new { statutePointId = SpamPointId, note = "Spam in the discussion." });
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+
+        Assert.Equal(discussionBefore, await client.GetStringAsync($"/api/findings/{FindingId}/comments"));
+        Assert.Equal(findingBefore, await client.GetStringAsync($"/api/findings/{FindingId}"));
     }
 
     private sealed record FindingDetailResponse(

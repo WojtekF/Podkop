@@ -7,6 +7,7 @@ import {
   exhaustMap,
   forkJoin,
   mergeMap,
+  Observable,
   pipe,
   switchMap,
   tap,
@@ -24,11 +25,18 @@ import {
   FindingDetailService,
   FindingVoteIntent,
 } from './finding-detail.service';
-import { FileReportIntent, FindingReportService, MyReportDto } from './finding-report.service';
+import {
+  FileCommentReportIntent,
+  FileReportIntent,
+  ReportService,
+  MyCommentReportsDto,
+  MyReportDto,
+} from './report.service';
 import { tapResponse } from '@ngrx/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
+export type ReportLabel = 'finding' | 'comment';
 
 /**
  * One comment composer's state (issue #17). Composers live in the store keyed by
@@ -57,6 +65,15 @@ export interface FindingDetailState {
    */
   myReport: boolean | null;
   reportPending: boolean;
+  /**
+   * Ids of the comments in this finding's discussion — top-level and replies alike — the
+   * current user already reported (issue #33), null until the load answers. Loading it is part
+   * of the page load: the batch my-reports state arrives with the finding, its discussion, and
+   * the finding's own my-report state, and the page shows one state for all four.
+   */
+  myCommentReportIds: readonly string[] | null;
+  /** The comment whose report filing is in flight (issue #33) — null while none is. */
+  commentReportPendingId: string | null;
   composers: Readonly<Record<string, ComposerState>>;
 }
 
@@ -69,6 +86,8 @@ const initialState: FindingDetailState = {
   pendingFindingVote: false,
   myReport: null,
   reportPending: false,
+  myCommentReportIds: null,
+  commentReportPendingId: null,
   composers: { [TOP_COMPOSER_KEY]: { draft: '', pending: false } },
 };
 
@@ -79,7 +98,7 @@ export const FindingDetailStore = signalStore(
       store,
       service = inject(FindingDetailService),
       commentsService = inject(FindingCommentsService),
-      reportService = inject(FindingReportService),
+      reportService = inject(ReportService),
       snackBar = inject(MatSnackBar),
     ) => {
       const load = rxMethod<string>(
@@ -92,6 +111,7 @@ export const FindingDetailStore = signalStore(
                 finding: null,
                 comments: null,
                 myReport: null,
+                myCommentReportIds: null,
               });
             },
           }),
@@ -100,10 +120,11 @@ export const FindingDetailStore = signalStore(
               finding: asResult(service.getFinding(id)),
               comments: asResult(commentsService.getComments(id)),
               myReport: asResult(reportService.getMyReport(id)),
+              myCommentReportIds: asResult(reportService.getMyCommentReports(id)),
             }).pipe(
               tap({
-                next: ({ finding, comments, myReport }) => {
-                  patchState(store, toPatch(finding, comments, myReport));
+                next: ({ finding, comments, myReport, myCommentReportIds }) => {
+                  patchState(store, toPatch(finding, comments, myReport, myCommentReportIds));
                 },
               }),
             ),
@@ -279,6 +300,44 @@ export const FindingDetailStore = signalStore(
         ),
       );
 
+      const makeFileReport = <U extends FileReportIntent>({
+        fileRequest,
+        conflictPatch,
+        finalErrorPatch,
+        patchBefore,
+        successPatch,
+        target,
+      }: FileReportConfig<U>) =>
+        rxMethod<U>(
+          pipe(
+            // The pending patch lives inside exhaustMap's projection so it runs only for the
+            // filing that is actually sent — an intent dropped while another is in flight must
+            // not touch state, or its dialog would show a pending report that never files.
+            exhaustMap((intent) => {
+              patchState(store, patchBefore(intent));
+              return fileRequest(intent).pipe(
+                tapResponse({
+                  next: () => {
+                    patchState(store, successPatch(intent));
+                    snackBar.open('Report submitted');
+                  },
+                  error: (error) => {
+                    if (error instanceof TimeoutError) {
+                      snackBar.open('The report request has timed out. Try again.');
+                    } else if (error instanceof HttpErrorResponse && error.status === 409) {
+                      patchState(store, conflictPatch(intent));
+                      snackBar.open(`The ${target} is already reported.`);
+                    } else {
+                      snackBar.open("Couldn't submit the report");
+                    }
+                    patchState(store, finalErrorPatch);
+                  },
+                }),
+              );
+            }),
+          ),
+        );
+
       /**
        * Files the current user's report on this finding (issue #32), citing one reportable
        * Statute Point and optionally carrying a short note, through the FindingReportService.
@@ -288,34 +347,42 @@ export const FindingDetailStore = signalStore(
        * other failure leaves the state untouched and announces itself in a snackbar. Filing
        * never touches the finding's score or vote state (ADR 0008).
        */
-      const fileReport = rxMethod<FileReportIntent>(
-        pipe(
-          tap(() => {
-            patchState(store, { reportPending: true });
-          }),
-          exhaustMap((intent) =>
-            reportService.fileReport(store.finding()!.id, intent).pipe(
-              tapResponse({
-                next: (result) => {
-                  patchState(store, { myReport: result.reported, reportPending: false });
-                  snackBar.open('Report submitted');
-                },
-                error: (error) => {
-                  if (error instanceof TimeoutError) {
-                    snackBar.open('The report request has timed out. Try again.');
-                  } else if (error instanceof HttpErrorResponse && error.status === 409) {
-                    patchState(store, { myReport: true });
-                    snackBar.open('The finding is already reported.');
-                  } else {
-                    snackBar.open("Couldn't submit the report");
-                  }
-                  patchState(store, { reportPending: false });
-                },
-              }),
-            ),
-          ),
-        ),
-      );
+      const fileFindingReport = makeFileReport({
+        patchBefore: (_) => ({ reportPending: true }),
+        fileRequest: (intent: FileReportIntent) =>
+          reportService.fileReport(store.finding()!.id, intent),
+        successPatch: (_) => ({ myReport: true, reportPending: false }),
+        conflictPatch: (_) => ({ myReport: true }),
+        finalErrorPatch: { reportPending: false },
+        target: 'finding',
+      });
+
+      /**
+       * Files the current user's report on one comment of this discussion (issue #33), citing
+       * one reportable Statute Point and optionally carrying a short note, through the
+       * FindingReportService. Exactly one comment filing may be in flight — the pending state
+       * names its comment, and repeat calls while pending are ignored. Success adds the comment
+       * to my reported comments and confirms in a snackbar ('Report submitted'). The duplicate
+       * refusal (HTTP 409 — the server already holds my report) also marks it reported, with
+       * its own snackbar ('The comment is already reported.'). A timeout announces itself
+       * ('The report request has timed out. Try again.'); any other failure leaves the state
+       * untouched ("Couldn't submit the report"). Filing never touches any score or vote state
+       * (ADR 0008).
+       */
+      const fileCommentReport = makeFileReport<FileCommentReportIntent>({
+        patchBefore: (intent) => ({ commentReportPendingId: intent.commentId }),
+        fileRequest: ({ note, statutePointId, commentId }: FileCommentReportIntent) =>
+          reportService.fileCommentReport(commentId, { note, statutePointId }),
+        successPatch: ({ commentId }) => ({
+          myCommentReportIds: [...(store.myCommentReportIds() ?? []), commentId],
+          commentReportPendingId: null,
+        }),
+        conflictPatch: ({ commentId }) => ({
+          myCommentReportIds: [...(store.myCommentReportIds() ?? []), commentId],
+        }),
+        finalErrorPatch: { commentReportPendingId: null },
+        target: 'comment',
+      });
 
       return {
         load,
@@ -326,11 +393,21 @@ export const FindingDetailStore = signalStore(
         updateComposerDraft,
         closeOrResetComposer,
         postComment,
-        fileReport,
+        fileFindingReport,
+        fileCommentReport,
       };
     },
   ),
 );
+
+type FileReportConfig<U extends FileReportIntent> = {
+  patchBefore: (intent: U) => Partial<FindingDetailState>;
+  fileRequest: (intent: U) => Observable<unknown>;
+  successPatch: (intent: U) => Partial<FindingDetailState>;
+  conflictPatch: (intent: U) => Partial<FindingDetailState>;
+  finalErrorPatch: Partial<FindingDetailState>;
+  target: ReportLabel;
+};
 
 const filterFromPendingVotes = (pendingVotes: readonly string[], commentId: string) =>
   pendingVotes.filter((votes) => votes !== commentId);
@@ -361,12 +438,29 @@ const toPatch = (
   finding: LoadResult<FindingDetailDto>,
   comments: LoadResult<CommentThreadDto[]>,
   myReport: LoadResult<MyReportDto>,
+  myCommentReportIds: LoadResult<MyCommentReportsDto>,
 ): Partial<FindingDetailState> => {
-  if (isNotFound(finding) || isNotFound(comments) || isNotFound(myReport))
+  if (
+    isNotFound(finding) ||
+    isNotFound(comments) ||
+    isNotFound(myReport) ||
+    isNotFound(myCommentReportIds)
+  )
     return { status: 'notFound' };
-  if (isLoadFailure(finding) || isLoadFailure(comments) || isLoadFailure(myReport))
+  if (
+    isLoadFailure(finding) ||
+    isLoadFailure(comments) ||
+    isLoadFailure(myReport) ||
+    isLoadFailure(myCommentReportIds)
+  )
     return { status: 'error' };
-  return { status: 'loaded', finding, comments, myReport: myReport.reported };
+  return {
+    status: 'loaded',
+    finding,
+    comments,
+    myReport: myReport.reported,
+    myCommentReportIds: myCommentReportIds.reportedCommentIds,
+  };
 };
 
 const isNotFound = <T>(input: T | HttpErrorResponse): boolean => {

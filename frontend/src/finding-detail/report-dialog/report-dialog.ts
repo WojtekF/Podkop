@@ -1,15 +1,14 @@
-import { Component, computed, input, output, signal, inject, effect } from '@angular/core';
+import { Component, computed, input, output, signal, inject } from '@angular/core';
 import { MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/material/dialog';
 import { DocumentsService } from '../../documents/documents.service';
-import { FileReportIntent } from '../finding-report.service';
-import { TimeoutError } from 'rxjs';
+import { FileReportIntent } from '../report.service';
 import { asResult, isLoadFailure } from '../../shared/as-result';
-import { HttpErrorResponse } from '@angular/common/http';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatButton } from '@angular/material/button';
 import { MatSelectionList, MatListOption } from '@angular/material/list';
 import { MatFormField, MatLabel, MatHint } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
+import { ReportLabel } from '../finding-detail.store';
 
 /** The most text one report note may carry (issue #32); mirrors the backend's Report.MaxNoteLength. */
 export const REPORT_NOTE_MAX_LENGTH = 500;
@@ -56,6 +55,12 @@ export class ReportDialog {
   }
   /** Whether a filing is in flight — pushed in by the opener while the report request runs. */
   readonly pending = input(false);
+
+  /**
+   * The kind of content being reported (issue #33) — the dialog serves findings and comments
+   * with the same flow, naming the target kind in its title only.
+   */
+  readonly targetLabel = input<ReportLabel>('finding');
 
   readonly fileReport = output<FileReportIntent>();
   readonly cancel = output<void>();

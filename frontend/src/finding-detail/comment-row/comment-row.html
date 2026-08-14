@@ -31,6 +31,26 @@
     <div class="text">{{ comment().text }}</div>
     <div class="comment-row-actions">
       <button mat-button class="reply-button" (click)="reply.emit()">Reply</button>
+      @if (isActionMenuVisible()) {
+        <button
+          class="comment-menu-button"
+          matIconButton
+          [matMenuTriggerFor]="menu"
+          aria-label="Comment actions"
+        >
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #menu>
+          <button
+            class="report-menu-item"
+            mat-menu-item
+            [disabled]="reportedByMe()"
+            (click)="report.emit()"
+          >
+            {{ reportedByMe() ? 'Reported' : 'Report' }}
+          </button>
+        </mat-menu>
+      }
     </div>
   </mat-card-content>
 </mat-card>

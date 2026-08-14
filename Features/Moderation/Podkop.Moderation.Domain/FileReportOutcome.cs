@@ -5,11 +5,17 @@ public enum FileReportOutcome
     /// <summary>The report was filed — 201 with the my-report state.</summary>
     Filed,
 
-    /// <summary>No finding has that id — 404, <c>podkop:problem:unknown-finding</c>.</summary>
-    UnknownFinding,
+    /// <summary>
+    ///     No content of the targeted kind has that id — 404; the endpoint names the kind in the
+    ///     problem type (<c>podkop:problem:unknown-finding</c> / <c>podkop:problem:unknown-comment</c>).
+    /// </summary>
+    UnknownTarget,
 
-    /// <summary>The reporter authored the finding — 400, <c>podkop:problem:own-finding</c>.</summary>
-    OwnFinding,
+    /// <summary>
+    ///     The reporter authored the targeted content — 400; the endpoint names the kind in the
+    ///     problem type (<c>podkop:problem:own-finding</c> / <c>podkop:problem:own-comment</c>).
+    /// </summary>
+    OwnContent,
 
     /// <summary>
     ///     The cited point is not a reportable point of the Statute version currently in force
@@ -19,7 +25,7 @@ public enum FileReportOutcome
     NotReportablePoint,
 
     /// <summary>
-    ///     The reporter already reported this finding — one report per user per finding — 409,
+    ///     The reporter already reported this target — one report per user per target — 409,
     ///     <c>podkop:problem:already-reported</c>.
     /// </summary>
     AlreadyReported,

@@ -5,6 +5,8 @@
     [votePending]="pendingVoteIds().includes(thread().id)"
     (vote)="vote.emit({ commentId: thread().id, direction: $event })"
     (reply)="reply.emit({ threadId: thread().id, appendAuthor: null })"
+    [reportedByMe]="reportedCommentIds().includes(thread().id)"
+    (report)="report.emit(thread().id)"
   />
   <div class="replies">
     @if (composer() !== undefined) {
@@ -23,6 +25,8 @@
         [votePending]="pendingVoteIds().includes(replyComment.id)"
         (vote)="vote.emit({ commentId: replyComment.id, direction: $event })"
         (reply)="reply.emit({ threadId: thread().id, appendAuthor: replyComment.author })"
+        [reportedByMe]="reportedCommentIds().includes(replyComment.id)"
+        (report)="report.emit(replyComment.id)"
       />
     }
   </div>

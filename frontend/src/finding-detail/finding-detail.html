@@ -58,7 +58,7 @@
       <mat-card-actions>
         <button
           mat-button
-          (click)="openReportDialog()"
+          (click)="openReportFinding()"
           [class]="{ 'report-button': true, reported: store.myReport() }"
           [disabled]="isReportButtonDisabled()"
         >
@@ -93,6 +93,8 @@
           (composerDraftChange)="
             store.updateComposerDraft({ composerKey: thread.id, text: $event })
           "
+          (report)="onReportComment($event)"
+          [reportedCommentIds]="store.myCommentReportIds() ?? []"
         />
       </mat-card>
     }

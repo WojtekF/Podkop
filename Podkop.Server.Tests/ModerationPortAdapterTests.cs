@@ -1,27 +1,34 @@
 using System.Globalization;
+using MediatR;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Podkop.Documents.Application;
 using Podkop.Documents.Domain;
 using Podkop.Documents.Infrastructure;
+using Podkop.FindingComments.Application;
+using Podkop.FindingComments.Domain;
+using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 using Podkop.Moderation.Application;
+using Podkop.Moderation.Domain;
 
 namespace Podkop.Server.Tests;
 
 /// <summary>
-///     The composition-root adapters behind the Moderation slice's ports (issue #32). Slices
-///     never reference each other's internals (ADR 0003), so the host is the one place where
-///     "what Documents and Findings hold" is mapped into "what Moderation may see" — and the one
-///     place that mapping can be specified. The adapters are resolved through the app's own DI
-///     wiring, never constructed by hand.
+///     The composition-root adapters behind the Moderation slice's ports (issues #32/#33).
+///     Slices never reference each other's internals (ADR 0003), so the host is the one place
+///     where "what Documents, Findings, and FindingComments hold" is mapped into "what
+///     Moderation may see" — and the one place that mapping can be specified. The adapters are
+///     resolved through the app's own DI wiring, never constructed by hand.
 /// </summary>
 public class ModerationPortAdapterTests
 {
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
+    private static readonly Guid CommentId = Guid.Parse("0d4f9a3e-3333-4222-8333-444455556666");
+    private static readonly Guid ReplyId = Guid.Parse("0d4f9a3e-4444-4222-8333-444455556666");
 
     // The seeded versions are arranged so every wrong mapping picks a different answer: the
     // purpose point exists in the current version but is never reportable, the retired point is
@@ -95,6 +102,13 @@ public class ModerationPortAdapterTests
                 services.AddSingleton<IStatuteRepository>(new InMemoryStatuteRepository(SeededVersions()));
                 services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(
                     [CreateFinding(FindingId, "grace_hopper")]));
+                services.AddSingleton<ICommentRepository>(provider => new InMemoryCommentRepository(
+                [
+                    new Comment(CommentId, FindingId, null, "grace_hopper",
+                        "A comment under scrutiny.", At("2026-06-08T10:00:00Z")),
+                    new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
+                        "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
+                ], provider.GetRequiredService<IPublisher>()));
             }));
 
     [Fact]
@@ -132,7 +146,7 @@ public class ModerationPortAdapterTests
         using var factory = CreateFactory();
         var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
 
-        var target = await lookup.GetAsync(FindingId, CancellationToken.None);
+        var target = await lookup.GetAsync(ReportTargetKind.Finding, FindingId, CancellationToken.None);
 
         Assert.NotNull(target);
         Assert.Equal(FindingId, target.Id);
@@ -145,9 +159,60 @@ public class ModerationPortAdapterTests
         using var factory = CreateFactory();
         var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
 
-        var target = await lookup.GetAsync(Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"),
-            CancellationToken.None);
+        var target = await lookup.GetAsync(ReportTargetKind.Finding,
+            Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"), CancellationToken.None);
 
         Assert.Null(target);
+    }
+
+    [Fact]
+    public async Task The_target_lookup_answers_a_comments_id_and_author_replies_included()
+    {
+        using var factory = CreateFactory();
+        var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
+
+        var target = await lookup.GetAsync(ReportTargetKind.Comment, ReplyId, CancellationToken.None);
+
+        Assert.NotNull(target);
+        Assert.Equal(ReplyId, target.Id);
+        // The reply's own author — the input to the self-report rule — not the thread's.
+        Assert.Equal("linus_torvalds", target.Author);
+    }
+
+    [Fact]
+    public async Task The_target_lookup_answers_null_for_an_unknown_comment()
+    {
+        using var factory = CreateFactory();
+        var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
+
+        // A finding's id is not a comment: the kinds resolve against different slices, so an id
+        // that exists as a finding must still be unknown to the Comment kind.
+        var target = await lookup.GetAsync(ReportTargetKind.Comment, FindingId, CancellationToken.None);
+
+        Assert.Null(target);
+    }
+
+    [Fact]
+    public async Task The_comments_lookup_answers_every_comment_and_reply_id_of_the_finding()
+    {
+        using var factory = CreateFactory();
+        var lookup = factory.Services.GetRequiredService<IFindingCommentsLookup>();
+
+        var commentIds = await lookup.GetCommentIdsAsync(FindingId, CancellationToken.None);
+
+        Assert.NotNull(commentIds);
+        Assert.Equal([CommentId, ReplyId], commentIds);
+    }
+
+    [Fact]
+    public async Task The_comments_lookup_answers_null_for_an_unknown_finding()
+    {
+        using var factory = CreateFactory();
+        var lookup = factory.Services.GetRequiredService<IFindingCommentsLookup>();
+
+        var commentIds = await lookup.GetCommentIdsAsync(
+            Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"), CancellationToken.None);
+
+        Assert.Null(commentIds);
     }
 }

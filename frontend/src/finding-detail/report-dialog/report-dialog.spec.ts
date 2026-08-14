@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { statute } from '../../documents/documents.fixtures';
-import { FileReportIntent } from '../finding-report.service';
+import { FileReportIntent } from '../report.service';
 import { REPORT_NOTE_MAX_LENGTH, ReportDialog } from './report-dialog';
 
 describe('ReportDialog', () => {
@@ -67,6 +67,13 @@ describe('ReportDialog', () => {
     expect(element().querySelector('.report-title')?.textContent).toContain('Report finding');
   });
 
+  it('titles a comment report after its target — the one wording difference (issue #33)', () => {
+    fixture.componentRef.setInput('targetLabel', 'comment');
+    loadStatute();
+
+    expect(element().querySelector('.report-title')?.textContent).toContain('Report comment');
+  });
+
   it('a failed Statute load shows an error whose Retry re-requests it', () => {
     expectStatuteRequest().flush('boom', { status: 500, statusText: 'Server Error' });
     fixture.detectChanges();
@@ -87,8 +94,8 @@ describe('ReportDialog', () => {
     // purpose and consequences framing must not be offered.
     expect(pointRows().length).toBe(2);
 
-    const citations = Array.from(pointRows()).map(
-      (row) => row.querySelector('.point-citation')?.textContent?.trim(),
+    const citations = Array.from(pointRows()).map((row) =>
+      row.querySelector('.point-citation')?.textContent?.trim(),
     );
     expect(citations).toEqual(['2.1', '2.2']);
 

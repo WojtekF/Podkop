@@ -11,10 +11,11 @@ import {
   commentThreads,
   findingDetail as detail,
   findingId as id,
+  myCommentReports,
   myReport,
   postedComment,
 } from './finding-detail.fixtures';
-import { MyReportDto } from './finding-report.service';
+import { MyCommentReportsDto, MyReportDto } from './report.service';
 import { statute } from '../documents/documents.fixtures';
 import { FindingDetail } from './finding-detail';
 
@@ -36,15 +37,22 @@ describe('FindingDetail', () => {
     httpMock.expectOne(`/api/findings/${findingId}/comments`);
   const expectMyReportRequest = (findingId: string) =>
     httpMock.expectOne({ method: 'GET', url: `/api/findings/${findingId}/my-report` });
+  const expectMyCommentReportsRequest = (findingId: string) =>
+    httpMock.expectOne({
+      method: 'GET',
+      url: `/api/findings/${findingId}/comments/my-reports`,
+    });
 
   const flushAll = (
     detailBody = detail(),
     threads: CommentThreadDto[] = commentThreads(),
     report: MyReportDto = myReport(),
+    commentReports: MyCommentReportsDto = myCommentReports(),
   ) => {
     expectDetailRequest(id).flush(detailBody);
     expectCommentsRequest(id).flush(threads);
     expectMyReportRequest(id).flush(report);
+    expectMyCommentReportsRequest(id).flush(commentReports);
   };
 
   const element = (): HTMLElement => harness.routeNativeElement!;
@@ -77,31 +85,34 @@ describe('FindingDetail', () => {
     harness = await RouterTestingHarness.create();
   });
 
-  it('landing on the route requests the finding, its discussion, and my report state in parallel', async () => {
+  it('landing on the route requests the finding, its discussion, and both report states in parallel', async () => {
     await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
 
     const detailReq = expectDetailRequest(id);
     const commentsReq = expectCommentsRequest(id);
     const myReportReq = expectMyReportRequest(id);
+    const commentReportsReq = expectMyCommentReportsRequest(id);
     expect(detailReq.request.method).toBe('GET');
     expect(commentsReq.request.method).toBe('GET');
     expect(myReportReq.request.method).toBe('GET');
+    expect(commentReportsReq.request.method).toBe('GET');
   });
 
-  it('shows one spinner covering the whole page until ALL THREE answers arrive', async () => {
+  it('shows one spinner covering the whole page until ALL FOUR answers arrive', async () => {
     await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
 
-    const myReportReq = expectMyReportRequest(id);
+    const commentReportsReq = expectMyCommentReportsRequest(id);
     expectDetailRequest(id).flush(detail());
     expectCommentsRequest(id).flush(commentThreads());
+    expectMyReportRequest(id).flush(myReport());
     harness.detectChanges();
 
-    // The finding and its discussion are not enough — nothing renders while the my-report
-    // state is in flight.
+    // The finding, its discussion, and the finding's my-report state are not enough —
+    // nothing renders while the batch comment-reports state is in flight.
     expect(element().querySelector('.detail-state.loading mat-spinner')).not.toBeNull();
     expect(element().querySelector('.title')).toBeNull();
 
-    myReportReq.flush(myReport());
+    commentReportsReq.flush(myCommentReports());
     harness.detectChanges();
 
     expect(element().querySelector('.detail-state.loading')).toBeNull();
@@ -236,6 +247,7 @@ describe('FindingDetail', () => {
     expectDetailRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
     expectCommentsRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
     expectMyReportRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
+    expectMyCommentReportsRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
     harness.detectChanges();
 
     const notFound = element().querySelector('.detail-state.not-found');
@@ -253,6 +265,7 @@ describe('FindingDetail', () => {
     expectDetailRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
     expectCommentsRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
     expectMyReportRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
+    expectMyCommentReportsRequest(id).flush('missing', { status: 404, statusText: 'Not Found' });
     harness.detectChanges();
 
     element().querySelector<HTMLAnchorElement>('.back-link')?.click();
@@ -261,11 +274,12 @@ describe('FindingDetail', () => {
     expect(router.url).toBe('/');
   });
 
-  it('a load failure shows an inline error whose Retry re-requests all three answers', async () => {
+  it('a load failure shows an inline error whose Retry re-requests all four answers', async () => {
     await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
     expectDetailRequest(id).flush('boom', { status: 500, statusText: 'Server Error' });
     expectCommentsRequest(id).flush(commentThreads());
     expectMyReportRequest(id).flush(myReport());
+    expectMyCommentReportsRequest(id).flush(myCommentReports());
     harness.detectChanges();
 
     const error = element().querySelector('.detail-state.error');
@@ -275,6 +289,7 @@ describe('FindingDetail', () => {
     expectDetailRequest(id);
     expectCommentsRequest(id);
     expectMyReportRequest(id);
+    expectMyCommentReportsRequest(id);
   });
 
   it('a failing discussion request is a load failure too, even when the finding arrived', async () => {
@@ -282,6 +297,7 @@ describe('FindingDetail', () => {
     expectDetailRequest(id).flush(detail());
     expectCommentsRequest(id).flush('boom', { status: 500, statusText: 'Server Error' });
     expectMyReportRequest(id).flush(myReport());
+    expectMyCommentReportsRequest(id).flush(myCommentReports());
     harness.detectChanges();
 
     expect(element().querySelector('.detail-state.error')).not.toBeNull();
@@ -552,9 +568,9 @@ describe('FindingDetail', () => {
       req.flush(postedComment({ text: 'An answer.' }), { status: 201, statusText: 'Created' });
       harness.detectChanges();
 
-      const replyTexts = Array.from(
-        threadEls()[1].querySelectorAll('.replies .comment .text'),
-      ).map((text) => text.textContent?.trim());
+      const replyTexts = Array.from(threadEls()[1].querySelectorAll('.replies .comment .text')).map(
+        (text) => text.textContent?.trim(),
+      );
       expect(replyTexts[replyTexts.length - 1]).toContain('An answer.');
       expect(composerIn(threadEls()[1])).toBeNull();
     });
@@ -566,9 +582,7 @@ describe('FindingDetail', () => {
       harness.detectChanges();
       await type(composerIn(threadEls()[1])!, 'Half a thought');
 
-      composerIn(threadEls()[1])!
-        .querySelector<HTMLButtonElement>('button.cancel-button')!
-        .click();
+      composerIn(threadEls()[1])!.querySelector<HTMLButtonElement>('button.cancel-button')!.click();
       await harness.fixture.whenStable();
       harness.detectChanges();
       expect(composerIn(threadEls()[1])).toBeNull();
@@ -617,8 +631,7 @@ describe('FindingDetail', () => {
     const reportable = (overrides: Partial<FindingDetailDto> = {}) =>
       detail({ author: 'grace_hopper', ...overrides });
 
-    const reportButton = () =>
-      element().querySelector<HTMLButtonElement>('button.report-button');
+    const reportButton = () => element().querySelector<HTMLButtonElement>('button.report-button');
     // The dialog may render outside the page's own subtree (e.g. in an overlay), so it is
     // looked up on the document.
     const dialog = () => document.querySelector<HTMLElement>('.report-dialog');
@@ -751,9 +764,7 @@ describe('FindingDetail', () => {
       // submit live again for a retry, and the finding not marked reported.
       expect(dialog()).not.toBeNull();
       expect(
-        dialog()!.querySelectorAll<HTMLElement>('.report-point')[1].classList.contains(
-          'selected',
-        ),
+        dialog()!.querySelectorAll<HTMLElement>('.report-point')[1].classList.contains('selected'),
       ).toBe(true);
       expect(dialog()!.querySelector<HTMLTextAreaElement>('textarea.report-note')!.value).toBe(
         'Links a spam farm.',
@@ -788,6 +799,152 @@ describe('FindingDetail', () => {
       expect(dialog()).toBeNull();
       expect(reportButton()?.textContent).toContain('Reported');
       expect(reportButton()?.disabled).toBe(true);
+    });
+  });
+
+  describe('reporting a comment (issue #33)', () => {
+    // From the fixtures: grace_hopper's top-level comment and linus_t's reply — neither is
+    // the reader's, so their report actions are live.
+    const targetId = () => commentThreads()[0].id;
+    const replyId = () => commentThreads()[0].replies[0].id;
+
+    // Menus and dialogs may render outside the page's own subtree (e.g. in an overlay), so
+    // they are looked up on the document.
+    const dialog = () => document.querySelector<HTMLElement>('.report-dialog');
+    const reportItem = () => document.querySelector<HTMLButtonElement>('button.report-menu-item');
+    const menuButtonOf = (row: Element) =>
+      row.querySelector<HTMLButtonElement>('button.comment-menu-button');
+    const topRow = () =>
+      element().querySelectorAll('.comment-thread')[0].querySelector('.comment')!;
+    const replyRow = () =>
+      element().querySelectorAll('.comment-thread')[0].querySelectorAll('.replies .comment')[0];
+
+    const loadPage = async (commentReports = myCommentReports()) => {
+      await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
+      flushAll(detail(), commentThreads(), myReport(), commentReports);
+      harness.detectChanges();
+    };
+
+    const openMenuOf = async (row: Element) => {
+      menuButtonOf(row)!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+    };
+
+    const openDialogFor = async (row: Element) => {
+      await openMenuOf(row);
+      reportItem()!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+    };
+
+    const pickFirstPointAndSubmit = async () => {
+      httpMock.expectOne('/api/statute').flush(statute());
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      dialog()!.querySelectorAll<HTMLElement>('.report-point')[0].click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+      dialog()!.querySelector<HTMLButtonElement>('button.submit-report-button')!.click();
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+    };
+
+    afterEach(() => {
+      // Menus and dialogs opened into an overlay outlive the fixture unless cleaned up here.
+      document.querySelectorAll('.cdk-overlay-container').forEach((el) => el.remove());
+      document.querySelectorAll('.report-dialog').forEach((el) => el.remove());
+    });
+
+    it("choosing Report in a comment's menu opens the dialog titled for a comment", async () => {
+      await loadPage();
+
+      await openDialogFor(topRow());
+
+      expect(dialog()).not.toBeNull();
+      expect(dialog()!.querySelector('.report-title')?.textContent).toContain('Report comment');
+      httpMock.expectOne('/api/statute');
+    });
+
+    it('submitting files against that comment and closes once the filing lands', async () => {
+      await loadPage();
+      await openDialogFor(topRow());
+
+      await pickFirstPointAndSubmit();
+
+      const req = httpMock.expectOne({
+        method: 'POST',
+        url: `/api/comments/${targetId()}/my-report`,
+      });
+      expect(req.request.body).toEqual({
+        statutePointId: 'aaaa0000-0000-4000-8000-000000000002',
+        note: null,
+      });
+
+      req.flush(myReport({ reported: true }), { status: 201, statusText: 'Created' });
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      expect(dialog()).toBeNull();
+
+      // The row now shows the already-reported state in its menu.
+      await openMenuOf(topRow());
+      expect(reportItem()!.textContent).toContain('Reported');
+      expect(reportItem()!.disabled).toBe(true);
+    });
+
+    it("a reply's report files by the reply's own id, never the thread's", async () => {
+      await loadPage();
+      await openDialogFor(replyRow());
+
+      await pickFirstPointAndSubmit();
+
+      httpMock
+        .expectOne({ method: 'POST', url: `/api/comments/${replyId()}/my-report` })
+        .flush(myReport({ reported: true }), { status: 201, statusText: 'Created' });
+    });
+
+    it('comments reported in an earlier session arrive already marked from the load', async () => {
+      await loadPage(myCommentReports({ reportedCommentIds: [replyId()] }));
+
+      await openMenuOf(replyRow());
+
+      expect(reportItem()!.textContent).toContain('Reported');
+      expect(reportItem()!.disabled).toBe(true);
+    });
+
+    it('a failed filing keeps the dialog open for another try', async () => {
+      await loadPage();
+      await openDialogFor(topRow());
+
+      await pickFirstPointAndSubmit();
+      httpMock
+        .expectOne({ method: 'POST', url: `/api/comments/${targetId()}/my-report` })
+        .flush('boom', { status: 500, statusText: 'Server Error' });
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      expect(dialog()).not.toBeNull();
+      expect(
+        dialog()!.querySelector<HTMLButtonElement>('button.submit-report-button')!.disabled,
+      ).toBe(false);
+    });
+
+    it('the duplicate refusal also closes the dialog — the server already holds my report', async () => {
+      await loadPage();
+      await openDialogFor(topRow());
+
+      await pickFirstPointAndSubmit();
+      httpMock
+        .expectOne({ method: 'POST', url: `/api/comments/${targetId()}/my-report` })
+        .flush(
+          { type: 'podkop:problem:already-reported' },
+          { status: 409, statusText: 'Conflict' },
+        );
+      await harness.fixture.whenStable();
+      harness.detectChanges();
+
+      expect(dialog()).toBeNull();
     });
   });
 });

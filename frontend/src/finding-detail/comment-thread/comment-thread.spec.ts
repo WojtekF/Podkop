@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { MATERIAL_ANIMATIONS } from '@angular/material/core';
 import { CommentThreadDto } from '../finding-comments.service';
 import { commentThreads } from '../finding-detail.fixtures';
 import { CommentThread, CommentVote, ReplyRequest } from './comment-thread';
@@ -19,7 +20,12 @@ describe('CommentThread', () => {
   const element = (): HTMLElement => fixture.nativeElement;
 
   beforeEach(async () => {
-    await TestBed.configureTestingModule({ imports: [CommentThread] }).compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [CommentThread],
+      // jsdom runs no reduced-motion preference, so Material would animate any overlay on
+      // real timers whenStable() never awaits; disabling animations keeps menus observable.
+      providers: [{ provide: MATERIAL_ANIMATIONS, useValue: { animationsDisabled: true } }],
+    }).compileComponents();
   });
 
   it('renders its top-level comment and each reply as comment rows', async () => {
@@ -40,9 +46,9 @@ describe('CommentThread', () => {
   it('nests the replies exactly one level down, in the order the thread delivers them', async () => {
     await createThread(withReplies());
 
-    const replyAuthors = Array.from(
-      element().querySelectorAll('.replies .comment .author'),
-    ).map((author) => author.textContent?.trim());
+    const replyAuthors = Array.from(element().querySelectorAll('.replies .comment .author')).map(
+      (author) => author.textContent?.trim(),
+    );
     expect(replyAuthors).toEqual(['linus_t', 'ada_lovelace']);
 
     // One level deep only: no replies container hides inside another.
@@ -71,9 +77,7 @@ describe('CommentThread', () => {
       const replyRow = element().querySelectorAll('.replies .comment')[0];
       upButtonOf(replyRow)!.click();
 
-      expect(emitted).toEqual([
-        { commentId: withReplies().replies[0].id, direction: 'up' },
-      ]);
+      expect(emitted).toEqual([{ commentId: withReplies().replies[0].id, direction: 'up' }]);
     });
 
     it("marks only the pending comment's row as pending", async () => {
@@ -95,7 +99,7 @@ describe('CommentThread', () => {
     const replyButtonOf = (row: Element) =>
       row.querySelector<HTMLButtonElement>('button.reply-button');
 
-    it("a reply request from the top-level row targets this thread, no @name to append", async () => {
+    it('a reply request from the top-level row targets this thread, no @name to append', async () => {
       await createThread(withReplies());
       const emitted: ReplyRequest[] = [];
       fixture.componentInstance.reply.subscribe((request) => emitted.push(request));
@@ -134,6 +138,75 @@ describe('CommentThread', () => {
       fixture.detectChanges();
 
       expect(element().querySelector('app-comment-composer')).not.toBeNull();
+    });
+  });
+
+  describe('reporting (issue #33)', () => {
+    const menuButtonOf = (row: Element) =>
+      row.querySelector<HTMLButtonElement>('button.comment-menu-button');
+    // The opened menu may render in an overlay outside the row — search the whole document.
+    const reportItem = () => document.querySelector<HTMLButtonElement>('button.report-menu-item');
+
+    const openMenuOf = async (row: Element) => {
+      menuButtonOf(row)!.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    // Dismissed the way a reader dismisses it — clicking away — so the next menu opened in the
+    // same spec is the only one on the document.
+    const closeMenu = async () => {
+      document.querySelector<HTMLElement>('.cdk-overlay-backdrop')!.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
+    afterEach(() => {
+      // An overlay-hosted menu outlives its fixture — torn down so specs stay independent.
+      document.querySelectorAll('.cdk-overlay-container').forEach((el) => el.remove());
+    });
+
+    it("forwards the top-level row's report request as this thread's comment id", async () => {
+      await createThread(withReplies());
+      const emitted: string[] = [];
+      fixture.componentInstance.report.subscribe((commentId) => emitted.push(commentId));
+
+      const topRow = element().querySelector('.comment')!;
+      await openMenuOf(topRow);
+      reportItem()!.click();
+
+      expect(emitted).toEqual([withReplies().id]);
+    });
+
+    it("forwards a reply row's report request as the reply's own id, never the thread's", async () => {
+      await createThread(withReplies());
+      const emitted: string[] = [];
+      fixture.componentInstance.report.subscribe((commentId) => emitted.push(commentId));
+
+      // The first reply belongs to linus_t — not the reader — so its menu is offered.
+      const replyRow = element().querySelectorAll('.replies .comment')[0];
+      await openMenuOf(replyRow);
+      reportItem()!.click();
+
+      expect(emitted).toEqual([withReplies().replies[0].id]);
+    });
+
+    it('marks exactly the rows named in reportedCommentIds as reported', async () => {
+      await createThread(withReplies());
+      fixture.componentRef.setInput('reportedCommentIds', [withReplies().replies[0].id]);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      const replyRow = element().querySelectorAll('.replies .comment')[0];
+      await openMenuOf(replyRow);
+      expect(reportItem()!.disabled).toBe(true);
+      expect(reportItem()!.textContent).toContain('Reported');
+      await closeMenu();
+
+      // The top-level comment is not among the reported ids — its entry stays live.
+      const topRow = element().querySelector('.comment')!;
+      await openMenuOf(topRow);
+      expect(reportItem()!.disabled).toBe(false);
     });
   });
 });

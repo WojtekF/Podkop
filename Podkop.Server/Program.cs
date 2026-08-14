@@ -25,7 +25,8 @@ builder.Services.AddDocuments(() => SampleSeed.StatuteVersions, () => SampleSeed
 // Reports are member-created and never seeded (issue #32), so the Moderation slice takes no seed.
 builder.Services.AddModeration();
 builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
-builder.Services.AddSingleton<IReportTargetLookup, FindingsBackedReportTargetLookup>();
+builder.Services.AddSingleton<IReportTargetLookup, ContentBackedReportTargetLookup>();
+builder.Services.AddSingleton<IFindingCommentsLookup, CommentsBackedFindingCommentsLookup>();
 // Scoped to match the ISender it dispatches the Documents slice's current-statute query through.
 builder.Services.AddScoped<IStatuteLookup, DocumentsBackedStatuteLookup>();
 builder.Services.AddSingleton(TimeProvider.System);

@@ -1,5 +1,5 @@
 <div class="report-dialog">
-  <h2 mat-dialog-title class="report-title">Report finding</h2>
+  <h2 mat-dialog-title class="report-title">{{ `Report ${targetLabel()}` }}</h2>
   @if (status() === 'loading') {
     <mat-dialog-content class="report-state loading">
       <mat-spinner />
