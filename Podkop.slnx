@@ -29,6 +29,13 @@
     <Project Path="Features/Moderation/Podkop.Moderation.Server/Podkop.Moderation.Server.csproj" />
     <Project Path="Features/Moderation/Podkop.Moderation.Tests/Podkop.Moderation.Tests.csproj" />
   </Folder>
+  <Folder Name="/Features/Users/">
+    <Project Path="Features/Users/Podkop.Users.Application/Podkop.Users.Application.csproj" />
+    <Project Path="Features/Users/Podkop.Users.Domain/Podkop.Users.Domain.csproj" />
+    <Project Path="Features/Users/Podkop.Users.Infrastructure/Podkop.Users.Infrastructure.csproj" />
+    <Project Path="Features/Users/Podkop.Users.Server/Podkop.Users.Server.csproj" />
+    <Project Path="Features/Users/Podkop.Users.Tests/Podkop.Users.Tests.csproj" />
+  </Folder>
   <Folder Name="/Shared/">
     <Project Path="Shared/Podkop.Shared.Infrastructure/Podkop.Shared.Infrastructure.csproj" />
   </Folder>
