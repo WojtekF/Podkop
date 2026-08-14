@@ -71,7 +71,38 @@ export class FindingDetail {
    * stays open, the member's choice and note intact. Cancel just closes it.
    */
   protected onReportComment(commentId: string): void {
-    throw new Error('not implemented');
+    const dialogRef = this.dialog.open(ReportDialog, { exitAnimationDuration: 0 });
+
+    const sync = effect(
+      () => {
+        dialogRef.componentRef?.setInput(
+          'pending',
+          this.store.commentReportPendingId() === commentId,
+        );
+        dialogRef.componentRef?.setInput('targetLabel', 'comment');
+      },
+      { injector: this.injector },
+    );
+
+    const closeOnReported = effect(
+      () => {
+        if ((this.store.myCommentReports() ?? []).includes(commentId)) dialogRef.close();
+      },
+      { injector: this.injector },
+    );
+
+    dialogRef.componentInstance.cancel.subscribe(() => {
+      dialogRef.close();
+    });
+
+    dialogRef.componentInstance.fileReport.subscribe((report) => {
+      this.store.fileCommentReport({ ...report, commentId });
+    });
+
+    dialogRef.afterClosed().subscribe(() => {
+      sync.destroy();
+      closeOnReported.destroy();
+    });
   }
 
   protected openReportDialog() {

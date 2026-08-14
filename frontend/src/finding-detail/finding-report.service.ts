@@ -58,11 +58,15 @@ export class FindingReportService {
    * request for the whole thread list, loaded with the page (issue #33).
    */
   getMyCommentReports(findingId: string): Observable<MyCommentReportsDto> {
-    throw new Error('not implemented');
+    return this.http
+      .get<MyCommentReportsDto>(`/api/findings/${findingId}/comments/my-reports`)
+      .pipe(timeout(5000));
   }
 
   /** Files the current user's one report on the comment; answers the fresh my-report state. */
   fileCommentReport(commentId: string, intent: FileReportIntent): Observable<MyReportDto> {
-    throw new Error('not implemented');
+    return this.http
+      .post<MyReportDto>(`/api/comments/${commentId}/my-report`, intent)
+      .pipe(timeout(5000));
   }
 }

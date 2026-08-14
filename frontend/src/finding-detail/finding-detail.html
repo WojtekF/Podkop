@@ -99,6 +99,8 @@
           (composerDraftChange)="
             store.updateComposerDraft({ composerKey: thread.id, text: $event })
           "
+          (report)="onReportComment($event)"
+          [reportedCommentIds]="store.myCommentReports() ?? []"
         />
       </mat-card>
     }
