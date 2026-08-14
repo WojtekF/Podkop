@@ -72,35 +72,37 @@ export class FindingDetail {
    * stays open, the member's choice and note intact. Cancel just closes it.
    */
   protected onReportComment(commentId: string): void {
-    this.openReport(
-      (dialogRef) => {
+    this.openReport({
+      closeWhenReported: (dialogRef) => {
         if ((this.store.myCommentReportIds() ?? []).includes(commentId)) dialogRef.close();
       },
-      (report) => {
+      fileReport: (report) => {
         this.store.fileCommentReport({ ...report, commentId });
       },
-      () => this.store.commentReportPendingId() === commentId,
-      'comment',
-    );
+      isPending: () => this.store.commentReportPendingId() === commentId,
+      targetLabel: 'comment',
+    });
   }
 
-  private openReport(
-    closeOnReportedEffect: (dialog: MatDialogRef<ReportDialog, any>) => void,
-    fileReportCallback: (intent: FileReportIntent) => void,
-    pendingValueFactory: () => boolean,
-    targetLabel: ReportLabel,
-  ): void {
-    const dialogRef = this.dialog.open(ReportDialog, { exitAnimationDuration: 0 });
+  private openReport({
+    closeWhenReported,
+    fileReport,
+    isPending,
+    targetLabel,
+  }: OpenReportConfig): void {
+    const dialogRef = this.dialog.open<ReportDialog, void, void>(ReportDialog, {
+      exitAnimationDuration: 0,
+    });
 
     const sync = effect(
       () => {
-        dialogRef.componentRef?.setInput('pending', pendingValueFactory());
+        dialogRef.componentRef?.setInput('pending', isPending());
         dialogRef.componentRef?.setInput('targetLabel', targetLabel);
       },
       { injector: this.injector },
     );
 
-    const closeOnReported = effect(() => closeOnReportedEffect(dialogRef), {
+    const closeOnReported = effect(() => closeWhenReported(dialogRef), {
       injector: this.injector,
     });
 
@@ -108,7 +110,7 @@ export class FindingDetail {
       dialogRef.close();
     });
 
-    dialogRef.componentInstance.fileReport.subscribe(fileReportCallback);
+    dialogRef.componentInstance.fileReport.subscribe(fileReport);
 
     dialogRef.afterClosed().subscribe(() => {
       sync.destroy();
@@ -117,16 +119,16 @@ export class FindingDetail {
   }
 
   protected openReportFinding() {
-    this.openReport(
-      (dialogRef) => {
+    this.openReport({
+      closeWhenReported: (dialogRef) => {
         if (this.store.myReport()) dialogRef.close();
       },
-      (report) => {
+      fileReport: (report) => {
         this.store.fileFindingReport(report);
       },
-      () => this.store.reportPending(),
-      'finding',
-    );
+      isPending: () => this.store.reportPending(),
+      targetLabel: 'finding',
+    });
   }
 
   private readonly injector = inject(Injector);
@@ -157,3 +159,10 @@ export class FindingDetail {
     });
   }
 }
+
+type OpenReportConfig = {
+  closeWhenReported: (dialog: MatDialogRef<ReportDialog, void>) => void;
+  fileReport: (intent: FileReportIntent) => void;
+  isPending: () => boolean;
+  targetLabel: ReportLabel;
+};

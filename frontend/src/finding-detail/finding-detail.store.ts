@@ -300,8 +300,8 @@ export const FindingDetailStore = signalStore(
         ),
       );
 
-      const fileReport = <U extends FileReportIntent>({
-        actionObservable,
+      const makeFileReport = <U extends FileReportIntent>({
+        fileRequest,
         conflictPatch,
         finalErrorPatch,
         patchBefore,
@@ -315,7 +315,7 @@ export const FindingDetailStore = signalStore(
             // not touch state, or its dialog would show a pending report that never files.
             exhaustMap((intent) => {
               patchState(store, patchBefore(intent));
-              return actionObservable(intent).pipe(
+              return fileRequest(intent).pipe(
                 tapResponse({
                   next: () => {
                     patchState(store, successPatch(intent));
@@ -347,9 +347,9 @@ export const FindingDetailStore = signalStore(
        * other failure leaves the state untouched and announces itself in a snackbar. Filing
        * never touches the finding's score or vote state (ADR 0008).
        */
-      const fileFindingReport = fileReport({
+      const fileFindingReport = makeFileReport({
         patchBefore: (_) => ({ reportPending: true }),
-        actionObservable: (intent: FileReportIntent) =>
+        fileRequest: (intent: FileReportIntent) =>
           reportService.fileReport(store.finding()!.id, intent),
         successPatch: (_) => ({ myReport: true, reportPending: false }),
         conflictPatch: (_) => ({ myReport: true }),
@@ -369,9 +369,9 @@ export const FindingDetailStore = signalStore(
        * untouched ("Couldn't submit the report"). Filing never touches any score or vote state
        * (ADR 0008).
        */
-      const fileCommentReport = fileReport<FileCommentReportIntent>({
+      const fileCommentReport = makeFileReport<FileCommentReportIntent>({
         patchBefore: (intent) => ({ commentReportPendingId: intent.commentId }),
-        actionObservable: ({ note, statutePointId, commentId }: FileCommentReportIntent) =>
+        fileRequest: ({ note, statutePointId, commentId }: FileCommentReportIntent) =>
           reportService.fileCommentReport(commentId, { note, statutePointId }),
         successPatch: ({ commentId }) => ({
           myCommentReportIds: [...(store.myCommentReportIds() ?? []), commentId],
@@ -402,7 +402,7 @@ export const FindingDetailStore = signalStore(
 
 type FileReportConfig<U extends FileReportIntent> = {
   patchBefore: (intent: U) => Partial<FindingDetailState>;
-  actionObservable: (intent: U) => Observable<unknown>;
+  fileRequest: (intent: U) => Observable<unknown>;
   successPatch: (intent: U) => Partial<FindingDetailState>;
   conflictPatch: (intent: U) => Partial<FindingDetailState>;
   finalErrorPatch: Partial<FindingDetailState>;
