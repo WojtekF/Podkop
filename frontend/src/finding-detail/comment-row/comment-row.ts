@@ -41,7 +41,5 @@ export class CommentRow {
 
   protected readonly isButtonDisabled = computed(() => this.votePending() || this.isOwnComment());
 
-  protected isActionMenuVisible() {
-    return !this.isOwnComment();
-  }
+  protected readonly isActionMenuVisible = computed(() => !this.isOwnComment());
 }

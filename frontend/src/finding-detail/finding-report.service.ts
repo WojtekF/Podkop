@@ -38,7 +38,7 @@ export interface MyCommentReportsDto {
 @Injectable({
   providedIn: 'root',
 })
-export class FindingReportService {
+export class ReportService {
   private readonly http = inject(HttpClient);
 
   /** Whether the current user already reported the finding. */

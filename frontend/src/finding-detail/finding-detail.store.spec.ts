@@ -696,7 +696,7 @@ describe('FindingDetailStore', () => {
     it('filing POSTs the cited point and note to my-report', () => {
       loadReportable();
 
-      store.fileReport({ statutePointId: spamPointId, note: 'Links a spam farm.' });
+      store.fileFindingReport({ statutePointId: spamPointId, note: 'Links a spam farm.' });
 
       const req = expectFileRequest();
       expect(req.request.body).toEqual({
@@ -708,7 +708,7 @@ describe('FindingDetailStore', () => {
     it('a successful filing marks the finding reported and confirms in a snackbar', () => {
       loadReportable();
 
-      store.fileReport({ statutePointId: spamPointId, note: null });
+      store.fileFindingReport({ statutePointId: spamPointId, note: null });
       expectFileRequest().flush(myReport({ reported: true }), {
         status: 201,
         statusText: 'Created',
@@ -723,7 +723,7 @@ describe('FindingDetailStore', () => {
     it('marks the report pending while its request is in flight, and only then', () => {
       loadReportable();
 
-      store.fileReport({ statutePointId: spamPointId, note: null });
+      store.fileFindingReport({ statutePointId: spamPointId, note: null });
       expect(store.reportPending()).toBe(true);
 
       expectFileRequest().flush(myReport({ reported: true }), {
@@ -736,8 +736,8 @@ describe('FindingDetailStore', () => {
     it('a second filing while one is in flight is ignored — a single request goes out', () => {
       loadReportable();
 
-      store.fileReport({ statutePointId: spamPointId, note: null });
-      store.fileReport({ statutePointId: spamPointId, note: null });
+      store.fileFindingReport({ statutePointId: spamPointId, note: null });
+      store.fileFindingReport({ statutePointId: spamPointId, note: null });
 
       const open = httpMock.match({ method: 'POST', url: `/api/findings/${id}/my-report` });
       expect(open.length).toBe(1);
@@ -747,7 +747,7 @@ describe('FindingDetailStore', () => {
     it('the duplicate refusal also marks the finding reported — the server already holds my report', () => {
       loadReportable();
 
-      store.fileReport({ statutePointId: spamPointId, note: null });
+      store.fileFindingReport({ statutePointId: spamPointId, note: null });
       expectFileRequest().flush(
         { type: 'podkop:problem:already-reported' },
         { status: 409, statusText: 'Conflict' },
@@ -762,7 +762,7 @@ describe('FindingDetailStore', () => {
     it('any other failure leaves the state untouched and announces itself', () => {
       loadReportable();
 
-      store.fileReport({ statutePointId: spamPointId, note: null });
+      store.fileFindingReport({ statutePointId: spamPointId, note: null });
       expectFileRequest().flush('boom', { status: 500, statusText: 'Server Error' });
 
       expect(store.myReport()).toBe(false);
@@ -775,7 +775,7 @@ describe('FindingDetailStore', () => {
       loadReportable();
       const before = store.finding();
 
-      store.fileReport({ statutePointId: spamPointId, note: null });
+      store.fileFindingReport({ statutePointId: spamPointId, note: null });
       expectFileRequest().flush(myReport({ reported: true }), {
         status: 201,
         statusText: 'Created',

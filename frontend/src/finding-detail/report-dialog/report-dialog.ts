@@ -21,7 +21,7 @@ export interface ReportablePointOption {
 
 export type ReportDialogStatus = 'loading' | 'error' | 'loaded';
 
-export type ReportTargetType = 'finding' | 'comment';
+export type ReportLabel = 'finding' | 'comment';
 
 /**
  * The report dialog (issue #32): on creation it requests the current Statute through the
@@ -61,7 +61,7 @@ export class ReportDialog {
    * The kind of content being reported (issue #33) — the dialog serves findings and comments
    * with the same flow, naming the target kind in its title only.
    */
-  readonly targetLabel = input<ReportTargetType>('finding');
+  readonly targetLabel = input<ReportLabel>('finding');
 
   readonly fileReport = output<FileReportIntent>();
   readonly cancel = output<void>();

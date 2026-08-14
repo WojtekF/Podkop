@@ -7,6 +7,7 @@ import {
   exhaustMap,
   forkJoin,
   mergeMap,
+  Observable,
   pipe,
   switchMap,
   tap,
@@ -27,7 +28,7 @@ import {
 import {
   FileCommentReportIntent,
   FileReportIntent,
-  FindingReportService,
+  ReportService,
   MyCommentReportsDto,
   MyReportDto,
 } from './finding-report.service';
@@ -96,7 +97,7 @@ export const FindingDetailStore = signalStore(
       store,
       service = inject(FindingDetailService),
       commentsService = inject(FindingCommentsService),
-      reportService = inject(FindingReportService),
+      reportService = inject(ReportService),
       snackBar = inject(MatSnackBar),
     ) => {
       const load = rxMethod<string>(
@@ -298,6 +299,43 @@ export const FindingDetailStore = signalStore(
         ),
       );
 
+      const fileReport = <U extends FileReportIntent, T>(
+        patchBefore: (intent: U) => Partial<FindingDetailState>,
+        actionObservable: (intent: U) => Observable<T>,
+        successPatch: (intent: U) => Partial<FindingDetailState>,
+        conflictPatch: (intent: U) => Partial<FindingDetailState>,
+        finalErrorPatch: Partial<FindingDetailState>,
+        target: string,
+      ) =>
+        rxMethod<U>(
+          pipe(
+            tap((intent) => {
+              patchState(store, patchBefore(intent));
+            }),
+            exhaustMap((intent) =>
+              actionObservable(intent).pipe(
+                tapResponse({
+                  next: () => {
+                    patchState(store, successPatch(intent));
+                    snackBar.open('Report submitted');
+                  },
+                  error: (error) => {
+                    if (error instanceof TimeoutError) {
+                      snackBar.open('The report request has timed out. Try again.');
+                    } else if (error instanceof HttpErrorResponse && error.status === 409) {
+                      patchState(store, conflictPatch(intent));
+                      snackBar.open(`The ${target} is already reported.`);
+                    } else {
+                      snackBar.open("Couldn't submit the report");
+                    }
+                    patchState(store, finalErrorPatch);
+                  },
+                }),
+              ),
+            ),
+          ),
+        );
+
       /**
        * Files the current user's report on this finding (issue #32), citing one reportable
        * Statute Point and optionally carrying a short note, through the FindingReportService.
@@ -307,33 +345,13 @@ export const FindingDetailStore = signalStore(
        * other failure leaves the state untouched and announces itself in a snackbar. Filing
        * never touches the finding's score or vote state (ADR 0008).
        */
-      const fileReport = rxMethod<FileReportIntent>(
-        pipe(
-          tap(() => {
-            patchState(store, { reportPending: true });
-          }),
-          exhaustMap((intent) =>
-            reportService.fileReport(store.finding()!.id, intent).pipe(
-              tapResponse({
-                next: (result) => {
-                  patchState(store, { myReport: result.reported, reportPending: false });
-                  snackBar.open('Report submitted');
-                },
-                error: (error) => {
-                  if (error instanceof TimeoutError) {
-                    snackBar.open('The report request has timed out. Try again.');
-                  } else if (error instanceof HttpErrorResponse && error.status === 409) {
-                    patchState(store, { myReport: true });
-                    snackBar.open('The finding is already reported.');
-                  } else {
-                    snackBar.open("Couldn't submit the report");
-                  }
-                  patchState(store, { reportPending: false });
-                },
-              }),
-            ),
-          ),
-        ),
+      const fileFindingReport = fileReport(
+        (_) => ({ reportPending: true }),
+        (intent: FileReportIntent) => reportService.fileReport(store.finding()!.id, intent),
+        (_) => ({ myReport: true, reportPending: false }),
+        (_) => ({ myReport: true }),
+        { reportPending: false },
+        'finding',
       );
 
       /**
@@ -348,38 +366,19 @@ export const FindingDetailStore = signalStore(
        * untouched ("Couldn't submit the report"). Filing never touches any score or vote state
        * (ADR 0008).
        */
-      const fileCommentReport = rxMethod<FileCommentReportIntent>(
-        pipe(
-          tap((intent) => {
-            patchState(store, { commentReportPendingId: intent.commentId });
-          }),
-          exhaustMap(({ commentId, note, statutePointId }) =>
-            reportService.fileCommentReport(commentId, { note, statutePointId }).pipe(
-              tapResponse({
-                next: (result) => {
-                  patchState(store, {
-                    myCommentReports: [...(store.myCommentReports() ?? []), commentId],
-                    commentReportPendingId: null,
-                  });
-                  snackBar.open('Report submitted');
-                },
-                error: (error) => {
-                  if (error instanceof TimeoutError) {
-                    snackBar.open('The report request has timed out. Try again.');
-                  } else if (error instanceof HttpErrorResponse && error.status === 409) {
-                    patchState(store, {
-                      myCommentReports: [...(store.myCommentReports() ?? []), commentId],
-                    });
-                    snackBar.open('The comment is already reported.');
-                  } else {
-                    snackBar.open("Couldn't submit the report");
-                  }
-                  patchState(store, { commentReportPendingId: null });
-                },
-              }),
-            ),
-          ),
-        ),
+      const fileCommentReport = fileReport<FileCommentReportIntent, MyReportDto>(
+        (intent) => ({ commentReportPendingId: intent.commentId }),
+        ({ note, statutePointId, commentId }: FileCommentReportIntent) =>
+          reportService.fileCommentReport(commentId, { note, statutePointId }),
+        ({ commentId }) => ({
+          myCommentReports: [...(store.myCommentReports() ?? []), commentId],
+          commentReportPendingId: null,
+        }),
+        ({ commentId }) => ({
+          myCommentReports: [...(store.myCommentReports() ?? []), commentId],
+        }),
+        { commentReportPendingId: null },
+        'comment',
       );
 
       return {
@@ -391,7 +390,7 @@ export const FindingDetailStore = signalStore(
         updateComposerDraft,
         closeOrResetComposer,
         postComment,
-        fileReport,
+        fileFindingReport,
         fileCommentReport,
       };
     },

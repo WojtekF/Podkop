@@ -18,8 +18,9 @@ import { CommentThread, CommentVote } from './comment-thread/comment-thread';
 import { FindingVote } from './finding-vote/finding-vote';
 import { BuryReason } from './finding-detail.service';
 import { CommentComposer } from './comment-composer/comment-composer';
-import { MatDialog } from '@angular/material/dialog';
-import { ReportDialog } from './report-dialog/report-dialog';
+import { MatDialog, MatDialogRef } from '@angular/material/dialog';
+import { ReportDialog, ReportLabel } from './report-dialog/report-dialog';
+import { FileReportIntent } from './finding-report.service';
 
 @Component({
   selector: 'app-finding-detail',
@@ -71,33 +72,43 @@ export class FindingDetail {
    * stays open, the member's choice and note intact. Cancel just closes it.
    */
   protected onReportComment(commentId: string): void {
+    this.onReport(
+      (dialogRef) => {
+        if ((this.store.myCommentReports() ?? []).includes(commentId)) dialogRef.close();
+      },
+      (report) => {
+        this.store.fileCommentReport({ ...report, commentId });
+      },
+      () => this.store.commentReportPendingId() === commentId,
+      'comment',
+    );
+  }
+
+  private onReport(
+    closeOnReportedEffect: (dialog: MatDialogRef<ReportDialog, any>) => void,
+    fileReportSubsription: (intent: FileReportIntent) => void,
+    pendingValueFactory: () => boolean,
+    targetLabel: ReportLabel,
+  ): void {
     const dialogRef = this.dialog.open(ReportDialog, { exitAnimationDuration: 0 });
 
     const sync = effect(
       () => {
-        dialogRef.componentRef?.setInput(
-          'pending',
-          this.store.commentReportPendingId() === commentId,
-        );
-        dialogRef.componentRef?.setInput('targetLabel', 'comment');
+        dialogRef.componentRef?.setInput('pending', pendingValueFactory());
+        dialogRef.componentRef?.setInput('targetLabel', targetLabel);
       },
       { injector: this.injector },
     );
 
-    const closeOnReported = effect(
-      () => {
-        if ((this.store.myCommentReports() ?? []).includes(commentId)) dialogRef.close();
-      },
-      { injector: this.injector },
-    );
+    const closeOnReported = effect(() => closeOnReportedEffect(dialogRef), {
+      injector: this.injector,
+    });
 
     dialogRef.componentInstance.cancel.subscribe(() => {
       dialogRef.close();
     });
 
-    dialogRef.componentInstance.fileReport.subscribe((report) => {
-      this.store.fileCommentReport({ ...report, commentId });
-    });
+    dialogRef.componentInstance.fileReport.subscribe(fileReportSubsription);
 
     dialogRef.afterClosed().subscribe(() => {
       sync.destroy();
@@ -105,33 +116,17 @@ export class FindingDetail {
     });
   }
 
-  protected openReportDialog() {
-    const dialogRef = this.dialog.open(ReportDialog, { exitAnimationDuration: 0 });
-
-    const sync = effect(
-      () => dialogRef.componentRef?.setInput('pending', this.store.reportPending()),
-      { injector: this.injector },
-    );
-
-    const closeOnReported = effect(
-      () => {
+  protected openReportFinding() {
+    this.onReport(
+      (dialogRef) => {
         if (this.store.myReport()) dialogRef.close();
       },
-      { injector: this.injector },
+      (report) => {
+        this.store.fileFindingReport(report);
+      },
+      () => this.store.reportPending(),
+      'finding',
     );
-
-    dialogRef.componentInstance.cancel.subscribe(() => {
-      dialogRef.close();
-    });
-
-    dialogRef.componentInstance.fileReport.subscribe((report) => {
-      this.store.fileReport(report);
-    });
-
-    dialogRef.afterClosed().subscribe(() => {
-      sync.destroy();
-      closeOnReported.destroy();
-    });
   }
 
   private readonly injector = inject(Injector);

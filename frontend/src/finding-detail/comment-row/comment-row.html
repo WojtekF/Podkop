@@ -33,7 +33,7 @@
       <button mat-button class="reply-button" (click)="reply.emit()">Reply</button>
       @if (isActionMenuVisible()) {
         <button
-          [class]="{ 'comment-menu-button': true }"
+          class="comment-menu-button"
           matIconButton
           [matMenuTriggerFor]="menu"
           aria-label="Comment actions"
@@ -42,7 +42,7 @@
         </button>
         <mat-menu #menu>
           <button
-            [class]="{ 'report-menu-item': true }"
+            class="report-menu-item"
             mat-menu-item
             [disabled]="reportedByMe()"
             (click)="report.emit()"

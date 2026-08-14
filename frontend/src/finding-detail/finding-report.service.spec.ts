@@ -1,11 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { FindingReportService, MyCommentReportsDto, MyReportDto } from './finding-report.service';
+import { ReportService, MyCommentReportsDto, MyReportDto } from './finding-report.service';
 import { findingId as id, myCommentReports, myReport } from './finding-detail.fixtures';
 
 describe('FindingReportService', () => {
-  let service: FindingReportService;
+  let service: ReportService;
   let httpMock: HttpTestingController;
 
   const endpoint = `/api/findings/${id}/my-report`;
@@ -14,7 +14,7 @@ describe('FindingReportService', () => {
     TestBed.configureTestingModule({
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
-    service = TestBed.inject(FindingReportService);
+    service = TestBed.inject(ReportService);
     httpMock = TestBed.inject(HttpTestingController);
   });
 
