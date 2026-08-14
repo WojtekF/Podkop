@@ -5,7 +5,7 @@ import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatIcon } from '@angular/material/icon';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { CURRENT_USER } from '../current-user';
-import { MatMenu, MatMenuTrigger } from '@angular/material/menu';
+import { MatMenu, MatMenuTrigger, MatMenuItem } from '@angular/material/menu';
 
 @Component({
   selector: 'app-comment-row',
@@ -18,6 +18,7 @@ import { MatMenu, MatMenuTrigger } from '@angular/material/menu';
     MatButton,
     MatMenu,
     MatMenuTrigger,
+    MatMenuItem,
   ],
   templateUrl: './comment-row.html',
   styleUrl: './comment-row.scss',
