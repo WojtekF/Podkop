@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { statute } from '../../documents/documents.fixtures';
-import { FileReportIntent } from '../finding-report.service';
+import { FileReportIntent } from '../report.service';
 import { REPORT_NOTE_MAX_LENGTH, ReportDialog } from './report-dialog';
 
 describe('ReportDialog', () => {

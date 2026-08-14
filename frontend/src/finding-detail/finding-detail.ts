@@ -10,7 +10,7 @@ import {
   viewChildren,
 } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { FindingDetailStore, TOP_COMPOSER_KEY } from './finding-detail.store';
+import { FindingDetailStore, ReportLabel, TOP_COMPOSER_KEY } from './finding-detail.store';
 import { MatButton } from '@angular/material/button';
 import { DatePipe } from '@angular/common';
 import { MatCard, MatCardActions, MatCardContent } from '@angular/material/card';
@@ -19,8 +19,8 @@ import { FindingVote } from './finding-vote/finding-vote';
 import { BuryReason } from './finding-detail.service';
 import { CommentComposer } from './comment-composer/comment-composer';
 import { MatDialog, MatDialogRef } from '@angular/material/dialog';
-import { ReportDialog, ReportLabel } from './report-dialog/report-dialog';
-import { FileReportIntent } from './finding-report.service';
+import { ReportDialog } from './report-dialog/report-dialog';
+import { FileReportIntent } from './report.service';
 
 @Component({
   selector: 'app-finding-detail',
@@ -72,9 +72,9 @@ export class FindingDetail {
    * stays open, the member's choice and note intact. Cancel just closes it.
    */
   protected onReportComment(commentId: string): void {
-    this.onReport(
+    this.openReport(
       (dialogRef) => {
-        if ((this.store.myCommentReports() ?? []).includes(commentId)) dialogRef.close();
+        if ((this.store.myCommentReportIds() ?? []).includes(commentId)) dialogRef.close();
       },
       (report) => {
         this.store.fileCommentReport({ ...report, commentId });
@@ -84,9 +84,9 @@ export class FindingDetail {
     );
   }
 
-  private onReport(
+  private openReport(
     closeOnReportedEffect: (dialog: MatDialogRef<ReportDialog, any>) => void,
-    fileReportSubsription: (intent: FileReportIntent) => void,
+    fileReportCallback: (intent: FileReportIntent) => void,
     pendingValueFactory: () => boolean,
     targetLabel: ReportLabel,
   ): void {
@@ -108,7 +108,7 @@ export class FindingDetail {
       dialogRef.close();
     });
 
-    dialogRef.componentInstance.fileReport.subscribe(fileReportSubsription);
+    dialogRef.componentInstance.fileReport.subscribe(fileReportCallback);
 
     dialogRef.afterClosed().subscribe(() => {
       sync.destroy();
@@ -117,7 +117,7 @@ export class FindingDetail {
   }
 
   protected openReportFinding() {
-    this.onReport(
+    this.openReport(
       (dialogRef) => {
         if (this.store.myReport()) dialogRef.close();
       },

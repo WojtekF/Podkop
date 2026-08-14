@@ -1,10 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
-import { ReportService, MyCommentReportsDto, MyReportDto } from './finding-report.service';
+import { ReportService, MyCommentReportsDto, MyReportDto } from './report.service';
 import { findingId as id, myCommentReports, myReport } from './finding-detail.fixtures';
 
-describe('FindingReportService', () => {
+describe('ReportService', () => {
   let service: ReportService;
   let httpMock: HttpTestingController;
 

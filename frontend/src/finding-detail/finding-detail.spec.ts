@@ -15,7 +15,7 @@ import {
   myReport,
   postedComment,
 } from './finding-detail.fixtures';
-import { MyCommentReportsDto, MyReportDto } from './finding-report.service';
+import { MyCommentReportsDto, MyReportDto } from './report.service';
 import { statute } from '../documents/documents.fixtures';
 import { FindingDetail } from './finding-detail';
 

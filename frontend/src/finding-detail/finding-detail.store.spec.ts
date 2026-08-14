@@ -51,7 +51,7 @@ describe('FindingDetailStore', () => {
     expect(store.finding()).toBeNull();
     expect(store.comments()).toBeNull();
     expect(store.myReport()).toBeNull();
-    expect(store.myCommentReports()).toBeNull();
+    expect(store.myCommentReportIds()).toBeNull();
     expect(store.commentReportPendingId()).toBeNull();
   });
 
@@ -116,7 +116,7 @@ describe('FindingDetailStore', () => {
     expectMyReportRequest(id).flush(myReport());
     expectMyCommentReportsRequest(id).flush(myCommentReports({ reportedCommentIds: reportedIds }));
 
-    expect(store.myCommentReports()).toEqual(reportedIds);
+    expect(store.myCommentReportIds()).toEqual(reportedIds);
   });
 
   it('keeps the threads exactly as the server ordered them', () => {
@@ -292,7 +292,7 @@ describe('FindingDetailStore', () => {
     expect(store.finding()?.title).toBe('Another finding');
     expect(store.comments()).toEqual([]);
     expect(store.myReport()).toBe(false);
-    expect(store.myCommentReports()).toEqual([]);
+    expect(store.myCommentReportIds()).toEqual([]);
   });
 
   describe('voting on a comment (issue #18)', () => {
@@ -831,7 +831,7 @@ describe('FindingDetailStore', () => {
         statusText: 'Created',
       });
 
-      expect(store.myCommentReports()).toContain(targetId());
+      expect(store.myCommentReportIds()).toContain(targetId());
       expect(store.commentReportPendingId()).toBeNull();
       expect(snackBar.open).toHaveBeenCalled();
       expect(String(snackBar.open.mock.calls[0]?.[0])).toContain('Report submitted');
@@ -846,7 +846,7 @@ describe('FindingDetailStore', () => {
         statusText: 'Created',
       });
 
-      expect(store.myCommentReports()).toContain(replyId());
+      expect(store.myCommentReportIds()).toContain(replyId());
     });
 
     it('a fresh filing joins comments already reported at load — nothing is forgotten', () => {
@@ -858,8 +858,8 @@ describe('FindingDetailStore', () => {
         statusText: 'Created',
       });
 
-      expect(store.myCommentReports()).toContain(targetId());
-      expect(store.myCommentReports()).toContain(replyId());
+      expect(store.myCommentReportIds()).toContain(targetId());
+      expect(store.myCommentReportIds()).toContain(replyId());
     });
 
     it('names the comment whose filing is in flight while it runs, and only then', () => {
@@ -898,7 +898,7 @@ describe('FindingDetailStore', () => {
         { status: 409, statusText: 'Conflict' },
       );
 
-      expect(store.myCommentReports()).toContain(targetId());
+      expect(store.myCommentReportIds()).toContain(targetId());
       expect(store.commentReportPendingId()).toBeNull();
       expect(snackBar.open).toHaveBeenCalled();
       expect(String(snackBar.open.mock.calls[0]?.[0])).toContain('already reported');
@@ -910,7 +910,7 @@ describe('FindingDetailStore', () => {
       store.fileCommentReport({ commentId: targetId(), statutePointId: spamPointId, note: null });
       expectFileRequest(targetId()).flush('boom', { status: 500, statusText: 'Server Error' });
 
-      expect(store.myCommentReports()).toEqual([]);
+      expect(store.myCommentReportIds()).toEqual([]);
       expect(store.commentReportPendingId()).toBeNull();
       expect(snackBar.open).toHaveBeenCalled();
       expect(String(snackBar.open.mock.calls[0]?.[0])).toContain("Couldn't submit the report");

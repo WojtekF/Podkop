@@ -1,13 +1,14 @@
 import { Component, computed, input, output, signal, inject } from '@angular/core';
 import { MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/material/dialog';
 import { DocumentsService } from '../../documents/documents.service';
-import { FileReportIntent } from '../finding-report.service';
+import { FileReportIntent } from '../report.service';
 import { asResult, isLoadFailure } from '../../shared/as-result';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatButton } from '@angular/material/button';
 import { MatSelectionList, MatListOption } from '@angular/material/list';
 import { MatFormField, MatLabel, MatHint } from '@angular/material/form-field';
 import { MatInput } from '@angular/material/input';
+import { ReportLabel } from '../finding-detail.store';
 
 /** The most text one report note may carry (issue #32); mirrors the backend's Report.MaxNoteLength. */
 export const REPORT_NOTE_MAX_LENGTH = 500;
@@ -20,8 +21,6 @@ export interface ReportablePointOption {
 }
 
 export type ReportDialogStatus = 'loading' | 'error' | 'loaded';
-
-export type ReportLabel = 'finding' | 'comment';
 
 /**
  * The report dialog (issue #32): on creation it requests the current Statute through the

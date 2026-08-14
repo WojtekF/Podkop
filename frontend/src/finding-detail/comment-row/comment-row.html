@@ -52,15 +52,5 @@
         </mat-menu>
       }
     </div>
-    <!--
-      Issue #33 — the comment report action (the colocated specs define done):
-      - Every comment authored by someone else carries an overflow (kebab) menu, opened by a
-        "button.comment-menu-button" with aria-label "Comment actions". The reader's own
-        comments show no such button at all — self-reports are refused, and with Report the
-        menu's only entry, an empty menu has nothing to offer.
-      - The opened menu holds one "button.report-menu-item". While this comment is not yet
-        reported it reads "Report" and is enabled; choosing it emits the `report` output.
-      - When `reportedByMe` is true the item reads "Reported" and is disabled; nothing emits.
-    -->
   </mat-card-content>
 </mat-card>

@@ -1,6 +1,6 @@
 import { CommentDto, CommentThreadDto } from './finding-comments.service';
 import { FindingDetailDto } from './finding-detail.service';
-import { MyCommentReportsDto, MyReportDto } from './finding-report.service';
+import { MyCommentReportsDto, MyReportDto } from './report.service';
 
 // Shared test data for the finding-detail specs (component, store, service).
 export const findingId = '0d4f9a3e-1111-4222-8333-444455556666';

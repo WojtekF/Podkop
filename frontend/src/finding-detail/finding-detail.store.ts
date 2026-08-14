@@ -31,11 +31,12 @@ import {
   ReportService,
   MyCommentReportsDto,
   MyReportDto,
-} from './finding-report.service';
+} from './report.service';
 import { tapResponse } from '@ngrx/operators';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 export type FindingDetailStatus = 'loading' | 'loaded' | 'notFound' | 'error';
+export type ReportLabel = 'finding' | 'comment';
 
 /**
  * One comment composer's state (issue #17). Composers live in the store keyed by
@@ -70,7 +71,7 @@ export interface FindingDetailState {
    * of the page load: the batch my-reports state arrives with the finding, its discussion, and
    * the finding's own my-report state, and the page shows one state for all four.
    */
-  myCommentReports: readonly string[] | null;
+  myCommentReportIds: readonly string[] | null;
   /** The comment whose report filing is in flight (issue #33) — null while none is. */
   commentReportPendingId: string | null;
   composers: Readonly<Record<string, ComposerState>>;
@@ -85,7 +86,7 @@ const initialState: FindingDetailState = {
   pendingFindingVote: false,
   myReport: null,
   reportPending: false,
-  myCommentReports: null,
+  myCommentReportIds: null,
   commentReportPendingId: null,
   composers: { [TOP_COMPOSER_KEY]: { draft: '', pending: false } },
 };
@@ -110,7 +111,7 @@ export const FindingDetailStore = signalStore(
                 finding: null,
                 comments: null,
                 myReport: null,
-                myCommentReports: null,
+                myCommentReportIds: null,
               });
             },
           }),
@@ -119,11 +120,11 @@ export const FindingDetailStore = signalStore(
               finding: asResult(service.getFinding(id)),
               comments: asResult(commentsService.getComments(id)),
               myReport: asResult(reportService.getMyReport(id)),
-              myCommentReports: asResult(reportService.getMyCommentReports(id)),
+              myCommentReportIds: asResult(reportService.getMyCommentReports(id)),
             }).pipe(
               tap({
-                next: ({ finding, comments, myReport, myCommentReports }) => {
-                  patchState(store, toPatch(finding, comments, myReport, myCommentReports));
+                next: ({ finding, comments, myReport, myCommentReportIds }) => {
+                  patchState(store, toPatch(finding, comments, myReport, myCommentReportIds));
                 },
               }),
             ),
@@ -299,14 +300,14 @@ export const FindingDetailStore = signalStore(
         ),
       );
 
-      const fileReport = <U extends FileReportIntent, T>(
-        patchBefore: (intent: U) => Partial<FindingDetailState>,
-        actionObservable: (intent: U) => Observable<T>,
-        successPatch: (intent: U) => Partial<FindingDetailState>,
-        conflictPatch: (intent: U) => Partial<FindingDetailState>,
-        finalErrorPatch: Partial<FindingDetailState>,
-        target: string,
-      ) =>
+      const fileReport = <U extends FileReportIntent>({
+        actionObservable,
+        conflictPatch,
+        finalErrorPatch,
+        patchBefore,
+        successPatch,
+        target,
+      }: FileReportConfig<U>) =>
         rxMethod<U>(
           pipe(
             tap((intent) => {
@@ -345,14 +346,15 @@ export const FindingDetailStore = signalStore(
        * other failure leaves the state untouched and announces itself in a snackbar. Filing
        * never touches the finding's score or vote state (ADR 0008).
        */
-      const fileFindingReport = fileReport(
-        (_) => ({ reportPending: true }),
-        (intent: FileReportIntent) => reportService.fileReport(store.finding()!.id, intent),
-        (_) => ({ myReport: true, reportPending: false }),
-        (_) => ({ myReport: true }),
-        { reportPending: false },
-        'finding',
-      );
+      const fileFindingReport = fileReport({
+        patchBefore: (_) => ({ reportPending: true }),
+        actionObservable: (intent: FileReportIntent) =>
+          reportService.fileReport(store.finding()!.id, intent),
+        successPatch: (_) => ({ myReport: true, reportPending: false }),
+        conflictPatch: (_) => ({ myReport: true }),
+        finalErrorPatch: { reportPending: false },
+        target: 'finding',
+      });
 
       /**
        * Files the current user's report on one comment of this discussion (issue #33), citing
@@ -366,20 +368,20 @@ export const FindingDetailStore = signalStore(
        * untouched ("Couldn't submit the report"). Filing never touches any score or vote state
        * (ADR 0008).
        */
-      const fileCommentReport = fileReport<FileCommentReportIntent, MyReportDto>(
-        (intent) => ({ commentReportPendingId: intent.commentId }),
-        ({ note, statutePointId, commentId }: FileCommentReportIntent) =>
+      const fileCommentReport = fileReport<FileCommentReportIntent>({
+        patchBefore: (intent) => ({ commentReportPendingId: intent.commentId }),
+        actionObservable: ({ note, statutePointId, commentId }: FileCommentReportIntent) =>
           reportService.fileCommentReport(commentId, { note, statutePointId }),
-        ({ commentId }) => ({
-          myCommentReports: [...(store.myCommentReports() ?? []), commentId],
+        successPatch: ({ commentId }) => ({
+          myCommentReportIds: [...(store.myCommentReportIds() ?? []), commentId],
           commentReportPendingId: null,
         }),
-        ({ commentId }) => ({
-          myCommentReports: [...(store.myCommentReports() ?? []), commentId],
+        conflictPatch: ({ commentId }) => ({
+          myCommentReportIds: [...(store.myCommentReportIds() ?? []), commentId],
         }),
-        { commentReportPendingId: null },
-        'comment',
-      );
+        finalErrorPatch: { commentReportPendingId: null },
+        target: 'comment',
+      });
 
       return {
         load,
@@ -396,6 +398,15 @@ export const FindingDetailStore = signalStore(
     },
   ),
 );
+
+type FileReportConfig<U extends FileReportIntent> = {
+  patchBefore: (intent: U) => Partial<FindingDetailState>;
+  actionObservable: (intent: U) => Observable<unknown>;
+  successPatch: (intent: U) => Partial<FindingDetailState>;
+  conflictPatch: (intent: U) => Partial<FindingDetailState>;
+  finalErrorPatch: Partial<FindingDetailState>;
+  target: ReportLabel;
+};
 
 const filterFromPendingVotes = (pendingVotes: readonly string[], commentId: string) =>
   pendingVotes.filter((votes) => votes !== commentId);
@@ -426,20 +437,20 @@ const toPatch = (
   finding: LoadResult<FindingDetailDto>,
   comments: LoadResult<CommentThreadDto[]>,
   myReport: LoadResult<MyReportDto>,
-  myCommentReports: LoadResult<MyCommentReportsDto>,
+  myCommentReportIds: LoadResult<MyCommentReportsDto>,
 ): Partial<FindingDetailState> => {
   if (
     isNotFound(finding) ||
     isNotFound(comments) ||
     isNotFound(myReport) ||
-    isNotFound(myCommentReports)
+    isNotFound(myCommentReportIds)
   )
     return { status: 'notFound' };
   if (
     isLoadFailure(finding) ||
     isLoadFailure(comments) ||
     isLoadFailure(myReport) ||
-    isLoadFailure(myCommentReports)
+    isLoadFailure(myCommentReportIds)
   )
     return { status: 'error' };
   return {
@@ -447,7 +458,7 @@ const toPatch = (
     finding,
     comments,
     myReport: myReport.reported,
-    myCommentReports: myCommentReports.reportedCommentIds,
+    myCommentReportIds: myCommentReportIds.reportedCommentIds,
   };
 };
 
