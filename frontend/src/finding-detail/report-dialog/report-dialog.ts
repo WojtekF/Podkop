@@ -1,10 +1,8 @@
-import { Component, computed, input, output, signal, inject, effect } from '@angular/core';
+import { Component, computed, input, output, signal, inject } from '@angular/core';
 import { MatDialogTitle, MatDialogContent, MatDialogActions } from '@angular/material/dialog';
 import { DocumentsService } from '../../documents/documents.service';
 import { FileReportIntent } from '../finding-report.service';
-import { TimeoutError } from 'rxjs';
 import { asResult, isLoadFailure } from '../../shared/as-result';
-import { HttpErrorResponse } from '@angular/common/http';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { MatButton } from '@angular/material/button';
 import { MatSelectionList, MatListOption } from '@angular/material/list';
@@ -22,6 +20,8 @@ export interface ReportablePointOption {
 }
 
 export type ReportDialogStatus = 'loading' | 'error' | 'loaded';
+
+export type ReportTargetType = 'finding' | 'comment';
 
 /**
  * The report dialog (issue #32): on creation it requests the current Statute through the
@@ -61,7 +61,7 @@ export class ReportDialog {
    * The kind of content being reported (issue #33) — the dialog serves findings and comments
    * with the same flow, naming the target kind in its title only.
    */
-  readonly targetLabel = input<'finding' | 'comment'>('finding');
+  readonly targetLabel = input<ReportTargetType>('finding');
 
   readonly fileReport = output<FileReportIntent>();
   readonly cancel = output<void>();
