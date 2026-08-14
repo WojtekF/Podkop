@@ -5,10 +5,20 @@ import { MatCard, MatCardContent } from '@angular/material/card';
 import { MatIcon } from '@angular/material/icon';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { CURRENT_USER } from '../current-user';
+import { MatMenu, MatMenuTrigger } from '@angular/material/menu';
 
 @Component({
   selector: 'app-comment-row',
-  imports: [TimeAgoPipe, MatCard, MatCardContent, MatIconButton, MatIcon, MatButton],
+  imports: [
+    TimeAgoPipe,
+    MatCard,
+    MatCardContent,
+    MatIconButton,
+    MatIcon,
+    MatButton,
+    MatMenu,
+    MatMenuTrigger,
+  ],
   templateUrl: './comment-row.html',
   styleUrl: './comment-row.scss',
 })
@@ -29,4 +39,8 @@ export class CommentRow {
   protected readonly isOwnComment = computed(() => this.comment().author === CURRENT_USER);
 
   protected readonly isButtonDisabled = computed(() => this.votePending() || this.isOwnComment());
+
+  protected isActionMenuVisible() {
+    return !this.isOwnComment();
+  }
 }

@@ -153,6 +153,14 @@ describe('CommentThread', () => {
       fixture.detectChanges();
     };
 
+    // Dismissed the way a reader dismisses it — clicking away — so the next menu opened in the
+    // same spec is the only one on the document.
+    const closeMenu = async () => {
+      document.querySelector<HTMLElement>('.cdk-overlay-backdrop')!.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+    };
+
     afterEach(() => {
       // An overlay-hosted menu outlives its fixture — torn down so specs stay independent.
       document.querySelectorAll('.cdk-overlay-container').forEach((el) => el.remove());
@@ -193,7 +201,7 @@ describe('CommentThread', () => {
       await openMenuOf(replyRow);
       expect(reportItem()!.disabled).toBe(true);
       expect(reportItem()!.textContent).toContain('Reported');
-      document.querySelectorAll('.cdk-overlay-container').forEach((el) => el.remove());
+      await closeMenu();
 
       // The top-level comment is not among the reported ids — its entry stays live.
       const topRow = element().querySelector('.comment')!;

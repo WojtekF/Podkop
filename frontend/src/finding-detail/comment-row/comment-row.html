@@ -31,6 +31,26 @@
     <div class="text">{{ comment().text }}</div>
     <div class="comment-row-actions">
       <button mat-button class="reply-button" (click)="reply.emit()">Reply</button>
+      @if (isActionMenuVisible()) {
+        <button
+          [class]="{ 'comment-menu-button': true }"
+          matIconButton
+          [matMenuTriggerFor]="menu"
+          aria-label="Comment actions"
+        >
+          <mat-icon>menu</mat-icon>
+        </button>
+        <mat-menu #menu>
+          <button
+            [class]="{ 'report-menu-item': true }"
+            mat-menu-item
+            [disabled]="reportedByMe()"
+            (click)="report.emit()"
+          >
+            {{ reportedByMe() ? 'Reported' : 'Report' }}
+          </button>
+        </mat-menu>
+      }
     </div>
     <!--
       Issue #33 — the comment report action (the colocated specs define done):
