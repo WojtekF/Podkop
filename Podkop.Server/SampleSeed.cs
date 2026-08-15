@@ -3,6 +3,7 @@ using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 using Podkop.Documents.Infrastructure;
+using Podkop.Users.Infrastructure;
 
 namespace Podkop.Server;
 
@@ -28,10 +29,17 @@ internal static class SampleSeed
     private static readonly Lazy<IReadOnlyList<Podkop.Documents.Domain.PrivacyPolicyVersion>> PrivacyPolicies =
         new(SamplePrivacyPolicyVersions.Generate);
 
+    // User records are independent of the finding/comment coherence pact too — they derive
+    // from the same author vocabulary, not from the generated content — so hitting the
+    // my-user endpoint never generates findings, and vice versa.
+    private static readonly Lazy<IReadOnlyList<Podkop.Users.Domain.User>> UserRecords =
+        new(SampleUsers.Generate);
+
     public static IReadOnlyList<Finding> Findings => Data.Value.Findings;
     public static IReadOnlyList<Comment> Comments => Data.Value.Comments;
     public static IReadOnlyList<Podkop.Documents.Domain.StatuteVersion> StatuteVersions => Statutes.Value;
     public static IReadOnlyList<Podkop.Documents.Domain.PrivacyPolicyVersion> PrivacyPolicyVersions => PrivacyPolicies.Value;
+    public static IReadOnlyList<Podkop.Users.Domain.User> Users => UserRecords.Value;
 
     private static (IReadOnlyList<Finding> Findings, IReadOnlyList<Comment> Comments) Generate()
     {

@@ -9,6 +9,8 @@ using Podkop.Moderation.Server;
 using Podkop.Server;
 using Podkop.Documents.Infrastructure;
 using Podkop.Documents.Server;
+using Podkop.Users.Infrastructure;
+using Podkop.Users.Server;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,6 +26,7 @@ builder.Services.AddFindingComments(() => SampleSeed.Comments);
 builder.Services.AddDocuments(() => SampleSeed.StatuteVersions, () => SampleSeed.PrivacyPolicyVersions);
 // Reports are member-created and never seeded (issue #32), so the Moderation slice takes no seed.
 builder.Services.AddModeration();
+builder.Services.AddUsers(() => SampleSeed.Users);
 builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
 builder.Services.AddSingleton<IReportTargetLookup, ContentBackedReportTargetLookup>();
 builder.Services.AddSingleton<IFindingCommentsLookup, CommentsBackedFindingCommentsLookup>();
@@ -36,6 +39,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<Podkop.FindingComments.Application.ICurrentUser, StubCurrentUser>();
 builder.Services.AddSingleton<Podkop.Findings.Application.ICurrentUser, StubCurrentUser>();
 builder.Services.AddSingleton<Podkop.Moderation.Application.ICurrentUser, StubCurrentUser>();
+builder.Services.AddSingleton<Podkop.Users.Application.ICurrentUser, StubCurrentUser>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -56,6 +60,7 @@ app.MapFindings();
 app.MapFindingComments();
 app.MapDocuments();
 app.MapModeration();
+app.MapUsers();
 
 app.MapDefaultEndpoints();
 
