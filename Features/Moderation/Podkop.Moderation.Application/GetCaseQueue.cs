@@ -1,4 +1,5 @@
 using MediatR;
+using Podkop.Moderation.Domain;
 
 namespace Podkop.Moderation.Application;
 
@@ -84,6 +85,77 @@ public sealed class GetCaseQueueHandler(
     IStatuteLookup statuteLookup)
     : IRequestHandler<GetCaseQueue, CaseQueueResult>
 {
-    public Task<CaseQueueResult> Handle(GetCaseQueue request, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task<CaseQueueResult> Handle(GetCaseQueue request, CancellationToken cancellationToken)
+    {
+        if (!await moderatorLookup.IsModeratorAsync(currentUser.UserName, cancellationToken))
+            return new CaseQueueResult(CaseQueueOutcome.NotModerator, null);
+
+        var reports = await reportsRepository.GetAllAsync(cancellationToken);
+        var groupedReports = reports
+            .OrderBy(report => report.FiledAt)
+            .ThenBy(report => report.TargetId)
+            .GroupBy(report => (Kind: report.TargetKind, Id: report.TargetId));
+
+        var caseSummaries = await MapGroupedReportsToCaseSummary(groupedReports, cancellationToken);
+        return new CaseQueueResult(
+            CaseQueueOutcome.Listed,
+            caseSummaries
+            .Where(c => c != null)
+            .Cast<CaseSummary>()
+            .ToList());
+    }
+
+    private async ValueTask<IEnumerable<CaseSummary?>> MapGroupedReportsToCaseSummary(
+        IEnumerable<IGrouping<(ReportTargetKind Kind, Guid Id), Report>> groupedReports,
+        CancellationToken cancellationToken) =>
+        await groupedReports
+        .ToAsyncEnumerable()
+        .Select(MapGroupedReportsToCase)
+        .ToListAsync(cancellationToken);
+
+    private async ValueTask<CaseSummary?> MapGroupedReportsToCase(
+        IGrouping<(ReportTargetKind Kind, Guid Id ), Report> group, CancellationToken cancellationToken)
+    {
+        var sortedReport = group
+            .OrderBy(value => value.FiledAt)
+            .ThenByDescending(value => value.Id)
+            .ToList();
+
+        var @case = await caseContentLookup.GetAsync(
+            group.Key.Kind,
+            group.Key.Id,
+            cancellationToken);
+
+        return @case is null
+            ? null
+            : new CaseSummary(
+                group.Key.Kind.ToString(),
+                group.Key.Id,
+                @case.FindingId,
+                @case.Preview.Length > CaseSummary.MaxPreviewLength
+                    ? @case.Preview.Substring(0, CaseSummary.MaxPreviewLength)
+                    : @case.Preview,
+                @case.Author,
+                sortedReport.Count(),
+                await sortedReport
+                .ToAsyncEnumerable()
+                .Select(MatReportToCaseReportSummary)
+                    .ToListAsync(cancellationToken));
+    }
+
+    private async ValueTask<CaseReportSummary> MatReportToCaseReportSummary(Report report,
+        CancellationToken cancellationToken)
+    {
+        var statutePoint = await statuteLookup.GetPointAsync(
+            report.StatutePointId,
+            report.StatuteVersion,
+            cancellationToken);
+
+        return new CaseReportSummary(
+            $"{statutePoint!.SectionNumber}.{statutePoint.PointNumber}",
+            statutePoint.Text,
+            report.Note,
+            report.FiledAt
+        );
+    }
 }

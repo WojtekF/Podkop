@@ -3,6 +3,7 @@ using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 using Podkop.Documents.Infrastructure;
+using Podkop.Moderation.Infrastructure;
 using Podkop.Users.Infrastructure;
 
 namespace Podkop.Server;
@@ -70,5 +71,21 @@ internal static class SampleSeed
     ///     whatever ids this run generated.
     /// </summary>
     private static IReadOnlyList<Podkop.Moderation.Domain.Report> GenerateReports() =>
-        throw new NotImplementedException();
+        SampleReports.GenerateFor(
+            [
+                .. Findings.Select(finding => new SampleReportTarget(
+                    Podkop.Moderation.Domain.ReportTargetKind.Finding, finding.Id, finding.Author)),
+                .. Comments.Select(comment => new SampleReportTarget(
+                    Podkop.Moderation.Domain.ReportTargetKind.Comment, comment.Id, comment.Author)),
+            ],
+            [
+                .. StatuteVersions.Select(statute => new SampleCitableVersion(
+                    statute.Version,
+                    [
+                        .. statute.Sections
+                            .SelectMany(section => section.Points)
+                            .Where(point => point.IsReportable)
+                            .Select(point => point.Id)
+                    ])),
+            ]);
 }
