@@ -1,3 +1,4 @@
+using Podkop.Shared.Infrastructure;
 using Podkop.Users.Domain;
 
 namespace Podkop.Users.Infrastructure;
@@ -13,6 +14,10 @@ public static class SampleUsers
 {
     public static IReadOnlyList<User> Generate()
     {
-        throw new NotImplementedException();
+        var mods = SampleData.Mods;
+        var normalUsers = SampleData.Authors.Except(mods);
+
+        return mods.Select(mod => new User(mod, UserRole.Moderator))
+            .Concat(normalUsers.Select(userName => new User(userName, UserRole.Member))).ToList();
     }
 }

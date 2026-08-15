@@ -14,6 +14,15 @@ namespace Podkop.Shared.Infrastructure;
 public static class SampleData
 {
     /// <summary>
+    ///     Every user which can be a moderator.
+    /// </summary>
+    public static readonly ImmutableArray<string> Mods =
+    [
+        "ada_lovelace",
+        "grace_hopper"
+    ];
+
+    /// <summary>
     ///     Everyone who authors sample content, findings and comments alike. The stub current
     ///     user (ada_lovelace, see <c>StubCurrentUser</c>) is deliberately among them so
     ///     own-content rules — you cannot vote on what you wrote — are observable in the
@@ -21,8 +30,7 @@ public static class SampleData
     /// </summary>
     public static readonly ImmutableArray<string> Authors =
     [
-        "ada_lovelace",
-        "grace_hopper",
+        ..Mods,
         "linus_t",
         "margaret_h",
         "dennis_r",
@@ -100,13 +108,10 @@ public static class SampleData
         "Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos."
     ];
 
-    private static ImmutableArray<string> BuildVoters()
-    {
-        return
-        [
-            .. VoterStems
-                .SelectMany(_ => VoterSuffixes, (stem, suffix) => stem + suffix)
-                .Except(Authors)
-        ];
-    }
+    private static ImmutableArray<string> BuildVoters() =>
+    [
+        .. VoterStems
+            .SelectMany(_ => VoterSuffixes, (stem, suffix) => stem + suffix)
+            .Except(Authors)
+    ];
 }

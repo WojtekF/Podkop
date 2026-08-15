@@ -1,6 +1,9 @@
 import { inject } from '@angular/core';
-import { signalStore, withHooks, withMethods, withState } from '@ngrx/signals';
+import { patchState, signalStore, withHooks, withMethods, withState } from '@ngrx/signals';
 import { CurrentUserService, MyUserDto } from './current-user.service';
+import { asResult, isLoadFailure } from '../shared/as-result';
+import { pipe, switchMap, tap } from 'rxjs';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
 
 export type CurrentUserStatus = 'loading' | 'loaded' | 'error';
 
@@ -25,9 +28,23 @@ export const CurrentUserStore = signalStore(
   withState(initialState),
   withMethods((store, service = inject(CurrentUserService)) => {
     /** Starts the one app-wide fetch of the acting user through the CurrentUserService. */
-    const load = (): void => {
-      throw new Error('not implemented');
-    };
+    const load = rxMethod<void>(
+      pipe(
+        switchMap(() => {
+          return asResult(service.getMyUser()).pipe(
+            tap({
+              next: (response) => {
+                if (isLoadFailure(response)) {
+                  patchState(store, { user: null, status: 'error' });
+                } else {
+                  patchState(store, { user: response, status: 'loaded' });
+                }
+              },
+            }),
+          );
+        }),
+      ),
+    );
 
     return { load };
   }),

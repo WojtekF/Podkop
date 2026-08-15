@@ -21,8 +21,12 @@ public sealed record MyUserDetail(string UserName, string Role);
 public sealed class GetMyUserHandler(IUserRepository userRepository, ICurrentUser currentUser)
     : IRequestHandler<GetMyUser, MyUserDetail>
 {
-    public Task<MyUserDetail> Handle(GetMyUser request, CancellationToken cancellationToken)
+    public async Task<MyUserDetail> Handle(GetMyUser request, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        var user = await userRepository.GetByUserNameAsync(currentUser.UserName, cancellationToken);
+
+        if (user is null) throw new InvalidOperationException($"User {currentUser.UserName} not found");
+
+        return new MyUserDetail(user.UserName, user.Role.ToString());
     }
 }

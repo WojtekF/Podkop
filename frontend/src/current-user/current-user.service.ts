@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 
 export type UserRole = 'Member' | 'Moderator';
 
@@ -17,6 +17,6 @@ export class CurrentUserService {
   private readonly http = inject(HttpClient);
 
   getMyUser(): Observable<MyUserDto> {
-    throw new Error('not implemented');
+    return this.http.get<MyUserDto>('/api/my-user').pipe(timeout(5000));
   }
 }
