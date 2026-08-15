@@ -62,8 +62,30 @@ public static class ModerationEndpoints
                 })
             .WithName("GetMyCommentReports");
 
+        routes.MapGet("/api/moderation/cases", async (ISender sender, CancellationToken cancellationToken) =>
+            {
+                var result = await sender.Send(new GetCaseQueue(), cancellationToken);
+                return ToCaseQueueResponse(result);
+            })
+            .WithName("GetCaseQueue");
+
         return routes;
     }
+
+    /// <summary>
+    ///     The queue is a moderators-only surface (issue #34): a Member's call is refused with
+    ///     the stable <c>podkop:problem:moderators-only</c> discriminator — the area's existence
+    ///     is no secret (the Statute names moderation), only its contents are.
+    /// </summary>
+    private static IResult ToCaseQueueResponse(CaseQueueResult result) =>
+        result.Outcome switch
+        {
+            CaseQueueOutcome.Listed => Results.Ok(result.Cases),
+            CaseQueueOutcome.NotModerator => Results.Problem(statusCode: StatusCodes.Status403Forbidden,
+                type: "podkop:problem:moderators-only",
+                detail: "Only moderators may view the case queue."),
+            _ => throw new UnreachableException($"Unmapped case-queue outcome '{result.Outcome}'."),
+        };
 
     /// <summary>
     ///     The target-kind-specific halves of the refusal vocabulary: the unknown-target and

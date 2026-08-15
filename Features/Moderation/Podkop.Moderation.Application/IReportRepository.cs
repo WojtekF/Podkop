@@ -23,5 +23,12 @@ public interface IReportRepository
         string reporter, ReportTargetKind targetKind, IReadOnlyList<Guid> targetIds,
         CancellationToken cancellationToken);
 
+    /// <summary>
+    ///     Every stored report — the case queue's whole feed (issue #34): no Verdict exists
+    ///     until issue #35, so every report is pending by definition. That ticket narrows this
+    ///     to the reports still awaiting judgment.
+    /// </summary>
+    Task<IReadOnlyList<Report>> GetAllAsync(CancellationToken cancellationToken);
+
     Task AddAsync(Report report, CancellationToken cancellationToken);
 }

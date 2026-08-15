@@ -24,11 +24,13 @@ builder.Services.AddProblemDetails();
 builder.Services.AddFindings(() => SampleSeed.Findings);
 builder.Services.AddFindingComments(() => SampleSeed.Comments);
 builder.Services.AddDocuments(() => SampleSeed.StatuteVersions, () => SampleSeed.PrivacyPolicyVersions);
-// Reports are member-created and never seeded (issue #32), so the Moderation slice takes no seed.
-builder.Services.AddModeration();
+// Reports seed too since the case queue made them observable (issue #34).
+builder.Services.AddModeration(() => SampleSeed.Reports);
 builder.Services.AddUsers(() => SampleSeed.Users);
 builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
 builder.Services.AddSingleton<IReportTargetLookup, ContentBackedReportTargetLookup>();
+builder.Services.AddSingleton<ICaseContentLookup, ContentBackedCaseContentLookup>();
+builder.Services.AddSingleton<IModeratorLookup, UsersBackedModeratorLookup>();
 builder.Services.AddSingleton<IFindingCommentsLookup, CommentsBackedFindingCommentsLookup>();
 // Scoped to match the ISender it dispatches the Documents slice's current-statute query through.
 builder.Services.AddScoped<IStatuteLookup, DocumentsBackedStatuteLookup>();

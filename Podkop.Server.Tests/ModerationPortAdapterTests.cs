@@ -14,6 +14,9 @@ using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 using Podkop.Moderation.Application;
 using Podkop.Moderation.Domain;
+using Podkop.Users.Application;
+using Podkop.Users.Domain;
+using Podkop.Users.Infrastructure;
 
 namespace Podkop.Server.Tests;
 
@@ -109,6 +112,11 @@ public class ModerationPortAdapterTests
                     new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
                         "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
                 ], provider.GetRequiredService<IPublisher>()));
+                services.AddSingleton<IUserRepository>(new InMemoryUserRepository(
+                [
+                    new User("ada_lovelace", UserRole.Moderator),
+                    new User("margaret_h", UserRole.Member),
+                ]));
             }));
 
     [Fact]
@@ -214,5 +222,87 @@ public class ModerationPortAdapterTests
             Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"), CancellationToken.None);
 
         Assert.Null(commentIds);
+    }
+
+    [Fact]
+    public async Task The_moderator_lookup_answers_the_users_seeded_role()
+    {
+        using var factory = CreateFactory();
+        var lookup = factory.Services.GetRequiredService<IModeratorLookup>();
+
+        Assert.True(await lookup.IsModeratorAsync("ada_lovelace", CancellationToken.None));
+        Assert.False(await lookup.IsModeratorAsync("margaret_h", CancellationToken.None));
+        // No record, no role: an unknown name is not a moderator.
+        Assert.False(await lookup.IsModeratorAsync("nobody_known", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task The_case_content_lookup_answers_a_findings_author_title_and_own_page()
+    {
+        using var factory = CreateFactory();
+        var lookup = factory.Services.GetRequiredService<ICaseContentLookup>();
+
+        var content = await lookup.GetAsync(ReportTargetKind.Finding, FindingId, CancellationToken.None);
+
+        Assert.NotNull(content);
+        Assert.Equal("grace_hopper", content.Author);
+        Assert.Equal("A finding under scrutiny", content.Preview);
+        // A finding's case links to its own page.
+        Assert.Equal(FindingId, content.FindingId);
+    }
+
+    [Fact]
+    public async Task The_case_content_lookup_answers_a_comments_author_text_and_host_finding()
+    {
+        using var factory = CreateFactory();
+        var lookup = factory.Services.GetRequiredService<ICaseContentLookup>();
+
+        var content = await lookup.GetAsync(ReportTargetKind.Comment, ReplyId, CancellationToken.None);
+
+        Assert.NotNull(content);
+        // The reply's own author and full text, uncut — the preview cap is the queue's rule.
+        Assert.Equal("linus_torvalds", content.Author);
+        Assert.Equal("A reply under scrutiny.", content.Preview);
+        // A comment's case links to the finding the comment lives on.
+        Assert.Equal(FindingId, content.FindingId);
+    }
+
+    [Fact]
+    public async Task The_case_content_lookup_answers_null_for_an_unknown_target()
+    {
+        using var factory = CreateFactory();
+        var lookup = factory.Services.GetRequiredService<ICaseContentLookup>();
+
+        Assert.Null(await lookup.GetAsync(ReportTargetKind.Finding,
+            Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"), CancellationToken.None));
+        // Kinds resolve against different slices: a finding's id is unknown to the Comment kind.
+        Assert.Null(await lookup.GetAsync(ReportTargetKind.Comment, FindingId, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task The_point_lookup_resolves_a_citation_against_the_pinned_version()
+    {
+        using var factory = CreateFactory();
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IStatuteLookup>();
+
+        var pinnedToV1 = await lookup.GetPointAsync(SpamPointId, 1, CancellationToken.None);
+        var pinnedToV2 = await lookup.GetPointAsync(SpamPointId, 2, CancellationToken.None);
+
+        // The same stable point id reads as each pinned version worded it (ADR 0006).
+        Assert.Equal(new CitedPoint(2, 1, "Do not post spam. (v1)"), pinnedToV1);
+        Assert.Equal(new CitedPoint(2, 1, "Do not post spam. (v2)"), pinnedToV2);
+    }
+
+    [Fact]
+    public async Task The_point_lookup_answers_null_when_the_pinned_version_never_carried_the_point()
+    {
+        using var factory = CreateFactory();
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IStatuteLookup>();
+
+        // The hate point arrives with v2; v1 never carried it. No version carries number 9.
+        Assert.Null(await lookup.GetPointAsync(HatePointId, 1, CancellationToken.None));
+        Assert.Null(await lookup.GetPointAsync(SpamPointId, 9, CancellationToken.None));
     }
 }

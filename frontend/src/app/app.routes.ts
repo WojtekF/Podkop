@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { moderatorGuard } from '../moderation/moderator.guard';
 
 export const routes: Routes = [
   {
@@ -8,6 +9,11 @@ export const routes: Routes = [
   {
     path: 'finding/:id',
     loadComponent: () => import('../finding-detail/finding-detail').then((m) => m.FindingDetail),
+  },
+  {
+    path: 'moderation',
+    canActivate: [moderatorGuard],
+    loadComponent: () => import('../moderation/case-queue').then((m) => m.CaseQueue),
   },
   {
     path: 'statute',

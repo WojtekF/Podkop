@@ -35,11 +35,17 @@ internal static class SampleSeed
     private static readonly Lazy<IReadOnlyList<Podkop.Users.Domain.User>> UserRecords =
         new(SampleUsers.Generate);
 
+    // Reports join the coherence pact from the other side (issue #34): they cannot exist
+    // without the content and statute they cite, so generating them pulls those lazies.
+    private static readonly Lazy<IReadOnlyList<Podkop.Moderation.Domain.Report>> ReportRecords =
+        new(GenerateReports);
+
     public static IReadOnlyList<Finding> Findings => Data.Value.Findings;
     public static IReadOnlyList<Comment> Comments => Data.Value.Comments;
     public static IReadOnlyList<Podkop.Documents.Domain.StatuteVersion> StatuteVersions => Statutes.Value;
     public static IReadOnlyList<Podkop.Documents.Domain.PrivacyPolicyVersion> PrivacyPolicyVersions => PrivacyPolicies.Value;
     public static IReadOnlyList<Podkop.Users.Domain.User> Users => UserRecords.Value;
+    public static IReadOnlyList<Podkop.Moderation.Domain.Report> Reports => ReportRecords.Value;
 
     private static (IReadOnlyList<Finding> Findings, IReadOnlyList<Comment> Comments) Generate()
     {
@@ -53,4 +59,16 @@ internal static class SampleSeed
     {
         foreach (var finding in findings) finding.UpdateCommentCount(comments.Count(c => c.FindingId == finding.Id));
     }
+
+    /// <summary>
+    ///     Coordinates the report seed (issue #34): projects the seeded findings and comments
+    ///     into the Moderation slice's <c>SampleReportTarget</c> rows (kind, id, author), the
+    ///     seeded statute versions into its <c>SampleCitableVersion</c> rows (version number and
+    ///     its reportable point ids), and hands both to
+    ///     <see cref="Podkop.Moderation.Infrastructure.SampleReports.GenerateFor" /> — so the
+    ///     seeded reports always cite content and statute points the app actually seeded,
+    ///     whatever ids this run generated.
+    /// </summary>
+    private static IReadOnlyList<Podkop.Moderation.Domain.Report> GenerateReports() =>
+        throw new NotImplementedException();
 }

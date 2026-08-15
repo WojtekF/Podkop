@@ -26,4 +26,18 @@ internal sealed class DocumentsBackedStatuteLookup(ISender sender) : IStatuteLoo
                     .Select(point => point.Id)
                     .ToList());
     }
+
+    // Resolved through the Documents slice's own version query, so its effective-from gate
+    // applies unchanged; a report can only ever pin a version that was in force, so the gate
+    // never hides a pinned version.
+    public async Task<CitedPoint?> GetPointAsync(Guid statutePointId, int version,
+        CancellationToken cancellationToken)
+    {
+        var statute = await sender.Send(new GetStatuteVersion(version), cancellationToken);
+        return statute?.Sections
+            .SelectMany(section => section.Points.Select(point => (Section: section, Point: point)))
+            .Where(located => located.Point.Id == statutePointId)
+            .Select(located => new CitedPoint(located.Section.Number, located.Point.Number, located.Point.Text))
+            .FirstOrDefault();
+    }
 }
