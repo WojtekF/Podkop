@@ -14,9 +14,10 @@ namespace Podkop.Shared.Infrastructure;
 public static class SampleData
 {
     /// <summary>
-    ///     Every user which can be a moderator.
+    ///     The sample authors seeded as Moderators; every author not listed here seeds as a
+    ///     Member.
     /// </summary>
-    public static readonly ImmutableArray<string> Mods =
+    public static readonly ImmutableArray<string> Moderators =
     [
         "ada_lovelace",
         "grace_hopper"
@@ -30,7 +31,7 @@ public static class SampleData
     /// </summary>
     public static readonly ImmutableArray<string> Authors =
     [
-        ..Mods,
+        ..Moderators,
         "linus_t",
         "margaret_h",
         "dennis_r",

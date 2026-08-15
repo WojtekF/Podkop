@@ -14,10 +14,10 @@ public static class SampleUsers
 {
     public static IReadOnlyList<User> Generate()
     {
-        var mods = SampleData.Mods;
-        var normalUsers = SampleData.Authors.Except(mods);
+        var moderators = SampleData.Moderators;
+        var members = SampleData.Authors.Except(moderators);
 
-        return mods.Select(mod => new User(mod, UserRole.Moderator))
-            .Concat(normalUsers.Select(userName => new User(userName, UserRole.Member))).ToList();
+        return moderators.Select(mod => new User(mod, UserRole.Moderator))
+            .Concat(members.Select(userName => new User(userName, UserRole.Member))).ToList();
     }
 }
