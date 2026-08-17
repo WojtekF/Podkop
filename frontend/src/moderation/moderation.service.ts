@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 
 /**
  * One pending report of a case (issue #34): the cited Statute Point as the version the report
@@ -43,6 +43,6 @@ export class ModerationService {
 
   /** The queue of open cases, in the server's oldest-grievance-first order. */
   getCaseQueue(): Observable<CaseSummaryDto[]> {
-    return this.http.get<CaseSummaryDto[]>('/api/moderation/cases');
+    return this.http.get<CaseSummaryDto[]>('/api/moderation/cases').pipe(timeout(5000));
   }
 }

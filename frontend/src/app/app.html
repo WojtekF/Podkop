@@ -12,4 +12,7 @@
 <footer>
   <a class="statute-link" routerLink="/statute">Statute</a>
   <a class="privacy-policy-link" routerLink="/privacy-policy">Privacy Policy</a>
+  @if (currentUserStore.user()?.role === 'Moderator') {
+    <a class="moderation-link" routerLink="/moderation">Moderation</a>
+  }
 </footer>

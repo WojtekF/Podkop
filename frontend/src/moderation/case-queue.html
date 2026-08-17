@@ -21,7 +21,7 @@
 -->
 @if (store.status() === 'loading') {
   <div class="queue-state loading">
-    <mat-progress-spinner />
+    <mat-spinner />
   </div>
 } @else if (store.status() === 'error') {
   <div class="queue-state error">

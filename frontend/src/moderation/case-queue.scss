@@ -5,6 +5,9 @@
 @use 'mixins';
 
 .queue-state {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
   &.error {
     @include mixins.in-container-message;
   }

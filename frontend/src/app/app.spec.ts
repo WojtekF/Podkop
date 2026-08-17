@@ -36,8 +36,9 @@ describe('App', () => {
     expect(privacyPolicyLink?.textContent).toContain('Privacy Policy');
   });
 
-  // The shell's own CurrentUserStore instance starts the who-am-I fetch when the component is
-  // created; these specs answer it with the role under test before reading the nav.
+  // Creating the shell injects the root CurrentUserStore, whose first injection starts the
+  // one who-am-I fetch; every spec runs in a fresh TestBed, so each stages its own store and
+  // answers the request with the role under test before reading the nav.
   const expectMyUserRequest = () => httpMock.expectOne({ method: 'GET', url: '/api/my-user' });
 
   it('shows the moderator area entry to a moderator (issue #34)', () => {
@@ -53,42 +54,26 @@ describe('App', () => {
     expect(moderationLink?.textContent).toContain('Moderation');
   });
 
-  // Both absence specs first prove the entry renders for a moderator, so the absence
-  // assertion can never pass vacuously against a shell with no entry at all.
+  // The absence specs lean on the presence spec above to keep the selector honest: if
+  // a.moderation-link ever stops matching the rendered entry, that spec fails loudly, so
+  // these cannot pass vacuously against a shell whose entry merely drifted.
   it('shows no moderator area entry to a member (issue #34)', () => {
-    const moderatorFixture = TestBed.createComponent(App);
-    moderatorFixture.detectChanges();
-    expectMyUserRequest().flush(myUser());
-    moderatorFixture.detectChanges();
-    expect(
-      (moderatorFixture.nativeElement as HTMLElement).querySelector('a.moderation-link'),
-    ).not.toBeNull();
-
-    const memberFixture = TestBed.createComponent(App);
-    memberFixture.detectChanges();
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
     expectMyUserRequest().flush(myUser({ userName: 'linus_t', role: 'Member' }));
-    memberFixture.detectChanges();
+    fixture.detectChanges();
 
-    expect(
-      (memberFixture.nativeElement as HTMLElement).querySelector('a.moderation-link'),
-    ).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('a.moderation-link')).toBeNull();
   });
 
   it('shows no moderator area entry while the acting user is unknown (issue #34)', () => {
-    const moderatorFixture = TestBed.createComponent(App);
-    moderatorFixture.detectChanges();
-    expectMyUserRequest().flush(myUser());
-    moderatorFixture.detectChanges();
-    expect(
-      (moderatorFixture.nativeElement as HTMLElement).querySelector('a.moderation-link'),
-    ).not.toBeNull();
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
 
-    const unknownFixture = TestBed.createComponent(App);
-    unknownFixture.detectChanges();
+    // The who-am-I fetch is in flight and deliberately unanswered — the entry must not
+    // flash in early.
+    expectMyUserRequest();
 
-    // The who-am-I fetch has not answered — the entry must not flash in early.
-    expect(
-      (unknownFixture.nativeElement as HTMLElement).querySelector('a.moderation-link'),
-    ).toBeNull();
+    expect((fixture.nativeElement as HTMLElement).querySelector('a.moderation-link')).toBeNull();
   });
 });
