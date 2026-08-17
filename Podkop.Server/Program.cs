@@ -24,8 +24,9 @@ builder.Services.AddProblemDetails();
 builder.Services.AddFindings(() => SampleSeed.Findings);
 builder.Services.AddFindingComments(() => SampleSeed.Comments);
 builder.Services.AddDocuments(() => SampleSeed.StatuteVersions, () => SampleSeed.PrivacyPolicyVersions);
-// Reports seed too since the case queue made them observable (issue #34).
-builder.Services.AddModeration(() => SampleSeed.Reports);
+// Reports seed too since the case queue made them observable (issue #34), and verdicts since
+// the Moderation Log made them observable (issue #35).
+builder.Services.AddModeration(() => SampleSeed.Reports, () => SampleSeed.Verdicts);
 builder.Services.AddUsers(() => SampleSeed.Users);
 builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
 builder.Services.AddSingleton<IReportTargetLookup, ContentBackedReportTargetLookup>();

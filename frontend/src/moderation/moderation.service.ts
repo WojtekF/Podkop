@@ -45,4 +45,17 @@ export class ModerationService {
   getCaseQueue(): Observable<CaseSummaryDto[]> {
     return this.http.get<CaseSummaryDto[]>('/api/moderation/cases').pipe(timeout(5000));
   }
+
+  /**
+   * Issues the Dismissed verdict on one open case (issue #35): a POST to
+   * `/api/moderation/cases/{targetKind}/{targetId}/verdict` carrying the body
+   * `{ verdict: 'Dismissed' }`. Success answers 204 with no body and the call completes empty.
+   * Refusals arrive as problem responses — moderators-only and own-case as 403, and 404
+   * `podkop:problem:unknown-case` when no open case exists for the target (never reported, or
+   * already resolved). An unanswered call gives up after the same five seconds the queue fetch
+   * waits.
+   */
+  dismissCase(targetKind: CaseSummaryDto['targetKind'], targetId: string): Observable<void> {
+    throw new Error('not implemented');
+  }
 }

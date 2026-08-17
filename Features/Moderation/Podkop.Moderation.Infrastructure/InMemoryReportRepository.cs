@@ -22,6 +22,12 @@ public sealed class InMemoryReportRepository(IEnumerable<Report> reports) : IRep
     public Task<IReadOnlyList<Report>> GetAllAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<Report>>(_reports.ToList());
 
+    public Task<IReadOnlyList<Report>> GetByTargetAsync(ReportTargetKind targetKind, Guid targetId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Report>>(_reports
+            .Where(report => report.TargetKind == targetKind && report.TargetId == targetId)
+            .ToList());
+
     public Task AddAsync(Report report, CancellationToken cancellationToken)
     {
         _reports.Add(report);

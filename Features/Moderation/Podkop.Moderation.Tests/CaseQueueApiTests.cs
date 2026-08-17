@@ -11,13 +11,14 @@ namespace Podkop.Moderation.Tests;
 
 /// <summary>
 ///     The moderator case queue through the HTTP seam (issue #34): GET /api/moderation/cases
-///     lists every open Case — one per reported content, all its pending reports grouped under
+///     lists every open Case — one per reported content, all its PENDING reports grouped under
 ///     it — oldest grievance first, previews cut to the cap, each report's citation resolved
 ///     against the version it pinned (ADR 0006), reporter identities withheld, and the whole
-///     surface refused to anyone but a Moderator. The world outside the slice enters only
-///     through its own ports (ADR 0003), stubbed here; the composition-root adapters behind
-///     them are specified in Podkop.Server.Tests. Every spec fails until GetCaseQueueHandler
-///     is written (red-only scaffold).
+///     surface refused to anyone but a Moderator. Pending is derived (issue #35): a report a
+///     Verdict resolved vanishes from its case, and a fully resolved target has no case at
+///     all — the pending-scoping specs fail until GetCaseQueueHandler reads the verdicts. The
+///     world outside the slice enters only through its own ports (ADR 0003), stubbed here; the
+///     composition-root adapters behind them are specified in Podkop.Server.Tests.
 /// </summary>
 public class CaseQueueApiTests
 {
@@ -47,12 +48,15 @@ public class CaseQueueApiTests
     ///     the spam point deliberately reads differently in v1 and v2.
     /// </summary>
     private static WebApplicationFactory<Program> CreateFactory(
-        InMemoryReportRepository reports, bool actingUserIsModerator = true)
+        InMemoryReportRepository reports, bool actingUserIsModerator = true,
+        InMemoryVerdictRepository? verdicts = null)
     {
         string[] moderators = actingUserIsModerator ? [StubUser] : [];
         return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
+                // No verdict has been issued unless the spec says so — every report pending.
+                services.AddSingleton<IVerdictRepository>(verdicts ?? new InMemoryVerdictRepository([]));
                 services.AddSingleton<IModeratorLookup>(new StubModeratorLookup(moderators));
                 services.AddSingleton<ICaseContentLookup>(new StubCaseContentLookup(
                     (ReportTargetKind.Finding, ReportedFindingId,
@@ -301,6 +305,60 @@ public class CaseQueueApiTests
         var cases = await GetQueueCases(client);
 
         Assert.Empty(cases);
+    }
+
+    [Fact]
+    public async Task Resolved_reports_no_longer_show_in_their_case()
+    {
+        // A dismissal resolved the two older reports; a fresh report arrived afterwards
+        // (issue #35). Only the fresh one is pending, so the case lists exactly it.
+        var older = ReportBy("margaret_h", ReportTargetKind.Finding, ReportedFindingId, SpamPointId, 2,
+            null, "2026-07-02T10:00:00Z");
+        var alsoOlder = ReportBy("dennis_r", ReportTargetKind.Finding, ReportedFindingId, HatePointId, 2,
+            null, "2026-07-02T11:00:00Z");
+        var fresh = ReportBy("nick_chapsas", ReportTargetKind.Finding, ReportedFindingId, SpamPointId, 2,
+            null, "2026-07-03T10:00:00Z");
+        using var factory = CreateFactory(new InMemoryReportRepository([older, alsoOlder, fresh]),
+            verdicts: new InMemoryVerdictRepository(
+            [
+                new Verdict(Guid.CreateVersion7(), "grace_hopper", ReportTargetKind.Finding,
+                    ReportedFindingId, VerdictKind.Dismissed, At("2026-07-02T12:00:00Z"),
+                    [older.Id, alsoOlder.Id]),
+            ]));
+        using var client = factory.CreateClient();
+
+        var cases = await GetQueueCases(client);
+
+        var freshCase = Assert.Single(cases);
+        Assert.Equal(ReportedFindingId, freshCase.TargetId);
+        Assert.Equal(1, freshCase.ReportCount);
+        Assert.Equal(At("2026-07-03T10:00:00Z"), Assert.Single(freshCase.Reports).FiledAt);
+    }
+
+    [Fact]
+    public async Task A_fully_resolved_target_has_no_case()
+    {
+        // Every report of the finding is resolved, so its case is gone — "already dismissed"
+        // and "never reported" look the same (issue #35); the untouched comment case stays.
+        var resolved = ReportBy("margaret_h", ReportTargetKind.Finding, ReportedFindingId, SpamPointId, 2,
+            null, "2026-07-02T10:00:00Z");
+        var alsoResolved = ReportBy("dennis_r", ReportTargetKind.Finding, ReportedFindingId, HatePointId, 2,
+            null, "2026-07-02T11:00:00Z");
+        var pendingElsewhere = ReportBy("nick_chapsas", ReportTargetKind.Comment, ReportedCommentId,
+            HatePointId, 2, null, "2026-07-02T12:00:00Z");
+        using var factory = CreateFactory(
+            new InMemoryReportRepository([resolved, alsoResolved, pendingElsewhere]),
+            verdicts: new InMemoryVerdictRepository(
+            [
+                new Verdict(Guid.CreateVersion7(), "grace_hopper", ReportTargetKind.Finding,
+                    ReportedFindingId, VerdictKind.Dismissed, At("2026-07-02T12:00:00Z"),
+                    [resolved.Id, alsoResolved.Id]),
+            ]));
+        using var client = factory.CreateClient();
+
+        var cases = await GetQueueCases(client);
+
+        Assert.Equal(ReportedCommentId, Assert.Single(cases).TargetId);
     }
 
     private sealed record CaseResponse(

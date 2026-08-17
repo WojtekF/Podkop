@@ -14,8 +14,9 @@ namespace Podkop.Moderation.Tests;
 ///     answers, in one request, which comments of a finding's discussion the current (stub) user
 ///     already reported, so the detail page shows every comment's already-reported state from its
 ///     first render without one request per comment. Only the current user's reports show, only
-///     comment-kind reports count, and only comments of this finding's discussion are named. The
-///     world outside the slice enters only through its own ports (ADR 0003), stubbed here.
+///     comment-kind reports count, only comments of this finding's discussion are named — and
+///     only PENDING reports (issue #35): a report a Verdict resolved drops out of the batch.
+///     The world outside the slice enters only through its own ports (ADR 0003), stubbed here.
 /// </summary>
 public class MyCommentReportsApiTests
 {
@@ -37,10 +38,13 @@ public class MyCommentReportsApiTests
         new(Guid.CreateVersion7(), reporter, ReportTargetKind.Comment, commentId, SpamPointId,
             statuteVersion: 2, note: null, At("2026-07-01T12:00:00Z"));
 
-    private static WebApplicationFactory<Program> CreateFactory(IReadOnlyList<Report> reports) =>
+    private static WebApplicationFactory<Program> CreateFactory(IReadOnlyList<Report> reports,
+        InMemoryVerdictRepository? verdicts = null) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
+                // No verdict has been issued unless the spec says so — every report pending.
+                services.AddSingleton<IVerdictRepository>(verdicts ?? new InMemoryVerdictRepository([]));
                 // The discussion holds a top-level comment, a reply, and an unreported comment —
                 // the batch answer must name reported ones of every depth and nothing else.
                 services.AddSingleton<IFindingCommentsLookup>(new StubFindingCommentsLookup(
@@ -126,6 +130,27 @@ public class MyCommentReportsApiTests
 
         Assert.NotNull(status);
         Assert.Empty(status.ReportedCommentIds);
+    }
+
+    [Fact]
+    public async Task A_resolved_comment_report_is_no_longer_named()
+    {
+        // The batch is pending-scoped too (issue #35): the top comment's report was resolved
+        // by a dismissal, so only the reply's still-pending report is named.
+        var resolved = CommentReportBy(StubUser, TopCommentId);
+        var pending = CommentReportBy(StubUser, ReplyCommentId);
+        using var factory = CreateFactory([resolved, pending], new InMemoryVerdictRepository(
+        [
+            new Verdict(Guid.CreateVersion7(), "grace_hopper", ReportTargetKind.Comment, TopCommentId,
+                VerdictKind.Dismissed, At("2026-07-02T12:00:00Z"), [resolved.Id]),
+        ]));
+        using var client = factory.CreateClient();
+
+        var status = await client.GetFromJsonAsync<MyCommentReportsResponse>(
+            $"/api/findings/{FindingId}/comments/my-reports");
+
+        Assert.NotNull(status);
+        Assert.Equal([ReplyCommentId], status.ReportedCommentIds);
     }
 
     [Fact]

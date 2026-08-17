@@ -27,4 +27,21 @@ describe('ModerationService', () => {
 
     expect(cases).toEqual(caseQueue());
   });
+
+  it('dismissCase POSTs the Dismissed verdict at the case it names', () => {
+    let completed = false;
+    // The Comment target from the fixtures — the target's kind must reach the URL as-is.
+    service
+      .dismissCase('Comment', 'c0000000-0000-4000-8000-000000000009')
+      .subscribe({ complete: () => (completed = true) });
+
+    const req = httpMock.expectOne(
+      '/api/moderation/cases/Comment/c0000000-0000-4000-8000-000000000009/verdict',
+    );
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ verdict: 'Dismissed' });
+
+    req.flush(null, { status: 204, statusText: 'No Content' });
+    expect(completed).toBe(true);
+  });
 });

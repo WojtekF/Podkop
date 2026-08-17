@@ -2,6 +2,11 @@
 // cards; within a card the report rows sit visibly grouped under the case's preview, author,
 // and report count, so one case scans as one unit. No spec asserts styling — layout and look
 // are free choices.
+//
+// The dismiss action (issue #35): each case card carries its Dismiss button; place it so the
+// action reads as belonging to the whole case, not to any single report row, and make its
+// disabled (dismissal-pending) state visibly inert. No spec asserts styling — placement and
+// look are free choices.
 @use 'mixins';
 
 .queue-state {

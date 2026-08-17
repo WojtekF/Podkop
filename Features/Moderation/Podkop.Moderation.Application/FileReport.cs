@@ -10,8 +10,11 @@ namespace Podkop.Moderation.Application;
 ///     set of rules; the target kind is data, not a separate use case. The reporter is the
 ///     current user from the <see cref="ICurrentUser" /> seam, never the request. The stored
 ///     report pins the cited point id and the Statute version in force at the filing instant
-///     (ADR 0006), read from the injected clock. One report per user per target — a duplicate is
-///     refused — and authors cannot report their own content. A cited point must be a reportable
+///     (ADR 0006), read from the injected clock. One PENDING report per user per target
+///     (issue #35): a duplicate is refused while the earlier report awaits judgment, but a
+///     report a Verdict resolved blocks nothing — its reporter may report the target afresh,
+///     the resolution read against <see cref="IVerdictRepository" />. Authors cannot report
+///     their own content. A cited point must be a reportable
 ///     point of the current Statute. Filing changes no score, vote, or promotion state (ADR
 ///     0008); the endpoint maps each refusal to a status code and a kind-specific problem type.
 /// </summary>
@@ -20,6 +23,7 @@ public sealed record FileReport(ReportTargetKind TargetKind, Guid TargetId, Guid
 
 public sealed class FileReportHandler(
     IReportRepository reportsRepository,
+    IVerdictRepository verdictsRepository,
     IReportTargetLookup targetLookup,
     IStatuteLookup statuteLookup,
     ICurrentUser currentUser,

@@ -1,7 +1,7 @@
 <!--
-  The moderator case queue (issue #34) — viewing only; verdicts and actions arrive with later
-  tickets. Landing on the page triggers the store's one load. States the colocated specs
-  assert:
+  The moderator case queue (issue #34) — viewing, plus the Dismiss verdict (issue #35); further
+  verdicts arrive with later tickets. Landing on the page triggers the store's one load. States
+  the colocated specs assert:
 
   - Loading (store status 'loading'): a `.queue-state.loading` block.
   - Error (store status 'error', the moderators-only refusal included): a `.queue-state.error`
@@ -18,6 +18,17 @@
         report's pinned Statute version worded it — `.report-filed-at` with when it was filed,
         and `.report-note` with the reporter's note, present only on a report that carries one.
         Reporter identities are never shown.
+
+  Dismissing a case (issue #35) — what the colocated specs assert:
+
+  - Every `.case-card` carries a `.dismiss-button`: a button labeled exactly "Dismiss" that
+    hands that case's target to the store's dismiss.
+  - The button is disabled exactly while its own case's dismissal is pending (the case's key
+    sits in the store's pendingDismissKeys); every other card's button stays live.
+  - The card disappears when the store drops the case — on success and on the already-resolved
+    refusal alike; when the last card goes, the existing "No open cases." empty state shows.
+  - A failed dismissal leaves the card in place; the feedback (a snackbar) comes from the
+    store, nothing here.
 -->
 @if (store.status() === 'loading') {
   <div class="queue-state loading">

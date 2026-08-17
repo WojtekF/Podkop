@@ -41,12 +41,19 @@ internal static class SampleSeed
     private static readonly Lazy<IReadOnlyList<Podkop.Moderation.Domain.Report>> ReportRecords =
         new(GenerateReports);
 
+    // Verdicts extend that pact one step further (issue #35): they resolve seeded reports by
+    // id and are issued by seeded moderators against seeded content, so generating them pulls
+    // the report and user lazies.
+    private static readonly Lazy<IReadOnlyList<Podkop.Moderation.Domain.Verdict>> VerdictRecords =
+        new(GenerateVerdicts);
+
     public static IReadOnlyList<Finding> Findings => Data.Value.Findings;
     public static IReadOnlyList<Comment> Comments => Data.Value.Comments;
     public static IReadOnlyList<Podkop.Documents.Domain.StatuteVersion> StatuteVersions => Statutes.Value;
     public static IReadOnlyList<Podkop.Documents.Domain.PrivacyPolicyVersion> PrivacyPolicyVersions => PrivacyPolicies.Value;
     public static IReadOnlyList<Podkop.Users.Domain.User> Users => UserRecords.Value;
     public static IReadOnlyList<Podkop.Moderation.Domain.Report> Reports => ReportRecords.Value;
+    public static IReadOnlyList<Podkop.Moderation.Domain.Verdict> Verdicts => VerdictRecords.Value;
 
     private static (IReadOnlyList<Finding> Findings, IReadOnlyList<Comment> Comments) Generate()
     {
@@ -60,6 +67,18 @@ internal static class SampleSeed
     {
         foreach (var finding in findings) finding.UpdateCommentCount(comments.Count(c => c.FindingId == finding.Id));
     }
+
+    /// <summary>
+    ///     Coordinates the verdict seed (issue #35): projects the same target rows the report
+    ///     seed used (kind, id, author — the never-on-their-own-content rule needs authors),
+    ///     the seeded reports themselves, and the seeded Moderators' usernames from the Users
+    ///     seed, and hands all three to
+    ///     <see cref="Podkop.Moderation.Infrastructure.SampleVerdicts.GenerateFor" /> — so the
+    ///     seeded dismissals always resolve reports the app actually seeded, issued by
+    ///     moderators it actually knows, whatever ids this run generated.
+    /// </summary>
+    private static IReadOnlyList<Podkop.Moderation.Domain.Verdict> GenerateVerdicts() =>
+        throw new NotImplementedException();
 
     /// <summary>
     ///     Coordinates the report seed (issue #34): projects the seeded findings and comments

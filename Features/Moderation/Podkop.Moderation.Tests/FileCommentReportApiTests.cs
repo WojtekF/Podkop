@@ -43,6 +43,9 @@ public class FileCommentReportApiTests
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
+                // No verdict is ever issued here — the pending-scoped duplicate rule (issue
+                // #35) is shared with the finding endpoint and specified in its suite.
+                services.AddSingleton<IVerdictRepository>(new InMemoryVerdictRepository([]));
                 services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
                 services.AddSingleton<IReportTargetLookup>(new StubReportTargetLookup(
                     (ReportTargetKind.Comment, new ReportTarget(TargetCommentId, "grace_hopper")),

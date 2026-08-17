@@ -9,7 +9,9 @@ namespace Podkop.Moderation.Application;
 ///     already-reported state from its first render. Yields <c>null</c> when no finding has that
 ///     id so the endpoint can answer 404. Reports themselves stay invisible to regular users —
 ///     the only member-visible fact is "did I already report this finding", and only for the
-///     current user's own report.
+///     current user's own report. Only a PENDING report counts (issue #35): once a Verdict
+///     resolves the user's report — read against <see cref="IVerdictRepository" /> — the
+///     answer returns to not-reported and the user may report the finding afresh.
 /// </summary>
 public sealed record GetMyReport(Guid FindingId) : IRequest<MyReportStatus?>;
 
@@ -18,6 +20,7 @@ public sealed record MyReportStatus(bool Reported);
 
 public sealed class GetMyReportHandler(
     IReportRepository reportsRepository,
+    IVerdictRepository verdictsRepository,
     IReportTargetLookup targetLookup,
     ICurrentUser currentUser)
     : IRequestHandler<GetMyReport, MyReportStatus?>

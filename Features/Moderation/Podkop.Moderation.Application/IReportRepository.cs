@@ -24,11 +24,20 @@ public interface IReportRepository
         CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Every stored report — the case queue's whole feed (issue #34): no Verdict exists
-    ///     until issue #35, so every report is pending by definition. That ticket narrows this
-    ///     to the reports still awaiting judgment.
+    ///     Every stored report, resolved ones included — reports are immutable and never leave
+    ///     the store. Pending-ness is not this store's fact (issue #35): Application handlers
+    ///     derive it against the verdicts, a report being pending iff no Verdict's
+    ///     ResolvedReportIds references its id.
     /// </summary>
     Task<IReadOnlyList<Report>> GetAllAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    ///     Every report ever filed against one target, resolved ones included — the dismissal's
+    ///     input (issue #35): the handler derives which are still pending against the target's
+    ///     verdicts and resolves exactly those. A never-reported target yields none.
+    /// </summary>
+    Task<IReadOnlyList<Report>> GetByTargetAsync(
+        ReportTargetKind targetKind, Guid targetId, CancellationToken cancellationToken);
 
     Task AddAsync(Report report, CancellationToken cancellationToken);
 }

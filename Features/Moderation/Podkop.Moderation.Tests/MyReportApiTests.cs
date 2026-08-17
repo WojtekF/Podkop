@@ -14,8 +14,9 @@ namespace Podkop.Moderation.Tests;
 ///     The my-report read (issue #32) through the HTTP seam: GET my-report answers the one
 ///     member-visible fact about a finding's reports — whether the current (stub) user filed
 ///     one — so the detail page can show the already-reported state from its first render.
-///     Other users' reports never show through it. The world outside the slice enters only
-///     through its own ports (ADR 0003), stubbed here.
+///     Other users' reports never show through it, and only a PENDING report counts
+///     (issue #35): a report a Verdict resolved answers not-reported again. The world outside
+///     the slice enters only through its own ports (ADR 0003), stubbed here.
 /// </summary>
 public class MyReportApiTests
 {
@@ -29,10 +30,13 @@ public class MyReportApiTests
         new(Guid.Parse("d0000000-0000-4000-8000-000000000001"), reporter, ReportTargetKind.Finding,
             FindingId, SpamPointId, statuteVersion: 2, note: null, At("2026-07-01T12:00:00Z"));
 
-    private static WebApplicationFactory<Program> CreateFactory(IReadOnlyList<Report> reports) =>
+    private static WebApplicationFactory<Program> CreateFactory(IReadOnlyList<Report> reports,
+        InMemoryVerdictRepository? verdicts = null) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
+                // No verdict has been issued unless the spec says so — every report pending.
+                services.AddSingleton<IVerdictRepository>(verdicts ?? new InMemoryVerdictRepository([]));
                 // The clock and a one-point current Statute are pinned so the filing spec below
                 // can cite a known reportable point; the read specs never touch either.
                 services.AddSingleton<TimeProvider>(new FakeTimeProvider(At("2026-07-01T12:00:00Z")));
@@ -95,6 +99,25 @@ public class MyReportApiTests
 
         Assert.NotNull(status);
         Assert.True(status.Reported);
+    }
+
+    [Fact]
+    public async Task A_resolved_report_no_longer_shows_as_mine()
+    {
+        // My-report is pending-scoped (issue #35): a dismissal resolved the stub user's
+        // report, so the state resets to not-reported and the user may report afresh.
+        var mine = ReportBy(StubUser);
+        using var factory = CreateFactory([mine], new InMemoryVerdictRepository(
+        [
+            new Verdict(Guid.CreateVersion7(), "grace_hopper", ReportTargetKind.Finding, FindingId,
+                VerdictKind.Dismissed, At("2026-07-02T12:00:00Z"), [mine.Id]),
+        ]));
+        using var client = factory.CreateClient();
+
+        var status = await client.GetFromJsonAsync<MyReportResponse>($"/api/findings/{FindingId}/my-report");
+
+        Assert.NotNull(status);
+        Assert.False(status.Reported);
     }
 
     [Fact]
