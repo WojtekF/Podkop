@@ -1,6 +1,10 @@
 import { inject } from '@angular/core';
-import { signalStore, withMethods, withState } from '@ngrx/signals';
+import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { CaseSummaryDto, ModerationService } from './moderation.service';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { pipe, switchMap, tap } from 'rxjs';
+import { asResult, isLoadFailure } from '../shared/as-result';
+import { tapResponse } from '@ngrx/operators';
 
 export type CaseQueueStatus = 'loading' | 'loaded' | 'error';
 
@@ -27,9 +31,23 @@ export const CaseQueueStore = signalStore(
      * state, then landing loaded with the cases as served, or error on any failure — the
      * moderators-only refusal included.
      */
-    const load = (): void => {
-      throw new Error('not implemented');
-    };
+    const load = rxMethod<void>(
+      pipe(
+        switchMap(() => {
+          return asResult(service.getCaseQueue()).pipe(
+            tap({
+              next: (response) => {
+                if (isLoadFailure(response)) {
+                  patchState(store, { status: 'error' });
+                } else {
+                  patchState(store, { status: 'loaded', cases: response });
+                }
+              },
+            }),
+          );
+        }),
+      ),
+    );
 
     return { load };
   }),

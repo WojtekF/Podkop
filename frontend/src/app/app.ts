@@ -11,5 +11,4 @@ import { CurrentUserStore } from '../current-user/current-user.store';
 })
 export class App {
   protected readonly title = signal('podkop');
-  protected readonly currentUserStore = inject(CurrentUserStore);
 }

@@ -1,4 +1,8 @@
-import { CanActivateFn } from '@angular/router';
+import { CanActivateFn, Router } from '@angular/router';
+import { CurrentUserStore } from '../current-user/current-user.store';
+import { inject } from '@angular/core';
+import { toObservable } from '@angular/core/rxjs-interop';
+import { filter, map, take } from 'rxjs';
 
 /**
  * Gate on the moderator area (issue #34): resolves once the app-wide who-am-I state
@@ -8,5 +12,12 @@ import { CanActivateFn } from '@angular/router';
  * the refused page, and the shell shows them no way in to begin with.
  */
 export const moderatorGuard: CanActivateFn = () => {
-  throw new Error('not implemented');
+  const store = inject(CurrentUserStore);
+  const router = inject(Router);
+
+  return toObservable(store.status).pipe(
+    filter((status) => status !== 'loading'),
+    take(1),
+    map(() => (store.user()?.role === 'Moderator' ? true : router.parseUrl('/'))),
+  );
 };

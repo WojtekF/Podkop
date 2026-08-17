@@ -43,6 +43,6 @@ export class ModerationService {
 
   /** The queue of open cases, in the server's oldest-grievance-first order. */
   getCaseQueue(): Observable<CaseSummaryDto[]> {
-    throw new Error('not implemented');
+    return this.http.get<CaseSummaryDto[]>('/api/moderation/cases');
   }
 }

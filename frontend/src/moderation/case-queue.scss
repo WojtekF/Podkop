@@ -2,3 +2,42 @@
 // cards; within a card the report rows sit visibly grouped under the case's preview, author,
 // and report count, so one case scans as one unit. No spec asserts styling — layout and look
 // are free choices.
+@use 'mixins';
+
+.queue-state {
+  &.error {
+    @include mixins.in-container-message;
+  }
+  &.loading {
+    @include mixins.viewport-center;
+  }
+  .case-card {
+    margin: 1rem 0;
+    mat-card-title {
+      margin: 0.5rem 0;
+    }
+    mat-card-subtitle {
+      margin: 0.5rem 0;
+      span {
+        margin: 0 0.5rem;
+      }
+    }
+
+    .case-reports {
+      .report-row {
+        margin: 0.5rem 0;
+        mat-card-header {
+          span {
+            margin: 0 0.5rem;
+          }
+        }
+        mat-card-content {
+          display: flex;
+          flex-direction: column;
+          margin: 0 0.5rem;
+          gap: 0.5rem;
+        }
+      }
+    }
+  }
+}

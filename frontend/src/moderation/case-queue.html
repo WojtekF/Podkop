@@ -19,3 +19,54 @@
         and `.report-note` with the reporter's note, present only on a report that carries one.
         Reporter identities are never shown.
 -->
+@if (store.status() === 'loading') {
+  <div class="queue-state loading">
+    <mat-progress-spinner />
+  </div>
+} @else if (store.status() === 'error') {
+  <div class="queue-state error">
+    <h3>Couldn't load the case queue.</h3>
+  </div>
+} @else {
+  <div class="queue-state">
+    @if (store.cases()?.length === 0) {
+      <h3 class="queue-empty">No open cases.</h3>
+    } @else {
+      @for (case of store.cases(); track `${case.findingId}:${case.targetId}`) {
+        <mat-card class="case-card">
+          <mat-card-header>
+            <mat-card-title-group>
+              <mat-card-title>
+                <a class="case-preview" [routerLink]="`/finding/${case.findingId}`">
+                  {{ case.preview }}
+                </a>
+              </mat-card-title>
+              <mat-card-subtitle>
+                <span class="case-author">Author: {{ case.author }}</span>
+                <span class="case-report-count">Reports count: {{ case.reportCount }}</span>
+              </mat-card-subtitle>
+            </mat-card-title-group>
+          </mat-card-header>
+          <mat-card-content class="case-reports">
+            @for (report of case.reports; track $index) {
+              <mat-card class="report-row">
+                <mat-card-header>
+                  <span class="report-point-citation">
+                    {{ report.pointCitation }}
+                  </span>
+                  <span class="report-point-text">{{ report.pointText }}</span>
+                </mat-card-header>
+                <mat-card-content>
+                  <span class="report-filed-at"> Reported at: {{ report.filedAt | date }}</span>
+                  @if (report.note) {
+                    <div class="report-note">{{ report.note }}</div>
+                  }
+                </mat-card-content>
+              </mat-card>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+    }
+  </div>
+}
