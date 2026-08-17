@@ -35,6 +35,9 @@
     <ProjectReference Include="..\Features\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
     <ProjectReference Include="..\Features\Moderation\Podkop.Moderation.Application\Podkop.Moderation.Application.csproj" />
     <ProjectReference Include="..\Features\Moderation\Podkop.Moderation.Infrastructure\Podkop.Moderation.Infrastructure.csproj" />
+    <ProjectReference Include="..\Features\Users\Podkop.Users.Application\Podkop.Users.Application.csproj" />
+    <ProjectReference Include="..\Features\Users\Podkop.Users.Domain\Podkop.Users.Domain.csproj" />
+    <ProjectReference Include="..\Features\Users\Podkop.Users.Infrastructure\Podkop.Users.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

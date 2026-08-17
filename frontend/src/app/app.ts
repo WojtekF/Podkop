@@ -5,11 +5,10 @@ import { CurrentUserStore } from '../current-user/current-user.store';
 @Component({
   selector: 'app-root',
   imports: [RouterOutlet, RouterLink],
-  providers: [CurrentUserStore],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
 export class App {
   protected readonly title = signal('podkop');
-  protected readonly currentUserStore = inject(CurrentUserStore);
+  readonly currentUserStore = inject(CurrentUserStore);
 }

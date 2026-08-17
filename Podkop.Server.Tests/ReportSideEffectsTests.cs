@@ -14,6 +14,8 @@ using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
+using Podkop.Moderation.Application;
+using Podkop.Moderation.Infrastructure;
 
 namespace Podkop.Server.Tests;
 
@@ -74,6 +76,9 @@ public class ReportSideEffectsTests
                     new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
                         "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
                 ], provider.GetRequiredService<IPublisher>()));
+                // Reports seed by default since issue #34; this proof is about the act of
+                // filing, so it starts from an empty slate rather than the sample reports.
+                services.AddSingleton<IReportRepository>(new InMemoryReportRepository([]));
             }));
 
     [Fact]

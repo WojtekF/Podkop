@@ -10,10 +10,35 @@ namespace Podkop.Moderation.Tests;
 ///     composition-root adapters that produce the real answers are specified in
 ///     Podkop.Server.Tests.
 /// </summary>
-internal sealed class StubStatuteLookup(CurrentStatute? current) : IStatuteLookup
+internal sealed class StubStatuteLookup(
+    CurrentStatute? current, params (Guid PointId, int Version, CitedPoint Point)[] points) : IStatuteLookup
 {
     public Task<CurrentStatute?> GetCurrentAsync(CancellationToken cancellationToken) =>
         Task.FromResult(current);
+
+    public Task<CitedPoint?> GetPointAsync(Guid statutePointId, int version,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(points
+            .Where(known => known.PointId == statutePointId && known.Version == version)
+            .Select(known => known.Point)
+            .FirstOrDefault());
+}
+
+internal sealed class StubModeratorLookup(params string[] moderators) : IModeratorLookup
+{
+    public Task<bool> IsModeratorAsync(string userName, CancellationToken cancellationToken) =>
+        Task.FromResult(moderators.Contains(userName));
+}
+
+internal sealed class StubCaseContentLookup(params (ReportTargetKind Kind, Guid Id, CaseContent Content)[] contents)
+    : ICaseContentLookup
+{
+    public Task<CaseContent?> GetAsync(ReportTargetKind targetKind, Guid targetId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult(contents
+            .Where(known => known.Kind == targetKind && known.Id == targetId)
+            .Select(known => known.Content)
+            .FirstOrDefault());
 }
 
 internal sealed class StubReportTargetLookup(params (ReportTargetKind Kind, ReportTarget Target)[] targets)

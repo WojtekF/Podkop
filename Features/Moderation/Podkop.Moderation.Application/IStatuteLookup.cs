@@ -10,7 +10,22 @@ namespace Podkop.Moderation.Application;
 public interface IStatuteLookup
 {
     Task<CurrentStatute?> GetCurrentAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    ///     One cited point resolved against the version a report pinned (issue #34): the case
+    ///     queue shows what the reporter actually cited, however later amendments renumbered or
+    ///     reworded it (ADR 0006). <c>null</c> when that version never carried the point — for
+    ///     filed reports a broken invariant, since filing checked the citation against the
+    ///     version it pinned.
+    /// </summary>
+    Task<CitedPoint?> GetPointAsync(Guid statutePointId, int version, CancellationToken cancellationToken);
 }
 
 /// <summary>The current Statute as this slice sees it: its version and its reportable point ids.</summary>
 public sealed record CurrentStatute(int Version, IReadOnlyList<Guid> ReportablePointIds);
+
+/// <summary>
+///     A cited Statute Point as one pinned version words it: where it sits (section and point
+///     number — the statute page composes the citation <c>section.point</c>) and its text.
+/// </summary>
+public sealed record CitedPoint(int SectionNumber, int PointNumber, string Text);
