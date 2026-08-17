@@ -139,11 +139,11 @@ public sealed class GetCaseQueueHandler(
                 sortedReport.Count(),
                 await sortedReport
                 .ToAsyncEnumerable()
-                .Select(MatReportToCaseReportSummary)
+                .Select(MapReportToCaseReportSummary)
                     .ToListAsync(cancellationToken));
     }
 
-    private async ValueTask<CaseReportSummary> MatReportToCaseReportSummary(Report report,
+    private async ValueTask<CaseReportSummary> MapReportToCaseReportSummary(Report report,
         CancellationToken cancellationToken)
     {
         var statutePoint = await statuteLookup.GetPointAsync(
