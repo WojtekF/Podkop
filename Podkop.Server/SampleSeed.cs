@@ -78,7 +78,13 @@ internal static class SampleSeed
     ///     moderators it actually knows, whatever ids this run generated.
     /// </summary>
     private static IReadOnlyList<Podkop.Moderation.Domain.Verdict> GenerateVerdicts() =>
-        throw new NotImplementedException();
+        SampleVerdicts.GenerateFor(
+            ReportTargets(),
+            Reports,
+            [
+                .. Users.Where(user => user.Role == Podkop.Users.Domain.UserRole.Moderator)
+                    .Select(user => user.UserName)
+            ]);
 
     /// <summary>
     ///     Coordinates the report seed (issue #34): projects the seeded findings and comments
@@ -91,12 +97,7 @@ internal static class SampleSeed
     /// </summary>
     private static IReadOnlyList<Podkop.Moderation.Domain.Report> GenerateReports() =>
         SampleReports.GenerateFor(
-            [
-                .. Findings.Select(finding => new SampleReportTarget(
-                    Podkop.Moderation.Domain.ReportTargetKind.Finding, finding.Id, finding.Author)),
-                .. Comments.Select(comment => new SampleReportTarget(
-                    Podkop.Moderation.Domain.ReportTargetKind.Comment, comment.Id, comment.Author)),
-            ],
+            ReportTargets(),
             [
                 .. StatuteVersions.Select(statute => new SampleCitableVersion(
                     statute.Version,
@@ -107,4 +108,17 @@ internal static class SampleSeed
                             .Select(point => point.Id)
                     ])),
             ]);
+
+    /// <summary>
+    ///     The reportable sample content as the Moderation generators see it (kind, id, author)
+    ///     — one projection serving both the report and verdict coordinators, which must hand
+    ///     over the same target rows for the seeds to cohere.
+    /// </summary>
+    private static IReadOnlyList<SampleReportTarget> ReportTargets() =>
+    [
+        .. Findings.Select(finding => new SampleReportTarget(
+            Podkop.Moderation.Domain.ReportTargetKind.Finding, finding.Id, finding.Author)),
+        .. Comments.Select(comment => new SampleReportTarget(
+            Podkop.Moderation.Domain.ReportTargetKind.Comment, comment.Id, comment.Author)),
+    ];
 }
