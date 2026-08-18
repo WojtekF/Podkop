@@ -1,4 +1,4 @@
-import { LoadResult, asResult, isLoadFailure } from '../shared/as-result';
+import { LoadResult, asResult, isLoadFailure, isNotFound } from '../shared/as-result';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { inject } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -461,11 +461,4 @@ const toPatch = (
     myReport: myReport.reported,
     myCommentReportIds: myCommentReportIds.reportedCommentIds,
   };
-};
-
-const isNotFound = <T>(input: T | HttpErrorResponse): boolean => {
-  if (input instanceof HttpErrorResponse) {
-    return input.status === 404;
-  }
-  return false;
 };

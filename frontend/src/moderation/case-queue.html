@@ -1,35 +1,3 @@
-<!--
-  The moderator case queue (issue #34) — viewing, plus the Dismiss verdict (issue #35); further
-  verdicts arrive with later tickets. Landing on the page triggers the store's one load. States
-  the colocated specs assert:
-
-  - Loading (store status 'loading'): a `.queue-state.loading` block.
-  - Error (store status 'error', the moderators-only refusal included): a `.queue-state.error`
-    block reading "Couldn't load the case queue."
-  - Loaded with no cases: a `.queue-empty` block reading "No open cases."
-  - Loaded: one `.case-card` per case, in the exact order served — the server owns the
-    oldest-grievance-first order; never re-sort. Each card shows:
-      - `.case-preview` — a link carrying the case's preview text, leading to the finding page
-        (`/finding/<findingId>`) — for a comment case that is the finding the comment lives on;
-      - `.case-author` — the content's author;
-      - `.case-report-count` — the number of pending reports;
-      - one `.report-row` per report, in the exact order served (oldest first), showing
-        `.report-point-citation` (e.g. "2.1") and `.report-point-text` — the cited point as the
-        report's pinned Statute version worded it — `.report-filed-at` with when it was filed,
-        and `.report-note` with the reporter's note, present only on a report that carries one.
-        Reporter identities are never shown.
-
-  Dismissing a case (issue #35) — what the colocated specs assert:
-
-  - Every `.case-card` carries a `.dismiss-button`: a button labeled exactly "Dismiss" that
-    hands that case's target to the store's dismiss.
-  - The button is disabled exactly while its own case's dismissal is pending (the case's key
-    sits in the store's pendingDismissKeys); every other card's button stays live.
-  - The card disappears when the store drops the case — on success and on the already-resolved
-    refusal alike; when the last card goes, the existing "No open cases." empty state shows.
-  - A failed dismissal leaves the card in place; the feedback (a snackbar) comes from the
-    store, nothing here.
--->
 @if (store.status() === 'loading') {
   <div class="queue-state loading">
     <mat-spinner />
@@ -58,6 +26,20 @@
               </mat-card-subtitle>
             </mat-card-title-group>
           </mat-card-header>
+          <mat-card-actions class="case-card-actions">
+            <button
+              class="dismiss-button"
+              [disabled]="
+                store
+                  .pendingDismissKeys()
+                  .includes(store.getDismissKey(case.targetKind, case.targetId))
+              "
+              matButton
+              (click)="store.dismiss({ targetId: case.targetId, targetKind: case.targetKind })"
+            >
+              Dismiss
+            </button>
+          </mat-card-actions>
           <mat-card-content class="case-reports">
             @for (report of case.reports; track $index) {
               <mat-card class="report-row">
