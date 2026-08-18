@@ -11,7 +11,7 @@ A link (or content) submitted by a user for the community to vote on. The centra
 _Avoid_: Post, sink item
 
 **Feed**:
-An ordered, pageable listing of findings selected by a rule. The platform has two: the Main Page (promoted findings) and Upcoming (fresh findings).
+An ordered, pageable listing of content selected by a rule. The findings feeds are the Main Page (promoted findings) and Upcoming (fresh findings); the Microblog has its own newest-first feed.
 _Avoid_: Stream, timeline, list
 
 **Main Page**:
@@ -29,6 +29,14 @@ _Avoid_: Featuring, trending
 **Source**:
 The external URL a finding points to.
 _Avoid_: Link, target
+
+**Microblog**:
+The top-level section where users publish Entries, alongside the findings surfaces and sharing the one tag namespace (Wykop's *Mikroblog*).
+_Avoid_: Blog, board, forum
+
+**Entry**:
+A free-form text publication on the Microblog (Wykop's *wpis*): a body with tags written inline — no title, no Source. The Microblog's content unit, as the Finding is the platform's.
+_Avoid_: Post, note, status
 
 **Tag**:
 A one-word label attached to content for discovery, written #name; canonical form is lowercase letters and digits (1–50 characters), and anything a user types is folded into it. Free-form and unowned — a tag exists exactly as long as content carries it, in one namespace shared by every content type.
@@ -56,6 +64,10 @@ _Avoid_: Rating, karma
 The justification every bury carries, one of a closed list: Duplicate, Spam, False information, Inappropriate content, Unsuitable. A voting signal only — never a Report and never seen by moderation.
 _Avoid_: Report reason, downvote reason, flag
 
+**Plus**:
+The single vote on Microblog content — one retractable vote for an Entry or Entry Comment, with no down direction, no reason, and no self-vote; a score is simply the count of plusses. Never drives promotion (Wykop's *plus*).
+_Avoid_: Upvote (for Microblog content), like, dig
+
 ### Discussion
 
 **Comment**:
@@ -77,6 +89,10 @@ _Avoid_: Nested comment, sub-comment, thread
 **Thread**:
 A top-level comment together with its replies, displayed as one unit of a finding's discussion. A thread may have no replies, and a finding may have no threads at all.
 _Avoid_: Comment tree, conversation
+
+**Entry Comment**:
+A user-authored text response attached to an Entry. Entry discussions are flat: every entry comment attaches directly to the Entry, exactly one level deep, listed oldest-first; addressing another commenter is by "@username" convention, not nesting.
+_Avoid_: Reply (Microblog-side), Comment (unqualified, Microblog-side), response
 
 ### Documents
 
