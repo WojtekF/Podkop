@@ -34,6 +34,10 @@ public sealed class GetMyReportHandler(
         var report = await reportsRepository.GetByReporterAndTargetAsync(
             currentUser.UserName, ReportTargetKind.Finding, request.FindingId, cancellationToken);
 
-        return new MyReportStatus(report is not null);
+        var verdicts =
+            await verdictsRepository.GetByTargetAsync(ReportTargetKind.Finding, request.FindingId, cancellationToken);
+
+        return new MyReportStatus(report is not null &&
+                                  verdicts.All(verdict => !verdict.ResolvedReportIds.Contains(report.Id)));
     }
 }

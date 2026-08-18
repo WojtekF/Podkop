@@ -98,8 +98,15 @@ public sealed class GetCaseQueueHandler(
         if (!await moderatorLookup.IsModeratorAsync(currentUser.UserName, cancellationToken))
             return new CaseQueueResult(CaseQueueOutcome.NotModerator, null);
 
+        var verdicts = await verdictsRepository.GetAllAsync(cancellationToken);
+
         var reports = await reportsRepository.GetAllAsync(cancellationToken);
         var groupedReports = reports
+            .Where(report =>
+                verdicts
+                    .All(v =>
+                        !v.ResolvedReportIds
+                            .Contains(report.Id)))
             .OrderBy(report => report.FiledAt)
             .ThenBy(report => report.TargetId)
             .GroupBy(report => (Kind: report.TargetKind, Id: report.TargetId));
@@ -108,18 +115,18 @@ public sealed class GetCaseQueueHandler(
         return new CaseQueueResult(
             CaseQueueOutcome.Listed,
             caseSummaries
-            .Where(c => c != null)
-            .Cast<CaseSummary>()
-            .ToList());
+                .Where(c => c != null)
+                .Cast<CaseSummary>()
+                .ToList());
     }
 
     private async ValueTask<IEnumerable<CaseSummary?>> MapGroupedReportsToCaseSummary(
         IEnumerable<IGrouping<(ReportTargetKind Kind, Guid Id), Report>> groupedReports,
         CancellationToken cancellationToken) =>
         await groupedReports
-        .ToAsyncEnumerable()
-        .Select(MapGroupedReportsToCase)
-        .ToListAsync(cancellationToken);
+            .ToAsyncEnumerable()
+            .Select(MapGroupedReportsToCase)
+            .ToListAsync(cancellationToken);
 
     private async ValueTask<CaseSummary?> MapGroupedReportsToCase(
         IGrouping<(ReportTargetKind Kind, Guid Id ), Report> group, CancellationToken cancellationToken)
@@ -146,8 +153,8 @@ public sealed class GetCaseQueueHandler(
                 @case.Author,
                 sortedReport.Count(),
                 await sortedReport
-                .ToAsyncEnumerable()
-                .Select(MapReportToCaseReportSummary)
+                    .ToAsyncEnumerable()
+                    .Select(MapReportToCaseReportSummary)
                     .ToListAsync(cancellationToken));
     }
 

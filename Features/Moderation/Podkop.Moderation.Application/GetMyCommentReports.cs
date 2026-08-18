@@ -37,6 +37,21 @@ public sealed class GetMyCommentReportsHandler(
             ReportTargetKind.Comment,
             comments,
             cancellationToken);
-        return new MyCommentReportsStatus(existingReports.Select(report => report.TargetId).ToList());
+
+        var verdicts = await verdictsRepository.GetByTargetsAsync(
+            ReportTargetKind.Comment,
+            existingReports
+                .Select(report => report.TargetId)
+                .ToList(),
+            cancellationToken);
+
+        return new MyCommentReportsStatus(
+            existingReports
+                .Where(report => verdicts.All(
+                    verdict => !verdict
+                    .ResolvedReportIds
+                    .Contains(report.Id)))
+                .Select(report => report.TargetId)
+                .ToList());
     }
 }

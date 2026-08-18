@@ -37,8 +37,17 @@ public sealed class FileReportHandler(
         if (reportTarget is null) return FileReportOutcome.UnknownTarget;
 
         var previousReport = await reportsRepository.GetByReporterAndTargetAsync(
-            currentUser.UserName, request.TargetKind, request.TargetId, cancellationToken);
-        if (previousReport is not null) return FileReportOutcome.AlreadyReported;
+            currentUser.UserName,
+            request.TargetKind,
+            request.TargetId,
+            cancellationToken);
+        if (previousReport is not null)
+        {
+            var verdicts =
+                await verdictsRepository.GetByTargetAsync(request.TargetKind, request.TargetId, cancellationToken);
+            if (verdicts.All(v => !v.ResolvedReportIds.Contains(previousReport.Id)))
+                return FileReportOutcome.AlreadyReported;
+        }
 
         var statute = await statuteLookup.GetCurrentAsync(cancellationToken);
         if (statute is null || !statute.ReportablePointIds.Contains(request.StatutePointId))
