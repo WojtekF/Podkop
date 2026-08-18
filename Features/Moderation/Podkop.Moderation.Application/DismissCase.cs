@@ -66,6 +66,38 @@ public sealed class DismissCaseHandler(
     TimeProvider timeProvider)
     : IRequestHandler<DismissCase, DismissCaseResult>
 {
-    public Task<DismissCaseResult> Handle(DismissCase request, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task<DismissCaseResult> Handle(DismissCase request, CancellationToken cancellationToken)
+    {
+        if (!await moderatorLookup.IsModeratorAsync(currentUser.UserName, cancellationToken))
+            return new DismissCaseResult(DismissCaseOutcome.NotModerator);
+
+        var caseContent = await caseContentLookup.GetAsync(request.TargetKind, request.TargetId, cancellationToken);
+        if (caseContent == null) return new DismissCaseResult(DismissCaseOutcome.UnknownCase);
+
+        if (caseContent.Author == currentUser.UserName) return new DismissCaseResult(DismissCaseOutcome.OwnCase);
+
+        var reports = await reportsRepository.GetByTargetAsync(request.TargetKind, request.TargetId, cancellationToken);
+
+        var verdicts = await verdictsRepository.GetByTargetAsync(request.TargetKind,
+            request.TargetId, cancellationToken);
+
+        var reportsWithNoVerdict = reports
+            .Where(r => verdicts.All(v => !v.ResolvedReportIds.Contains(r.Id)))
+            .Select(r => r.Id)
+            .ToList();
+
+        if (!reportsWithNoVerdict.Any()) return new DismissCaseResult(DismissCaseOutcome.UnknownCase);
+
+        var verdict = new Verdict(
+            Guid.CreateVersion7(),
+            currentUser.UserName,
+            request.TargetKind,
+            request.TargetId,
+            VerdictKind.Dismissed,
+            timeProvider.GetUtcNow(),
+            reportsWithNoVerdict.ToList());
+        await verdictsRepository.AddAsync(verdict, cancellationToken);
+
+        return new DismissCaseResult(DismissCaseOutcome.Dismissed);
+    }
 }

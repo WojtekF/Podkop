@@ -1,5 +1,4 @@
 using MediatR;
-using Podkop.Moderation.Domain;
 
 namespace Podkop.Moderation.Application;
 
@@ -54,6 +53,23 @@ public sealed class GetModerationLogHandler(
     IModeratorLookup moderatorLookup)
     : IRequestHandler<GetModerationLog, ModerationLogResult>
 {
-    public Task<ModerationLogResult> Handle(GetModerationLog request, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task<ModerationLogResult> Handle(GetModerationLog request, CancellationToken cancellationToken)
+    {
+        if (!await moderatorLookup.IsModeratorAsync(currentUser.UserName, cancellationToken))
+            return new ModerationLogResult(ModerationLogOutcome.NotModerator, null);
+
+        var verdicts = await verdictsRepository.GetAllAsync(cancellationToken);
+        return new ModerationLogResult(
+            ModerationLogOutcome.Listed,
+            verdicts
+                .OrderByDescending(v => v.IssuedAt)
+                .Select(v => new ModerationLogEntry(
+                    v.Actor,
+                    v.TargetKind.ToString(),
+                    v.TargetId,
+                    v.Kind.ToString(),
+                    v.IssuedAt,
+                    v.ResolvedReportIds.Count))
+                .ToList());
+    }
 }
