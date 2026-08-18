@@ -11,7 +11,7 @@ A link (or content) submitted by a user for the community to vote on. The centra
 _Avoid_: Post, sink item
 
 **Feed**:
-An ordered, pageable listing of content selected by a rule. The findings feeds are the Main Page (promoted findings) and Upcoming (fresh findings); the Microblog has its own newest-first feed.
+An ordered, pageable listing of content selected by a rule. The findings feeds are the Main Page (promoted findings) and Upcoming (fresh findings); the Microblog has its own newest-first feed; each signed-in user has an Observed Feed.
 _Avoid_: Stream, timeline, list
 
 **Main Page**:
@@ -45,6 +45,10 @@ _Avoid_: Hashtag, category, label
 **Tag Page**:
 The feed of all content carrying one tag, every content type combined in a single stream.
 _Avoid_: Tag feed, tag listing
+
+**Observed Feed**:
+The signed-in feed collecting the newest content from a user's Observations — their observed tags and observed users, every content type combined.
+_Avoid_: My feed, home feed, personalized feed
 
 ### Voting
 
@@ -163,3 +167,25 @@ _Avoid_: Account deletion, wipe
 **Deleted Account**:
 The placeholder author shown on content whose author was erased.
 _Avoid_: Anonymous, ghost user
+
+### Social
+
+**Profile**:
+A Member's public page: who they are and what they have published (Wykop's */ludzie/{username}* page).
+_Avoid_: Account page, user page
+
+**Observation**:
+The one-way following relationship from a user to a user or a tag — no approval, freely retractable (Wykop's *obserwacja*). To observe is to hold one.
+_Avoid_: Follow, subscription, watch
+
+**Observer**:
+A user holding an Observation of a given user or tag. Observer counts are public wherever observing is offered.
+_Avoid_: Follower, subscriber
+
+**Mention**:
+An @username reference written in discussion text, linking to the named user's Profile and notifying them (Wykop's *przywołanie*).
+_Avoid_: Tag (for people), ping, callout
+
+**Notification**:
+The per-user inbox item recording that someone interacted with you — commented on your content, replied to you, or mentioned you. Read or unread, never public.
+_Avoid_: Alert, ping, message
