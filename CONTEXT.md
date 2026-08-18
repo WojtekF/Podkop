@@ -30,6 +30,14 @@ _Avoid_: Featuring, trending
 The external URL a finding points to.
 _Avoid_: Link, target
 
+**Tag**:
+A one-word label attached to content for discovery, written #name; canonical form is lowercase letters and digits (1–50 characters), and anything a user types is folded into it. Free-form and unowned — a tag exists exactly as long as content carries it, in one namespace shared by every content type.
+_Avoid_: Hashtag, category, label
+
+**Tag Page**:
+The feed of all content carrying one tag, every content type combined in a single stream.
+_Avoid_: Tag feed, tag listing
+
 ### Voting
 
 **Dig**:
