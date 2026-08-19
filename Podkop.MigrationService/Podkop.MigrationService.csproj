@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+
+    <PropertyGroup>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+    </ItemGroup>
+
+    <!-- As slices convert to PostgreSQL, their Infrastructure projects get referenced here — the
+         sanctioned isolation exception of ADR 0010, like Podkop.Server is for Server projects.
+         No slice has converted yet (issue #87). -->
+
+</Project>
