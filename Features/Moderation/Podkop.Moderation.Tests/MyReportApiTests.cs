@@ -121,6 +121,30 @@ public class MyReportApiTests
     }
 
     [Fact]
+    public async Task A_fresh_report_after_a_dismissal_shows_as_mine_again()
+    {
+        // Continues A_resolved_report_no_longer_shows_as_mine: the user took the reset
+        // invitation and re-reported. The fresh report is pending, so the answer is true even
+        // though the resolved report is still stored beside it on the same target.
+        var mine = ReportBy(StubUser);
+        using var factory = CreateFactory([mine], new InMemoryVerdictRepository(
+        [
+            new Verdict(Guid.CreateVersion7(), "grace_hopper", ReportTargetKind.Finding, FindingId,
+                VerdictKind.Dismissed, At("2026-07-02T12:00:00Z"), [mine.Id]),
+        ]));
+        using var client = factory.CreateClient();
+
+        var refiled = await client.PostAsJsonAsync($"/api/findings/{FindingId}/my-report",
+            new { statutePointId = SpamPointId, note = (string?)null });
+        Assert.Equal(HttpStatusCode.Created, refiled.StatusCode);
+
+        var status = await client.GetFromJsonAsync<MyReportResponse>($"/api/findings/{FindingId}/my-report");
+
+        Assert.NotNull(status);
+        Assert.True(status.Reported);
+    }
+
+    [Fact]
     public async Task My_report_for_an_unknown_finding_is_a_404()
     {
         using var factory = CreateFactory([]);

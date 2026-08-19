@@ -187,6 +187,34 @@ public class FileReportApiTests
     }
 
     [Fact]
+    public async Task The_fresh_report_after_a_dismissal_blocks_a_duplicate_like_any_pending_one()
+    {
+        // Continues A_resolved_report_no_longer_blocks_a_fresh_one: once the user re-reports
+        // cleared content, the fresh report is the pending one, and the one-pending-report rule
+        // guards it — the resolved history on the same target blocks nothing, but it must not
+        // hide the pending report either.
+        var earlier = new Report(Guid.Parse("d0000000-0000-4000-8000-000000000001"), StubUser,
+            ReportTargetKind.Finding, TargetFindingId, SpamPointId, statuteVersion: 1, note: null,
+            At("2026-05-01T00:00:00Z"));
+        using var factory = CreateFactory(new InMemoryReportRepository([earlier]),
+            verdicts: new InMemoryVerdictRepository(
+            [
+                new Verdict(Guid.CreateVersion7(), "grace_hopper", ReportTargetKind.Finding,
+                    TargetFindingId, VerdictKind.Dismissed, At("2026-06-01T00:00:00Z"), [earlier.Id]),
+            ]));
+        using var client = factory.CreateClient();
+
+        var refiled = await Post(client, TargetFindingId, SpamPointId, "It is at it again.");
+        Assert.Equal(HttpStatusCode.Created, refiled.StatusCode);
+
+        var third = await Post(client, TargetFindingId, HatePointId);
+
+        Assert.Equal(HttpStatusCode.Conflict, third.StatusCode);
+        var problem = await third.Content.ReadFromJsonAsync<ProblemResponse>();
+        Assert.Equal("podkop:problem:already-reported", problem!.Type);
+    }
+
+    [Fact]
     public async Task Authors_cannot_report_their_own_finding()
     {
         using var factory = CreateFactory(new InMemoryReportRepository([]));
