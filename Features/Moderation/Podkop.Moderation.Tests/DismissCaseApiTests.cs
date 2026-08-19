@@ -18,9 +18,6 @@ namespace Podkop.Moderation.Tests;
 ///     refused wholesale, moderators for cases about their own content, and a target without
 ///     pending reports has no case — never reported and already dismissed answer the same 404.
 ///     The world outside the slice enters only through its own ports (ADR 0003), stubbed here.
-///     The dismissal specs fail until <see cref="DismissCaseHandler" /> is written (red-only
-///     scaffold); the wire-validation specs (unknown kind, missing/unknown verdict) arrive
-///     green with the implemented thin endpoint, per the adapter precedent.
 /// </summary>
 public class DismissCaseApiTests
 {

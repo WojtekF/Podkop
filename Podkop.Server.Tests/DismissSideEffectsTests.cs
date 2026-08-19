@@ -25,8 +25,7 @@ namespace Podkop.Server.Tests;
 ///     surfaces the frontend uses, before and after dismissing — a cross-slice observation
 ///     that belongs to the composition root's tests, where the full wiring is under test
 ///     (ADR 0003): the stub acting user is a seeded Moderator (issue #31) and the real
-///     adapters answer the moderation ports. Every spec fails until DismissCaseHandler is
-///     written (red-only scaffold).
+///     adapters answer the moderation ports.
 /// </summary>
 public class DismissSideEffectsTests
 {

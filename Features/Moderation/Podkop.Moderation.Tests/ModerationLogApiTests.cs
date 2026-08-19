@@ -16,9 +16,7 @@ namespace Podkop.Moderation.Tests;
 ///     array serialized with the Web defaults (<c>actor</c>, <c>targetKind</c>,
 ///     <c>targetId</c>, <c>verdict</c>, <c>issuedAt</c>, <c>resolvedReportCount</c>), and the
 ///     whole surface is refused to anyone but a Moderator. The world outside the slice enters
-///     only through its own ports (ADR 0003), stubbed here. Every spec fails until
-///     <see cref="GetModerationLogHandler" /> (and, for the dismissal round-trips,
-///     <see cref="DismissCaseHandler" />) is written (red-only scaffold).
+///     only through its own ports (ADR 0003), stubbed here.
 /// </summary>
 public class ModerationLogApiTests
 {

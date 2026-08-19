@@ -14,8 +14,7 @@ namespace Podkop.Moderation.Tests;
 ///     the frontend uses — the stub acting user is a seeded Moderator (issue #31), so the
 ///     queue and the log answer them. The seeds tell one story: pending cases in the queue, at
 ///     least two dismissals in the log, and at least one target cleared and then re-reported,
-///     so a fresh case sits next to its resolved history. The verdict-aware specs fail until
-///     the verdict seed generation is written (red-only scaffold).
+///     so a fresh case sits next to its resolved history.
 /// </summary>
 public class CaseQueueSeedTests
 {

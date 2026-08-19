@@ -16,9 +16,8 @@ namespace Podkop.Moderation.Tests;
 ///     against the version it pinned (ADR 0006), reporter identities withheld, and the whole
 ///     surface refused to anyone but a Moderator. Pending is derived (issue #35): a report a
 ///     Verdict resolved vanishes from its case, and a fully resolved target has no case at
-///     all — the pending-scoping specs fail until GetCaseQueueHandler reads the verdicts. The
-///     world outside the slice enters only through its own ports (ADR 0003), stubbed here; the
-///     composition-root adapters behind them are specified in Podkop.Server.Tests.
+///     all. The world outside the slice enters only through its own ports (ADR 0003), stubbed
+///     here; the composition-root adapters behind them are specified in Podkop.Server.Tests.
 /// </summary>
 public class CaseQueueApiTests
 {
