@@ -47,10 +47,7 @@ public sealed class GetMyCommentReportsHandler(
 
         return new MyCommentReportsStatus(
             existingReports
-                .Where(report => verdicts.All(
-                    verdict => !verdict
-                    .ResolvedReportIds
-                    .Contains(report.Id)))
+                .Where(report => report.IsPendingAgainst(verdicts))
                 .Select(report => report.TargetId)
                 .ToList());
     }

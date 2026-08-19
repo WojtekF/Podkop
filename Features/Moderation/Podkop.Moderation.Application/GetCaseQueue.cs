@@ -103,10 +103,7 @@ public sealed class GetCaseQueueHandler(
         var reports = await reportsRepository.GetAllAsync(cancellationToken);
         var groupedReports = reports
             .Where(report =>
-                verdicts
-                    .All(v =>
-                        !v.ResolvedReportIds
-                            .Contains(report.Id)))
+                report.IsPendingAgainst(verdicts))
             .OrderBy(report => report.FiledAt)
             .ThenBy(report => report.TargetId)
             .GroupBy(report => (Kind: report.TargetKind, Id: report.TargetId));

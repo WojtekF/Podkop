@@ -31,13 +31,12 @@ public sealed class GetMyReportHandler(
             await targetLookup.GetAsync(ReportTargetKind.Finding, request.FindingId, cancellationToken);
         if (reportTarget is null) return null;
 
-        var report = await reportsRepository.GetByReporterAndTargetAsync(
+        var reports = await reportsRepository.GetByReporterAndTargetAsync(
             currentUser.UserName, ReportTargetKind.Finding, request.FindingId, cancellationToken);
 
         var verdicts =
             await verdictsRepository.GetByTargetAsync(ReportTargetKind.Finding, request.FindingId, cancellationToken);
 
-        return new MyReportStatus(report is not null &&
-                                  verdicts.All(verdict => !verdict.ResolvedReportIds.Contains(report.Id)));
+        return new MyReportStatus(reports.Any(report => report.IsPendingAgainst(verdicts)));
     }
 }

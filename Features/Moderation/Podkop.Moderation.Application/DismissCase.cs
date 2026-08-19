@@ -82,7 +82,7 @@ public sealed class DismissCaseHandler(
             request.TargetId, cancellationToken);
 
         var reportsWithNoVerdict = reports
-            .Where(r => verdicts.All(v => !v.ResolvedReportIds.Contains(r.Id)))
+            .Where(r => r.IsPendingAgainst(verdicts))
             .Select(r => r.Id)
             .ToList();
 

@@ -101,9 +101,8 @@ public class FileReportApiTests
         var response = await Post(client, TargetFindingId, SpamPointId, "  Links a spam farm. \n");
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var stored = await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
-            TargetFindingId, CancellationToken.None);
-        Assert.NotNull(stored);
+        var stored = Assert.Single(await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
+            TargetFindingId, CancellationToken.None));
         Assert.Equal(StubUser, stored.Reporter);
         Assert.Equal(ReportTargetKind.Finding, stored.TargetKind);
         Assert.Equal(TargetFindingId, stored.TargetId);
@@ -124,9 +123,8 @@ public class FileReportApiTests
         var response = await Post(client, TargetFindingId, SpamPointId, note: null);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var stored = await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
-            TargetFindingId, CancellationToken.None);
-        Assert.NotNull(stored);
+        var stored = Assert.Single(await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
+            TargetFindingId, CancellationToken.None));
         Assert.Null(stored.Note);
     }
 

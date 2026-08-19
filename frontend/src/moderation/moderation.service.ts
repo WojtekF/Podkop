@@ -47,8 +47,10 @@ export class ModerationService {
   }
 
   dismissCase(targetKind: CaseSummaryDto['targetKind'], targetId: string): Observable<void> {
-    return this.http.post<void>(`/api/moderation/cases/${targetKind}/${targetId}/verdict`, {
-      verdict: 'Dismissed',
-    });
+    return this.http
+      .post<void>(`/api/moderation/cases/${targetKind}/${targetId}/verdict`, {
+        verdict: 'Dismissed',
+      })
+      .pipe(timeout(5000));
   }
 }

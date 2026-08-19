@@ -84,9 +84,8 @@ public class FileCommentReportApiTests
         var response = await Post(client, TargetCommentId, SpamPointId, "  Spam in the discussion. \n");
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var stored = await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Comment,
-            TargetCommentId, CancellationToken.None);
-        Assert.NotNull(stored);
+        var stored = Assert.Single(await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Comment,
+            TargetCommentId, CancellationToken.None));
         Assert.Equal(StubUser, stored.Reporter);
         Assert.Equal(ReportTargetKind.Comment, stored.TargetKind);
         Assert.Equal(TargetCommentId, stored.TargetId);

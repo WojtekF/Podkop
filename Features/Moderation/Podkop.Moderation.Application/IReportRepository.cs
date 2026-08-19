@@ -5,10 +5,14 @@ namespace Podkop.Moderation.Application;
 public interface IReportRepository
 {
     /// <summary>
-    ///     The reporter's report on the target, if they filed one — the lookup behind both the
-    ///     one-report-per-user-per-target rule and the my-report state (issues #32/#33).
+    ///     Every report the reporter filed against the target, resolved ones included — the
+    ///     lookup behind both the one-PENDING-report-per-user-per-target rule and the my-report
+    ///     state (issues #32/#33, pending-scoped by issue #35). Reports are immutable, so a
+    ///     reporter accumulates one per judged-and-refiled cycle on the same target; the
+    ///     handlers derive against the verdicts which of them, if any, is still pending.
+    ///     Never reported yields none.
     /// </summary>
-    Task<Report?> GetByReporterAndTargetAsync(
+    Task<IReadOnlyList<Report>> GetByReporterAndTargetAsync(
         string reporter, ReportTargetKind targetKind, Guid targetId, CancellationToken cancellationToken);
 
     /// <summary>
