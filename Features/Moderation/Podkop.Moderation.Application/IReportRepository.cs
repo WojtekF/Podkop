@@ -5,10 +5,14 @@ namespace Podkop.Moderation.Application;
 public interface IReportRepository
 {
     /// <summary>
-    ///     The reporter's report on the target, if they filed one — the lookup behind both the
-    ///     one-report-per-user-per-target rule and the my-report state (issues #32/#33).
+    ///     Every report the reporter filed against the target, resolved ones included — the
+    ///     lookup behind both the one-PENDING-report-per-user-per-target rule and the my-report
+    ///     state (issues #32/#33, pending-scoped by issue #35). Reports are immutable, so a
+    ///     reporter accumulates one per judged-and-refiled cycle on the same target; the
+    ///     handlers derive against the verdicts which of them, if any, is still pending.
+    ///     Never reported yields none.
     /// </summary>
-    Task<Report?> GetByReporterAndTargetAsync(
+    Task<IReadOnlyList<Report>> GetByReporterAndTargetAsync(
         string reporter, ReportTargetKind targetKind, Guid targetId, CancellationToken cancellationToken);
 
     /// <summary>
@@ -24,11 +28,20 @@ public interface IReportRepository
         CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Every stored report — the case queue's whole feed (issue #34): no Verdict exists
-    ///     until issue #35, so every report is pending by definition. That ticket narrows this
-    ///     to the reports still awaiting judgment.
+    ///     Every stored report, resolved ones included — reports are immutable and never leave
+    ///     the store. Pending-ness is not this store's fact (issue #35): Application handlers
+    ///     derive it against the verdicts, a report being pending iff no Verdict's
+    ///     ResolvedReportIds references its id.
     /// </summary>
     Task<IReadOnlyList<Report>> GetAllAsync(CancellationToken cancellationToken);
+
+    /// <summary>
+    ///     Every report ever filed against one target, resolved ones included — the dismissal's
+    ///     input (issue #35): the handler derives which are still pending against the target's
+    ///     verdicts and resolves exactly those. A never-reported target yields none.
+    /// </summary>
+    Task<IReadOnlyList<Report>> GetByTargetAsync(
+        ReportTargetKind targetKind, Guid targetId, CancellationToken cancellationToken);
 
     Task AddAsync(Report report, CancellationToken cancellationToken);
 }

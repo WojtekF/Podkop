@@ -11,6 +11,12 @@ import { CaseSummaryDto } from './moderation.service';
  * lives on, not itself. The third case's author is the stub acting moderator — cases about a
  * moderator's own content stay listed. The two reports of the comment case cite the same point
  * across an amendment, so the same "2.1" carries each pinned version's own wording.
+ *
+ * For the dismissal specs (issue #35) the data also proves: the first (Finding) and second
+ * (Comment) cases live on the SAME finding page yet are distinct targets — a dismissal is
+ * keyed by target kind and id, so resolving one must not take its sibling's case — and the
+ * Comment target drives the target-kind segment of the verdict request. Three cases with
+ * distinct targets let two dismissals run in parallel while a third case stays untouched.
  */
 export const caseQueue = (): CaseSummaryDto[] => [
   {

@@ -7,10 +7,12 @@ public sealed class InMemoryReportRepository(IEnumerable<Report> reports) : IRep
 {
     private readonly List<Report> _reports = reports.ToList();
 
-    public Task<Report?> GetByReporterAndTargetAsync(string reporter, ReportTargetKind targetKind, Guid targetId,
-        CancellationToken cancellationToken) =>
-        Task.FromResult(_reports.FirstOrDefault(report =>
-            report.Reporter == reporter && report.TargetKind == targetKind && report.TargetId == targetId));
+    public Task<IReadOnlyList<Report>> GetByReporterAndTargetAsync(string reporter, ReportTargetKind targetKind,
+        Guid targetId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Report>>(_reports
+            .Where(report =>
+                report.Reporter == reporter && report.TargetKind == targetKind && report.TargetId == targetId)
+            .ToList());
 
     public Task<IReadOnlyList<Report>> GetByReporterAndTargetsAsync(string reporter, ReportTargetKind targetKind,
         IReadOnlyList<Guid> targetIds, CancellationToken cancellationToken) =>
@@ -21,6 +23,12 @@ public sealed class InMemoryReportRepository(IEnumerable<Report> reports) : IRep
 
     public Task<IReadOnlyList<Report>> GetAllAsync(CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<Report>>(_reports.ToList());
+
+    public Task<IReadOnlyList<Report>> GetByTargetAsync(ReportTargetKind targetKind, Guid targetId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Report>>(_reports
+            .Where(report => report.TargetKind == targetKind && report.TargetId == targetId)
+            .ToList());
 
     public Task AddAsync(Report report, CancellationToken cancellationToken)
     {

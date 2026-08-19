@@ -4,6 +4,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { caseQueue } from './moderation.fixtures';
 import { CaseQueue } from './case-queue';
 
@@ -16,12 +17,14 @@ class MainPageStub {}
 describe('CaseQueue', () => {
   let harness: RouterTestingHarness;
   let httpMock: HttpTestingController;
+  let snackBar: { open: ReturnType<typeof vi.fn> };
 
   const element = (): HTMLElement => harness.routeNativeElement!;
   const expectQueueRequest = () =>
     httpMock.expectOne({ method: 'GET', url: '/api/moderation/cases' });
 
   beforeEach(async () => {
+    snackBar = { open: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
@@ -30,6 +33,7 @@ describe('CaseQueue', () => {
         ]),
         provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: MatSnackBar, useValue: snackBar },
       ],
     });
     httpMock = TestBed.inject(HttpTestingController);
@@ -165,5 +169,112 @@ describe('CaseQueue', () => {
     expect(element().querySelector('.queue-state.error')?.textContent).toContain(
       "Couldn't load the case queue.",
     );
+  });
+
+  describe('dismissing a case (issue #35)', () => {
+    const dismissButtons = () =>
+      Array.from(element().querySelectorAll<HTMLButtonElement>('.dismiss-button'));
+    const previews = () =>
+      Array.from(element().querySelectorAll<HTMLElement>('.case-preview')).map((preview) =>
+        preview.textContent?.trim(),
+      );
+    const expectDismissRequest = (targetKind: string, targetId: string) =>
+      httpMock.expectOne({
+        method: 'POST',
+        url: `/api/moderation/cases/${targetKind}/${targetId}/verdict`,
+      });
+
+    const loadQueue = async (cases = caseQueue()) => {
+      await harness.navigateByUrl('/moderation', CaseQueue);
+      expectQueueRequest().flush(cases);
+      harness.detectChanges();
+    };
+
+    it('every case card carries its Dismiss button', async () => {
+      await loadQueue();
+
+      const buttons = dismissButtons();
+      expect(buttons).toHaveLength(3);
+      buttons.forEach((button) => expect(button.textContent?.trim()).toBe('Dismiss'));
+    });
+
+    it("clicking a card's Dismiss hands exactly that case's target to the server", async () => {
+      await loadQueue();
+
+      // The second card is the Comment case — its own kind and id must reach the request.
+      dismissButtons()[1].click();
+      harness.detectChanges();
+
+      const request = expectDismissRequest('Comment', caseQueue()[1].targetId);
+      expect(request.request.body).toEqual({ verdict: 'Dismissed' });
+      request.flush(null, { status: 204, statusText: 'No Content' });
+    });
+
+    it('a successful dismissal removes the card, leaving the rest in order', async () => {
+      await loadQueue();
+
+      dismissButtons()[0].click();
+      harness.detectChanges();
+      expectDismissRequest('Finding', caseQueue()[0].targetId).flush(null, {
+        status: 204,
+        statusText: 'No Content',
+      });
+      harness.detectChanges();
+
+      // The comment case shares the dismissed case's finding page — it must survive.
+      expect(previews()).toEqual(['A comment under scrutiny.', "The moderator's own finding"]);
+    });
+
+    it('dismissing the last card reveals the empty state', async () => {
+      await loadQueue([caseQueue()[0]]);
+
+      dismissButtons()[0].click();
+      harness.detectChanges();
+      expectDismissRequest('Finding', caseQueue()[0].targetId).flush(null, {
+        status: 204,
+        statusText: 'No Content',
+      });
+      harness.detectChanges();
+
+      expect(element().querySelector('.case-card')).toBeNull();
+      expect(element().querySelector('.queue-empty')?.textContent).toContain('No open cases.');
+    });
+
+    it('a failed dismissal leaves the card in place and says so', async () => {
+      await loadQueue();
+
+      dismissButtons()[0].click();
+      harness.detectChanges();
+      expectDismissRequest('Finding', caseQueue()[0].targetId).flush('boom', {
+        status: 500,
+        statusText: 'Server Error',
+      });
+      harness.detectChanges();
+
+      expect(element().querySelectorAll('.case-card')).toHaveLength(3);
+      expect(snackBar.open).toHaveBeenCalled();
+      expect(String(snackBar.open.mock.calls[0]?.[0])).toContain("Couldn't dismiss the case.");
+    });
+
+    it("an in-flight dismissal disables only its own card's button", async () => {
+      await loadQueue();
+
+      dismissButtons()[0].click();
+      harness.detectChanges();
+
+      expect(dismissButtons()[0].disabled).toBe(true);
+      expect(dismissButtons()[1].disabled).toBe(false);
+      expect(dismissButtons()[2].disabled).toBe(false);
+
+      expectDismissRequest('Finding', caseQueue()[0].targetId).flush(null, {
+        status: 204,
+        statusText: 'No Content',
+      });
+      harness.detectChanges();
+
+      // The resolved card is gone; the survivors' buttons are live again.
+      expect(dismissButtons()).toHaveLength(2);
+      expect(dismissButtons().every((button) => !button.disabled)).toBe(true);
+    });
   });
 });

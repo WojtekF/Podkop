@@ -79,4 +79,6 @@ public sealed class Report
                 string.IsNullOrWhiteSpace(trimmedNote) ? null : trimmedNote,
                 filedAt));
     }
+
+    public bool IsPendingAgainst(IEnumerable<Verdict> verdicts) => verdicts.All(v => !v.ResolvedReportIds.Contains(Id));
 }

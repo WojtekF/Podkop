@@ -6,7 +6,8 @@ namespace Podkop.Moderation.Application;
 /// <summary>
 ///     Query behind <c>GET /api/moderation/cases</c> (issue #34): the queue of open Cases a
 ///     moderator judges from — every reported piece of content grouped with all its pending
-///     reports. Viewing only; verdicts and actions arrive with later tickets (issue #35 on).
+///     reports. Judging starts with the Dismiss verdict (issue #35); further actions arrive
+///     with later tickets (issue #36 on).
 /// </summary>
 public sealed record GetCaseQueue : IRequest<CaseQueueResult>;
 
@@ -25,9 +26,11 @@ public sealed record CaseQueueResult(CaseQueueOutcome Outcome, IReadOnlyList<Cas
 
 /// <summary>
 ///     One open Case as the queue shows it (issue #34, CONTEXT.md): a reported finding or
-///     comment with all its pending reports. A Case has no identity of its own yet — it is the
-///     grouping key (TargetKind + TargetId) until a Verdict needs to reference one durably
-///     (issue #35). TargetKind carries the <c>ReportTargetKind</c> name ("Finding" /
+///     comment with all its pending reports. A Case has no identity of its own — the question
+///     issue #34 deferred is resolved (issue #35): it stays the derived grouping key
+///     (TargetKind + TargetId) of the target's pending reports, existing iff at least one
+///     report is pending, and a Verdict references the target and the resolved report ids,
+///     never a case id. TargetKind carries the <c>ReportTargetKind</c> name ("Finding" /
 ///     "Comment") across the wire; FindingId names the finding page where the content lives —
 ///     the finding itself, or the finding a reported comment belongs to. Reporter identities
 ///     never leave the slice: the case carries their count and their reports' contents only.
@@ -64,8 +67,12 @@ public sealed record CaseReportSummary(
 ///     Answers the case queue (issue #34). The contract the specs pin down:
 ///     the acting user must hold the Moderator role — anyone else is refused with
 ///     <see cref="CaseQueueOutcome.NotModerator" /> — and role is a fact of the Users slice,
-///     read through this slice's own <see cref="IModeratorLookup" /> port. Every stored report
-///     is pending (no Verdict exists until issue #35), grouped one case per reported content
+///     read through this slice's own <see cref="IModeratorLookup" /> port. Only PENDING
+///     reports feed the queue (issue #35) — a report is pending iff no Verdict's
+///     ResolvedReportIds references its id, the verdicts read through
+///     <see cref="IVerdictRepository" />: resolved reports vanish from their case, and a
+///     target whose reports are all resolved has no case at all. Pending reports group one
+///     case per reported content
 ///     (target kind + id): cases order oldest grievance first — ascending by the earliest
 ///     report's FiledAt, ties broken by ascending target id — and a case's reports order
 ///     ascending by FiledAt. Content facts (author, preview source text, owning finding) come
@@ -79,6 +86,7 @@ public sealed record CaseReportSummary(
 /// </summary>
 public sealed class GetCaseQueueHandler(
     IReportRepository reportsRepository,
+    IVerdictRepository verdictsRepository,
     ICurrentUser currentUser,
     IModeratorLookup moderatorLookup,
     ICaseContentLookup caseContentLookup,
@@ -90,8 +98,12 @@ public sealed class GetCaseQueueHandler(
         if (!await moderatorLookup.IsModeratorAsync(currentUser.UserName, cancellationToken))
             return new CaseQueueResult(CaseQueueOutcome.NotModerator, null);
 
+        var verdicts = await verdictsRepository.GetAllAsync(cancellationToken);
+
         var reports = await reportsRepository.GetAllAsync(cancellationToken);
         var groupedReports = reports
+            .Where(report =>
+                report.IsPendingAgainst(verdicts))
             .OrderBy(report => report.FiledAt)
             .ThenBy(report => report.TargetId)
             .GroupBy(report => (Kind: report.TargetKind, Id: report.TargetId));
@@ -100,18 +112,18 @@ public sealed class GetCaseQueueHandler(
         return new CaseQueueResult(
             CaseQueueOutcome.Listed,
             caseSummaries
-            .Where(c => c != null)
-            .Cast<CaseSummary>()
-            .ToList());
+                .Where(c => c != null)
+                .Cast<CaseSummary>()
+                .ToList());
     }
 
     private async ValueTask<IEnumerable<CaseSummary?>> MapGroupedReportsToCaseSummary(
         IEnumerable<IGrouping<(ReportTargetKind Kind, Guid Id), Report>> groupedReports,
         CancellationToken cancellationToken) =>
         await groupedReports
-        .ToAsyncEnumerable()
-        .Select(MapGroupedReportsToCase)
-        .ToListAsync(cancellationToken);
+            .ToAsyncEnumerable()
+            .Select(MapGroupedReportsToCase)
+            .ToListAsync(cancellationToken);
 
     private async ValueTask<CaseSummary?> MapGroupedReportsToCase(
         IGrouping<(ReportTargetKind Kind, Guid Id ), Report> group, CancellationToken cancellationToken)
@@ -138,8 +150,8 @@ public sealed class GetCaseQueueHandler(
                 @case.Author,
                 sortedReport.Count(),
                 await sortedReport
-                .ToAsyncEnumerable()
-                .Select(MapReportToCaseReportSummary)
+                    .ToAsyncEnumerable()
+                    .Select(MapReportToCaseReportSummary)
                     .ToListAsync(cancellationToken));
     }
 

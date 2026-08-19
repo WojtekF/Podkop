@@ -147,7 +147,7 @@ A temporary, moderator-imposed block on all of a user's write actions, citing a 
 _Avoid_: Suspension, block, timeout
 
 **Moderation Log**:
-The internal record of every moderation action — actor, target, cited Statute Point, note, and prior state. Visible to moderators only.
+The internal record of every moderation action — actor, target, the action taken, and when — plus the details the action carries: cited Statute Point, note, and prior state where the action has them (a dismissal has none). Visible to moderators only.
 _Avoid_: Audit trail, history
 
 ### Users

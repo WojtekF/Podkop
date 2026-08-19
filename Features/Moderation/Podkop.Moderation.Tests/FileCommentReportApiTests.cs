@@ -43,6 +43,9 @@ public class FileCommentReportApiTests
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
+                // No verdict is ever issued here — the pending-scoped duplicate rule (issue
+                // #35) is shared with the finding endpoint and specified in its suite.
+                services.AddSingleton<IVerdictRepository>(new InMemoryVerdictRepository([]));
                 services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
                 services.AddSingleton<IReportTargetLookup>(new StubReportTargetLookup(
                     (ReportTargetKind.Comment, new ReportTarget(TargetCommentId, "grace_hopper")),
@@ -81,9 +84,8 @@ public class FileCommentReportApiTests
         var response = await Post(client, TargetCommentId, SpamPointId, "  Spam in the discussion. \n");
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var stored = await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Comment,
-            TargetCommentId, CancellationToken.None);
-        Assert.NotNull(stored);
+        var stored = Assert.Single(await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Comment,
+            TargetCommentId, CancellationToken.None));
         Assert.Equal(StubUser, stored.Reporter);
         Assert.Equal(ReportTargetKind.Comment, stored.TargetKind);
         Assert.Equal(TargetCommentId, stored.TargetId);

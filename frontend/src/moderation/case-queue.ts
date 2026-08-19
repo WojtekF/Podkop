@@ -8,9 +8,11 @@ import {
   MatCardTitle,
   MatCardSubtitle,
   MatCardContent,
+  MatCardActions,
 } from '@angular/material/card';
 import { RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
+import { MatButton } from '@angular/material/button';
 
 @Component({
   selector: 'app-case-queue',
@@ -24,6 +26,8 @@ import { DatePipe } from '@angular/common';
     MatCardSubtitle,
     MatCardContent,
     DatePipe,
+    MatCardActions,
+    MatButton,
   ],
   providers: [CaseQueueStore],
   templateUrl: './case-queue.html',

@@ -18,18 +18,23 @@ public sealed record SampleReportTarget(ReportTargetKind Kind, Guid Id, string A
 public sealed record SampleCitableVersion(int Version, IReadOnlyList<Guid> ReportablePointIds);
 
 /// <summary>
-///     Development seed for the pending reports until PostgreSQL persistence lands (issue #34),
+///     Development seed for the stored reports until PostgreSQL persistence lands (issue #34),
 ///     so the moderator case queue has cases to show without hand-filing reports first. The
 ///     generated reports must be coherent with the rest of the sample app — every one could
 ///     have been filed: its reporter is an author drawn from the given targets' author pool,
-///     never the reported target's own author, and no reporter reports the same target twice;
+///     never the reported target's own author, and no reporter has two reports pending on the
+///     same target at once — the rule is pending-scoped (issue #35), so only a target whose
+///     earlier reports the verdict seed resolves may see a reporter repeated across its waves;
 ///     it cites a reportable point of the version it pins, drawn from the given citable
 ///     versions. Coverage the queue makes observable: both target kinds are reported; at least
 ///     one target carries several reports, so grouping shows; at least one report pins a
 ///     superseded (non-latest) citable version, so the pinned-wording display shows; notes are
 ///     both present (within <see cref="Report.MaxNoteLength" />) and absent; and every FiledAt
 ///     is a distinct past instant, spread out so the oldest-grievance-first order is stable
-///     and visible.
+///     and visible. Coverage the verdict seed builds on (issue #35): at least one target's
+///     reports arrive in two waves — an older, later-dismissed wave every one of whose reports
+///     precedes every report of the fresh wave that re-reports the cleared target — so the
+///     shipped app carries a resolved history next to a fresh case on the same content.
 /// </summary>
 public static class SampleReports
 {

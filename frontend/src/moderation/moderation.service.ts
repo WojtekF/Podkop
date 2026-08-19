@@ -45,4 +45,12 @@ export class ModerationService {
   getCaseQueue(): Observable<CaseSummaryDto[]> {
     return this.http.get<CaseSummaryDto[]>('/api/moderation/cases').pipe(timeout(5000));
   }
+
+  dismissCase(targetKind: CaseSummaryDto['targetKind'], targetId: string): Observable<void> {
+    return this.http
+      .post<void>(`/api/moderation/cases/${targetKind}/${targetId}/verdict`, {
+        verdict: 'Dismissed',
+      })
+      .pipe(timeout(5000));
+  }
 }

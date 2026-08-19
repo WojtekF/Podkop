@@ -13,7 +13,8 @@ namespace Podkop.Moderation.Tests;
 /// <summary>
 ///     Filing a report (issue #32) through the HTTP seam: POST my-report files the stub user's
 ///     one report on a finding, citing a reportable point of the current Statute and pinning its
-///     version (ADR 0006). Duplicates and self-reports are refused, and every error answer
+///     version (ADR 0006). Duplicates — pending-scoped since issue #35: a resolved report
+///     blocks nothing — and self-reports are refused, and every error answer
 ///     carries a stable <c>podkop:problem:&lt;slug&gt;</c> ProblemDetails type so same-status
 ///     outcomes stay distinguishable. The world outside the slice enters only through its own
 ///     ports (ADR 0003), stubbed here; the composition-root adapters behind them — and the
@@ -54,10 +55,13 @@ public class FileReportApiTests
     ///     repository port.
     /// </summary>
     private static WebApplicationFactory<Program> CreateFactory(
-        InMemoryReportRepository reports, bool statuteInForce = true) =>
+        InMemoryReportRepository reports, bool statuteInForce = true,
+        InMemoryVerdictRepository? verdicts = null) =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
             {
+                // No verdict has been issued unless the spec says so — every report pending.
+                services.AddSingleton<IVerdictRepository>(verdicts ?? new InMemoryVerdictRepository([]));
                 services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
                 services.AddSingleton<IReportTargetLookup>(new StubReportTargetLookup(
                     (ReportTargetKind.Finding, new ReportTarget(TargetFindingId, "grace_hopper")),
@@ -97,9 +101,8 @@ public class FileReportApiTests
         var response = await Post(client, TargetFindingId, SpamPointId, "  Links a spam farm. \n");
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var stored = await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
-            TargetFindingId, CancellationToken.None);
-        Assert.NotNull(stored);
+        var stored = Assert.Single(await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
+            TargetFindingId, CancellationToken.None));
         Assert.Equal(StubUser, stored.Reporter);
         Assert.Equal(ReportTargetKind.Finding, stored.TargetKind);
         Assert.Equal(TargetFindingId, stored.TargetId);
@@ -120,9 +123,8 @@ public class FileReportApiTests
         var response = await Post(client, TargetFindingId, SpamPointId, note: null);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var stored = await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
-            TargetFindingId, CancellationToken.None);
-        Assert.NotNull(stored);
+        var stored = Assert.Single(await reports.GetByReporterAndTargetAsync(StubUser, ReportTargetKind.Finding,
+            TargetFindingId, CancellationToken.None));
         Assert.Null(stored.Note);
     }
 
@@ -147,6 +149,7 @@ public class FileReportApiTests
     [Fact]
     public async Task A_report_filed_in_an_earlier_session_also_refuses_a_duplicate()
     {
+        // The earlier report is still pending — no verdict resolved it — so it still blocks.
         var earlier = new Report(Guid.Parse("d0000000-0000-4000-8000-000000000001"), StubUser,
             ReportTargetKind.Finding, TargetFindingId, SpamPointId, statuteVersion: 1, note: null,
             At("2026-05-01T00:00:00Z"));
@@ -157,6 +160,55 @@ public class FileReportApiTests
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
         var problem = await response.Content.ReadFromJsonAsync<ProblemResponse>();
+        Assert.Equal("podkop:problem:already-reported", problem!.Type);
+    }
+
+    [Fact]
+    public async Task A_resolved_report_no_longer_blocks_a_fresh_one()
+    {
+        // The one-report-per-user-per-target rule is pending-scoped (issue #35): a dismissal
+        // resolved the stub user's earlier report, so the same user reports the target afresh.
+        var earlier = new Report(Guid.Parse("d0000000-0000-4000-8000-000000000001"), StubUser,
+            ReportTargetKind.Finding, TargetFindingId, SpamPointId, statuteVersion: 1, note: null,
+            At("2026-05-01T00:00:00Z"));
+        using var factory = CreateFactory(new InMemoryReportRepository([earlier]),
+            verdicts: new InMemoryVerdictRepository(
+            [
+                new Verdict(Guid.CreateVersion7(), "grace_hopper", ReportTargetKind.Finding,
+                    TargetFindingId, VerdictKind.Dismissed, At("2026-06-01T00:00:00Z"), [earlier.Id]),
+            ]));
+        using var client = factory.CreateClient();
+
+        var response = await Post(client, TargetFindingId, SpamPointId, "It is at it again.");
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_fresh_report_after_a_dismissal_blocks_a_duplicate_like_any_pending_one()
+    {
+        // Continues A_resolved_report_no_longer_blocks_a_fresh_one: once the user re-reports
+        // cleared content, the fresh report is the pending one, and the one-pending-report rule
+        // guards it — the resolved history on the same target blocks nothing, but it must not
+        // hide the pending report either.
+        var earlier = new Report(Guid.Parse("d0000000-0000-4000-8000-000000000001"), StubUser,
+            ReportTargetKind.Finding, TargetFindingId, SpamPointId, statuteVersion: 1, note: null,
+            At("2026-05-01T00:00:00Z"));
+        using var factory = CreateFactory(new InMemoryReportRepository([earlier]),
+            verdicts: new InMemoryVerdictRepository(
+            [
+                new Verdict(Guid.CreateVersion7(), "grace_hopper", ReportTargetKind.Finding,
+                    TargetFindingId, VerdictKind.Dismissed, At("2026-06-01T00:00:00Z"), [earlier.Id]),
+            ]));
+        using var client = factory.CreateClient();
+
+        var refiled = await Post(client, TargetFindingId, SpamPointId, "It is at it again.");
+        Assert.Equal(HttpStatusCode.Created, refiled.StatusCode);
+
+        var third = await Post(client, TargetFindingId, HatePointId);
+
+        Assert.Equal(HttpStatusCode.Conflict, third.StatusCode);
+        var problem = await third.Content.ReadFromJsonAsync<ProblemResponse>();
         Assert.Equal("podkop:problem:already-reported", problem!.Type);
     }
 
