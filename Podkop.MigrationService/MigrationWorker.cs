@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace Podkop.MigrationService;
 
 /// <summary>
@@ -15,8 +17,31 @@ public sealed class MigrationWorker(
     IHostApplicationLifetime hostApplicationLifetime,
     IEnumerable<SliceMigrationParticipant> participants) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        throw new NotImplementedException();
+        try
+        {
+            foreach (var participant in participants)
+            {
+                await using var scope = serviceProvider.CreateAsyncScope();
+                var context = participant.ResolveContext(scope.ServiceProvider);
+                var executionStrategy = context.Database.CreateExecutionStrategy();
+                await executionStrategy.ExecuteAsync(async () => await context.Database.MigrateAsync(stoppingToken));
+            }
+
+            if (hostEnvironment.IsDevelopment())
+                foreach (var participant in participants)
+                {
+                    await using var scope = serviceProvider.CreateAsyncScope();
+                    await participant.SeedAsync(scope.ServiceProvider, stoppingToken);
+                }
+        }
+        catch
+        {
+            Environment.ExitCode = -1;
+            throw;
+        }
+
+        hostApplicationLifetime.StopApplication();
     }
 }

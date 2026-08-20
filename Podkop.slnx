@@ -42,6 +42,7 @@
   <Project Path="Podkop.AppHost/Podkop.AppHost.csproj" />
   <Project Path="Podkop.AppHost.Tests/Podkop.AppHost.Tests.csproj" />
   <Project Path="Podkop.MigrationService/Podkop.MigrationService.csproj" />
+  <Project Path="Podkop.MigrationService.Tests/Podkop.MigrationService.Tests.csproj" />
   <Project Path="Podkop.Server/Podkop.Server.csproj" />
   <Project Path="Podkop.Server.Tests/Podkop.Server.Tests.csproj" />
 </Solution>

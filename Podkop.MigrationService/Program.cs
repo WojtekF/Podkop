@@ -7,4 +7,14 @@ var builder = Host.CreateApplicationBuilder(args);
 // empty and both of its steps must complete trivially.
 builder.Services.AddHostedService<MigrationWorker>();
 
+// Test-only fault hook: the orchestration smoke suite sets this variable to prove that a
+// failing migration keeps the API's startup gate closed. Never set it outside tests.
+if (builder.Configuration["PODKOP_MIGRATIONS_FAULT"] is { Length: > 0 } faultMessage)
+{
+    builder.Services.AddSingleton(new SliceMigrationParticipant(
+        "fault-injection",
+        _ => throw new InvalidOperationException(faultMessage),
+        (_, _) => Task.CompletedTask));
+}
+
 builder.Build().Run();
