@@ -27,11 +27,16 @@ builder.Services.AddDocuments(() => SampleSeed.StatuteVersions, () => SampleSeed
 // Reports seed too since the case queue made them observable (issue #34), and verdicts since
 // the Moderation Log made them observable (issue #35).
 builder.Services.AddModeration(() => SampleSeed.Reports, () => SampleSeed.Verdicts);
-builder.Services.AddUsers(() => SampleSeed.Users);
+// Users answer from PostgreSQL (issue #89): the slice takes no seed — sample users reach the
+// database only through the migration worker — and the API host registers the slice's context
+// against the orchestrated podkopdb connection.
+builder.Services.AddUsers();
+builder.AddUsersPersistence();
 builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
 builder.Services.AddSingleton<IReportTargetLookup, ContentBackedReportTargetLookup>();
 builder.Services.AddSingleton<ICaseContentLookup, ContentBackedCaseContentLookup>();
-builder.Services.AddSingleton<IModeratorLookup, UsersBackedModeratorLookup>();
+// Scoped to match the EF-backed IUserRepository it reads through (issue #89).
+builder.Services.AddScoped<IModeratorLookup, UsersBackedModeratorLookup>();
 builder.Services.AddSingleton<IFindingCommentsLookup, CommentsBackedFindingCommentsLookup>();
 // Scoped to match the ISender it dispatches the Documents slice's current-statute query through.
 builder.Services.AddScoped<IStatuteLookup, DocumentsBackedStatuteLookup>();

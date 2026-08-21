@@ -4,8 +4,8 @@ using Podkop.Users.Infrastructure;
 var builder = Host.CreateApplicationBuilder(args);
 
 // Converted slices register their context and their SliceMigrationParticipant here as they move
-// to PostgreSQL (ADR 0010's conversion order). Users is the first (issue #88): the worker owns
-// the only host that talks to the users schema until the endpoint conversion lands in #89.
+// to PostgreSQL (ADR 0010's conversion order). Users converted first (issues #88/#89): the
+// worker migrates and seeds the users schema, and the API host answers my-user from it.
 builder.AddUsersPersistence();
 builder.Services.AddSingleton(new SliceMigrationParticipant(
     "users",

@@ -1,5 +1,3 @@
-using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Podkop.Shared.Infrastructure;
 using Podkop.Users.Domain;
 using Podkop.Users.Infrastructure;
@@ -12,8 +10,8 @@ namespace Podkop.Users.Tests;
 ///     so the invariant survives vocabulary edits — with exactly ada_lovelace (the stub acting
 ///     user, so the moderator area is reachable once role-gating lands) and grace_hopper (the
 ///     mod-vs-mod counterparty) as Moderators. The record facts are asserted on the generator
-///     directly; the last spec runs the app as shipped, no overrides, through the same HTTP
-///     surface the frontend uses.
+///     directly; that the shipped seed reaches the acting user through HTTP is pinned against
+///     the database in <see cref="MyUserApiTests" />, since the worker owns seeding (issue #89).
 /// </summary>
 public class UsersSeedTests
 {
@@ -38,19 +36,4 @@ public class UsersSeedTests
                 .Select(u => u.UserName)
                 .OrderBy(a => a, StringComparer.Ordinal));
     }
-
-    [Fact]
-    public async Task The_app_as_shipped_answers_the_stub_user_as_a_moderator()
-    {
-        using var factory = new WebApplicationFactory<Program>();
-        using var client = factory.CreateClient();
-
-        var myUser = await client.GetFromJsonAsync<MyUserResponse>("/api/my-user");
-
-        Assert.NotNull(myUser);
-        Assert.Equal("ada_lovelace", myUser.UserName);
-        Assert.Equal("Moderator", myUser.Role);
-    }
-
-    private sealed record MyUserResponse(string UserName, string Role);
 }

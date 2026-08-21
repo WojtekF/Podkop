@@ -16,7 +16,6 @@ using Podkop.Moderation.Application;
 using Podkop.Moderation.Domain;
 using Podkop.Users.Application;
 using Podkop.Users.Domain;
-using Podkop.Users.Infrastructure;
 
 namespace Podkop.Server.Tests;
 
@@ -112,11 +111,12 @@ public class ModerationPortAdapterTests
                     new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
                         "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
                 ], provider.GetRequiredService<IPublisher>()));
-                services.AddSingleton<IUserRepository>(new InMemoryUserRepository(
-                [
+                // The users store is doubled at its port: since issue #89 the real one is
+                // the database, and the adapter under test is indifferent to which store
+                // answers the record.
+                services.AddSingleton<IUserRepository>(new StubUserRepository(
                     new User("ada_lovelace", UserRole.Moderator),
-                    new User("margaret_h", UserRole.Member),
-                ]));
+                    new User("margaret_h", UserRole.Member)));
             }));
 
     [Fact]
@@ -228,7 +228,9 @@ public class ModerationPortAdapterTests
     public async Task The_moderator_lookup_answers_the_users_seeded_role()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<IModeratorLookup>();
+        // Scoped since issue #89, to match the repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IModeratorLookup>();
 
         Assert.True(await lookup.IsModeratorAsync("ada_lovelace", CancellationToken.None));
         Assert.False(await lookup.IsModeratorAsync("margaret_h", CancellationToken.None));

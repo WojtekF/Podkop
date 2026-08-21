@@ -1,37 +1,54 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Podkop.Users.Application;
+using Podkop.Shared.Testing;
 using Podkop.Users.Domain;
 using Podkop.Users.Infrastructure;
 
 namespace Podkop.Users.Tests;
 
 /// <summary>
-///     The current-user endpoint (issue #31) through the HTTP seam: GET /api/my-user answers
-///     the acting (stub) user's identity and role from the durable user records, the role
-///     crossing the wire as the <c>UserRole</c> name. The records are overridden per spec so
-///     both role spellings are pinned and the answer provably comes from the acting user's
-///     record, not from the stub identity or any other record.
+///     The current-user endpoint over the durable store (issues #31, #89): GET /api/my-user
+///     answers the acting (stub) user's identity and role from PostgreSQL, the role crossing
+///     the wire as the <c>UserRole</c> name. The specs put records into the real database and
+///     override no service, so whatever repository the production wiring resolves is what
+///     answers — pinning both role spellings, the answer provably coming from the acting
+///     user's own record, and the shipped seed pact now that the worker owns seeding.
 /// </summary>
-public class MyUserApiTests
+[Collection(UsersDatabaseCollection.Name)]
+public class MyUserApiTests(UsersPostgresDatabase database) : IAsyncLifetime
 {
     private const string StubUser = "ada_lovelace";
 
-    private static WebApplicationFactory<Program> CreateFactory(params User[] users) =>
-        new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IUserRepository>(new InMemoryUserRepository(users))));
+    // Every spec starts from an empty, fully migrated database. Each one inserts the stub
+    // user's record, so a reset that quietly stopped working surfaces as a key collision in
+    // the arrangement rather than as a false pass.
+    public Task InitializeAsync() => database.ResetAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
+
+    private WebApplicationFactory<Program> CreateFactory() =>
+        new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);
+
+    private async Task GivenUserRecords(params User[] users)
+    {
+        await using var context = new UsersDbContextFactory().CreateDbContext([database.ConnectionString]);
+        context.Users.AddRange(users);
+        await context.SaveChangesAsync();
+    }
 
     [Fact]
-    public async Task My_user_answers_the_acting_users_identity_and_role()
+    public async Task My_user_answers_the_acting_users_identity_and_role_from_the_database()
     {
         // A moderator record for someone else sits alongside: the answer must be the acting
         // user's own Member record, so a handler answering any (or the "wrong") record fails.
-        using var factory = CreateFactory(
+        // The Member role also polices the host: ada_lovelace ships as a Moderator in the
+        // sample seed, so a host that still seeded sample users on its own would collide with
+        // this record before the spec even asks.
+        await GivenUserRecords(
             new User("grace_hopper", UserRole.Moderator),
             new User(StubUser, UserRole.Member));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/my-user");
@@ -46,7 +63,28 @@ public class MyUserApiTests
     [Fact]
     public async Task A_moderator_record_crosses_the_wire_as_the_role_name()
     {
-        using var factory = CreateFactory(new User(StubUser, UserRole.Moderator));
+        await GivenUserRecords(new User(StubUser, UserRole.Moderator));
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var myUser = await client.GetFromJsonAsync<MyUserResponse>("/api/my-user");
+
+        Assert.NotNull(myUser);
+        Assert.Equal(StubUser, myUser.UserName);
+        Assert.Equal("Moderator", myUser.Role);
+    }
+
+    [Fact]
+    public async Task The_sample_seeded_database_answers_the_stub_user_as_a_moderator()
+    {
+        // The worker's own machinery populates the database here — the same seed a fresh
+        // orchestrated database receives — so the shipped pact (issue #31) holds end to end:
+        // the stub acting user is among the sample users and holds the Moderator role.
+        await using (var context = new UsersDbContextFactory().CreateDbContext([database.ConnectionString]))
+        {
+            await UsersSeed.SeedAsync(context, SampleUsers.Generate(), CancellationToken.None);
+        }
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var myUser = await client.GetFromJsonAsync<MyUserResponse>("/api/my-user");
