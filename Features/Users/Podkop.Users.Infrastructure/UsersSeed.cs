@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Podkop.Users.Domain;
 
 namespace Podkop.Users.Infrastructure;
@@ -15,8 +16,16 @@ namespace Podkop.Users.Infrastructure;
 /// </summary>
 public static class UsersSeed
 {
-    public static Task SeedAsync(
+    public static async Task SeedAsync(
         UsersDbContext context,
         IReadOnlyList<User> users,
-        CancellationToken cancellationToken) => throw new NotImplementedException();
+        CancellationToken cancellationToken)
+    {
+        // The orchestrated database keeps its data across restarts and this step runs on every
+        // start, so a run that finds records already there leaves them exactly as they are.
+        if (await context.Users.AnyAsync(cancellationToken)) return;
+
+        context.Users.AddRange(users);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -53,9 +53,12 @@ public sealed record UsersSchemaSnapshot(
         if (columnTypes.ContainsKey("user_name") && columnTypes.ContainsKey("role"))
         {
             // Cast to text so a role stored as something else still reads back — the column's
-            // declared type is asserted on its own.
+            // declared type is asserted on its own. The C collation orders by bytes, matching
+            // the StringComparer.Ordinal the expectations sort with; the database's own
+            // collation interleaves cases and would order the same rows differently.
             await using var command = new NpgsqlCommand(
-                "select user_name, role::text from users.users order by user_name", connection);
+                """select user_name, role::text from users.users order by user_name collate "C" """,
+                connection);
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
