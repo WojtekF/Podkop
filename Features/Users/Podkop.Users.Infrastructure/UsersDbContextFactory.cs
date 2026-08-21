@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
 namespace Podkop.Users.Infrastructure;
@@ -13,5 +14,14 @@ namespace Podkop.Users.Infrastructure;
 /// </summary>
 public sealed class UsersDbContextFactory : IDesignTimeDbContextFactory<UsersDbContext>
 {
-    public UsersDbContext CreateDbContext(string[] args) => throw new NotImplementedException();
+    // Design-time commands never connect — adding a migration only needs a well-formed string.
+    private const string LocalDefaultConnectionString =
+        "Host=localhost;Port=5432;Database=podkopdb;Username=postgres;Password=postgres";
+
+    public UsersDbContext CreateDbContext(string[] args)
+    {
+        var options = new DbContextOptionsBuilder<UsersDbContext>();
+        options.UseUsersPostgres(args.FirstOrDefault() ?? LocalDefaultConnectionString);
+        return new UsersDbContext(options.Options);
+    }
 }

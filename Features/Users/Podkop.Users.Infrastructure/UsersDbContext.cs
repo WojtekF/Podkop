@@ -17,5 +17,16 @@ public sealed class UsersDbContext(DbContextOptions<UsersDbContext> options) : D
 {
     public DbSet<User> Users => Set<User>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) => throw new NotImplementedException();
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema(UsersDbContextOptions.Schema);
+
+        modelBuilder.Entity<User>(user =>
+        {
+            user.HasKey(record => record.UserName);
+            // Text rather than a number, so values stay legible in psql and survive any future
+            // reordering of the enum (ADR 0010).
+            user.Property(record => record.Role).HasConversion<string>();
+        });
+    }
 }

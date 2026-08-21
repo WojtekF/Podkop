@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Podkop.Users.Application;
@@ -29,6 +30,13 @@ public static class DependencyInjection
     ///     Only <c>Podkop.MigrationService</c> calls this for now; the API host still answers
     ///     my-user from memory until issue #89 moves it.
     /// </summary>
-    public static IHostApplicationBuilder AddUsersPersistence(this IHostApplicationBuilder builder) =>
-        throw new NotImplementedException();
+    public static IHostApplicationBuilder AddUsersPersistence(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddDbContext<UsersDbContext>(options =>
+            options.UseUsersPostgres(builder.Configuration.GetConnectionString("podkopdb")));
+
+        builder.EnrichNpgsqlDbContext<UsersDbContext>();
+
+        return builder;
+    }
 }
