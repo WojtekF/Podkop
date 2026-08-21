@@ -13,6 +13,9 @@
 
     <!-- As slices convert to PostgreSQL, their Infrastructure projects get referenced here — the
          sanctioned isolation exception of ADR 0010, like Podkop.Server is for Server projects.
-         No slice has converted yet (issue #87). -->
+         Users converts first, per ADR 0010's conversion order (issue #88). -->
+    <ItemGroup>
+        <ProjectReference Include="..\Features\Users\Podkop.Users.Infrastructure\Podkop.Users.Infrastructure.csproj" />
+    </ItemGroup>
 
 </Project>

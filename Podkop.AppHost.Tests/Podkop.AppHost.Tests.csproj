@@ -11,6 +11,9 @@
     <PackageReference Include="Aspire.Hosting.Testing" Version="13.4.6" />
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <!-- The schema assertions read the orchestrated database directly (issue #88): what a slice
+         put there is a database fact, not an EF-model one. -->
+    <PackageReference Include="Npgsql" Version="10.0.2" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
@@ -23,6 +26,9 @@
        the whole AppHost graph, where the per-slice test projects stay on WebApplicationFactory. -->
   <ItemGroup>
     <ProjectReference Include="..\Podkop.AppHost\Podkop.AppHost.csproj" />
+    <!-- The seed assertions compare against the slice's own sample-user generator; a Tests
+         project may reach into another slice, production projects may not (issue #88). -->
+    <ProjectReference Include="..\Features\Users\Podkop.Users.Infrastructure\Podkop.Users.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,10 +1,20 @@
 using Podkop.MigrationService;
+using Podkop.Users.Infrastructure;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// Converted slices register their SliceMigrationParticipant here as they move to PostgreSQL
-// (ADR 0010's conversion order). None has yet (issue #87), so the worker's registry resolves
-// empty and both of its steps must complete trivially.
+// Converted slices register their context and their SliceMigrationParticipant here as they move
+// to PostgreSQL (ADR 0010's conversion order). Users is the first (issue #88): the worker owns
+// the only host that talks to the users schema until the endpoint conversion lands in #89.
+builder.AddUsersPersistence();
+builder.Services.AddSingleton(new SliceMigrationParticipant(
+    "users",
+    serviceProvider => serviceProvider.GetRequiredService<UsersDbContext>(),
+    (serviceProvider, cancellationToken) => UsersSeed.SeedAsync(
+        serviceProvider.GetRequiredService<UsersDbContext>(),
+        SampleUsers.Generate(),
+        cancellationToken)));
+
 builder.Services.AddHostedService<MigrationWorker>();
 
 // Test-only fault hook: the orchestration smoke suite sets this variable to prove that a
