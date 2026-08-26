@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Podkop.Moderation.Application;
 using Podkop.Moderation.Domain;
 using Podkop.Moderation.Infrastructure;
 
@@ -10,9 +12,10 @@ namespace Podkop.Moderation.Tests;
 ///     The shipped report and verdict seeds (issues #34/#35). The generator contracts are
 ///     asserted on <see cref="SampleReports.GenerateFor" /> and
 ///     <see cref="SampleVerdicts.GenerateFor" /> directly, against a synthetic world this test
-///     owns; the as-shipped specs run the app with no overrides, through the same HTTP surface
-///     the frontend uses — the stub acting user is a seeded Moderator (issue #31), so the
-///     queue and the log answer them. The seeds tell one story: pending cases in the queue, at
+///     owns; the as-shipped specs run the app through the same HTTP surface the frontend uses,
+///     overriding only the moderator gate: user records live in PostgreSQL since issue #89, so
+///     the acting user's seeded Moderator role (issue #31) — pinned in the Users slice's own
+///     suite — is stubbed at this slice's port to let the queue and the log answer. The seeds tell one story: pending cases in the queue, at
 ///     least two dismissals in the log, and at least one target cleared and then re-reported,
 ///     so a fresh case sits next to its resolved history.
 /// </summary>
@@ -154,10 +157,16 @@ public class CaseQueueSeedTests
         Assert.Distinct(reports.Select(r => r.FiledAt));
     }
 
+    /// <summary>The app as shipped, with only the moderator gate stubbed for the acting user.</summary>
+    private static WebApplicationFactory<Program> AsShippedFactory() =>
+        new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+            builder.ConfigureServices(services =>
+                services.AddSingleton<IModeratorLookup>(new StubModeratorLookup("ada_lovelace"))));
+
     [Fact]
     public async Task The_app_as_shipped_serves_a_queue_of_cases()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = AsShippedFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/moderation/cases");
@@ -185,7 +194,7 @@ public class CaseQueueSeedTests
     [Fact]
     public async Task The_app_as_shipped_serves_seeded_dismissals_from_the_log_newest_first()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = AsShippedFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/moderation/log");
@@ -210,7 +219,7 @@ public class CaseQueueSeedTests
     [Fact]
     public async Task The_app_as_shipped_lists_a_cleared_target_again_with_only_its_fresh_reports()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = AsShippedFactory();
         using var client = factory.CreateClient();
 
         var log = await client.GetFromJsonAsync<List<LogEntryResponse>>("/api/moderation/log");

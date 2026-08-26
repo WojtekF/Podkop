@@ -2,20 +2,23 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Podkop.Users.Application;
-using Podkop.Users.Domain;
 
 namespace Podkop.Users.Infrastructure;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddUsers(
-        this IServiceCollection services,
-        Func<IReadOnlyList<User>> userSeed)
+    /// <summary>
+    ///     Registers the slice's use cases and its EF-backed repository (issue #89). The entry
+    ///     point takes no seed any more: user records live only in PostgreSQL, and sample users
+    ///     reach the database exclusively through the migration worker — the API host neither
+    ///     holds nor triggers a user seed. Hosts that resolve the repository pair this with
+    ///     <see cref="AddUsersPersistence" />, which registers the context it reads through.
+    /// </summary>
+    public static IServiceCollection AddUsers(this IServiceCollection services)
     {
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<GetMyUser>());
-        // The seed is a lazy factory: hosts and tests that override the repository never
-        // trigger (or pay for) sample-content generation.
-        services.AddSingleton<IUserRepository>(_ => new InMemoryUserRepository(userSeed()));
+        // Scoped: the repository reads through the slice's context, whose lifetime is the request.
+        services.AddScoped<IUserRepository, EfUserRepository>();
         return services;
     }
 
@@ -27,8 +30,8 @@ public static class DependencyInjection
     ///     — never the database-wide default, which every converting slice would otherwise
     ///     collide on. Registration must also give the context what the orchestration expects of
     ///     a database client: a health check, connection retries, logging and telemetry.
-    ///     Only <c>Podkop.MigrationService</c> calls this for now; the API host still answers
-    ///     my-user from memory until issue #89 moves it.
+    ///     Both hosts call this since issue #89 — the worker to migrate and seed, the API host to
+    ///     answer my-user from the same database.
     /// </summary>
     public static IHostApplicationBuilder AddUsersPersistence(this IHostApplicationBuilder builder)
     {

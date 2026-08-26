@@ -38,6 +38,7 @@
   </Folder>
   <Folder Name="/Shared/">
     <Project Path="Shared/Podkop.Shared.Infrastructure/Podkop.Shared.Infrastructure.csproj" />
+    <Project Path="Shared/Podkop.Shared.Testing/Podkop.Shared.Testing.csproj" />
   </Folder>
   <Project Path="Podkop.AppHost/Podkop.AppHost.csproj" />
   <Project Path="Podkop.AppHost.Tests/Podkop.AppHost.Tests.csproj" />

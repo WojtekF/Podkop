@@ -13,6 +13,8 @@ using Podkop.Findings.Domain;
 using Podkop.Findings.Infrastructure;
 using Podkop.Moderation.Application;
 using Podkop.Moderation.Domain;
+using Podkop.Users.Application;
+using Podkop.Users.Domain;
 using Podkop.Moderation.Infrastructure;
 
 namespace Podkop.Server.Tests;
@@ -79,6 +81,10 @@ public class DismissSideEffectsTests
                     ReportBy("margaret_h", ReportTargetKind.Comment, CommentId),
                 ]));
                 services.AddSingleton<IVerdictRepository>(new InMemoryVerdictRepository([]));
+                // The dismissing stub user must hold the Moderator role; user records live in
+                // PostgreSQL since issue #89, so the store is doubled at the slice's port.
+                services.AddSingleton<IUserRepository>(new StubUserRepository(
+                    new User("ada_lovelace", UserRole.Moderator)));
             }));
 
     private static Task<HttpResponseMessage> Dismiss(HttpClient client, string targetKind, Guid targetId) =>
