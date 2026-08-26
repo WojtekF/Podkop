@@ -62,6 +62,7 @@ public class DismissSideEffectsTests
                         promotedAt: At("2026-06-08T09:30:00Z"),
                         commentCount: 0),
                 ]));
+                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
                 // The discussion under judgment: a voted-on top-level comment and a reply, so
                 // the vote counts the dismissal must not touch are non-trivial.
                 services.AddSingleton<ICommentRepository>(provider => new InMemoryCommentRepository(

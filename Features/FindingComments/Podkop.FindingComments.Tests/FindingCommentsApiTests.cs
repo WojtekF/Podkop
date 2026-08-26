@@ -70,6 +70,7 @@ public class FindingCommentsApiTests
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IFindingRepository>(new StubFindingRepository(findings));
+                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
                 services.AddSingleton<ICommentRepository>(provider =>
                     new InMemoryCommentRepository(comments, provider.GetRequiredService<IPublisher>()));
             }));

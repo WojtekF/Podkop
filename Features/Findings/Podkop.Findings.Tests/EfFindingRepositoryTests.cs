@@ -9,11 +9,12 @@ namespace Podkop.Findings.Tests;
 ///     The EF-backed repository against the live database (issue #67): the same
 ///     <see cref="IFindingRepository" /> contract the endpoint specs exercise over HTTP, now
 ///     proven where it can actually break — a finding rehydrates whole (votes, tags, counts and
-///     timestamps included), the feed page is composed by the database in feed order with the
-///     one-past-the-limit next-page signal, and a mutation saved in one context is what the next
-///     context reads. The vote round trip runs against real PostgreSQL on purpose: an aggregate
-///     whose votes quietly fail to load would still answer every in-memory spec correctly while
-///     dig counts and highlights collapsed in the running app.
+///     timestamps included) and the feed page is composed by the database in feed order with the
+///     one-past-the-limit next-page signal. The vote rehydration runs against real PostgreSQL on
+///     purpose: an aggregate whose votes quietly fail to load would still answer every in-memory
+///     spec correctly while dig counts and highlights collapsed in the running app. Durability is
+///     no longer the repository's to prove (issue #96) — the commit round trips live in
+///     <see cref="EfUnitOfWorkTests" />.
 /// </summary>
 [Collection(FindingsDatabaseCollection.Name)]
 public class EfFindingRepositoryTests(FindingsPostgresDatabase database) : IAsyncLifetime
@@ -202,110 +203,6 @@ public class EfFindingRepositoryTests(FindingsPostgresDatabase database) : IAsyn
         await GivenFindings(FivePromoted());
 
         Assert.Empty(await PromotedPage(4, 2));
-    }
-
-    [Fact]
-    public async Task A_saved_vote_is_what_the_next_context_reads()
-    {
-        var id = Guid.Parse("0d4f9a3e-4444-4222-8333-444455556666");
-        await GivenFindings(CreateFinding(
-            id,
-            "A finding worth judging",
-            At("2026-07-08T09:30:00Z"),
-            votes: new Dictionary<string, FindingVote>
-            {
-                ["linus_t"] = new(FindingVoteSide.Dig, null)
-            }));
-
-        await using (var context = database.CreateDbContext())
-        {
-            var repository = new EfFindingRepository(context);
-            var finding = await repository.GetByIdAsync(id, CancellationToken.None);
-            Assert.Equal(DigBuryOutcome.Applied,
-                finding!.SetVote(StubUser, FindingVoteSide.Dig, null));
-            await repository.SaveAsync(finding, CancellationToken.None);
-        }
-
-        var reloaded = await LookedUp(id);
-        Assert.NotNull(reloaded);
-        Assert.Equal(2, reloaded.DigCount);
-        Assert.Equal(FindingVoteSide.Dig, reloaded.VoteBy(StubUser));
-    }
-
-    [Fact]
-    public async Task A_saved_side_switch_moves_the_vote_not_copies_it()
-    {
-        var id = Guid.Parse("0d4f9a3e-5555-4222-8333-444455556666");
-        await GivenFindings(CreateFinding(
-            id,
-            "A finding worth judging",
-            At("2026-07-08T09:30:00Z"),
-            votes: new Dictionary<string, FindingVote>
-            {
-                [StubUser] = new(FindingVoteSide.Dig, null)
-            }));
-
-        await using (var context = database.CreateDbContext())
-        {
-            var repository = new EfFindingRepository(context);
-            var finding = await repository.GetByIdAsync(id, CancellationToken.None);
-            finding!.SetVote(StubUser, FindingVoteSide.Bury, BuryReason.Duplicate);
-            await repository.SaveAsync(finding, CancellationToken.None);
-        }
-
-        var reloaded = await LookedUp(id);
-        Assert.NotNull(reloaded);
-        // The dig is gone and the bury stands in its place — a save that appended instead of
-        // moving would read one of each.
-        Assert.Equal(0, reloaded.DigCount);
-        Assert.Equal(1, reloaded.BuryCount);
-        Assert.Equal(FindingVoteSide.Bury, reloaded.VoteBy(StubUser));
-    }
-
-    [Fact]
-    public async Task A_saved_withdrawal_is_gone_for_the_next_context()
-    {
-        var id = Guid.Parse("0d4f9a3e-6666-4222-8333-444455556666");
-        await GivenFindings(CreateFinding(
-            id,
-            "A finding worth judging",
-            At("2026-07-08T09:30:00Z"),
-            votes: new Dictionary<string, FindingVote>
-            {
-                ["linus_t"] = new(FindingVoteSide.Dig, null),
-                [StubUser] = new(FindingVoteSide.Dig, null)
-            }));
-
-        await using (var context = database.CreateDbContext())
-        {
-            var repository = new EfFindingRepository(context);
-            var finding = await repository.GetByIdAsync(id, CancellationToken.None);
-            finding!.WithdrawVote(StubUser);
-            await repository.SaveAsync(finding, CancellationToken.None);
-        }
-
-        var reloaded = await LookedUp(id);
-        Assert.NotNull(reloaded);
-        Assert.Equal(1, reloaded.DigCount);
-        Assert.Null(reloaded.VoteBy(StubUser));
-    }
-
-    [Fact]
-    public async Task A_saved_comment_count_is_what_the_next_context_reads()
-    {
-        var id = Guid.Parse("0d4f9a3e-7777-4222-8333-444455556666");
-        await GivenFindings(CreateFinding(id, "A discussed finding", At("2026-07-08T09:30:00Z"), commentCount: 7));
-
-        await using (var context = database.CreateDbContext())
-        {
-            var repository = new EfFindingRepository(context);
-            var finding = await repository.GetByIdAsync(id, CancellationToken.None);
-            finding!.IncrementCommentCount();
-            await repository.SaveAsync(finding, CancellationToken.None);
-        }
-
-        var reloaded = await LookedUp(id);
-        Assert.Equal(8, reloaded!.CommentCount);
     }
 
     private static Finding[] FivePromoted() =>

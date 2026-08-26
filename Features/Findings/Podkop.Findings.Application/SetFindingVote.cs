@@ -40,7 +40,8 @@ public sealed record FindingVoteResult(FindingVoteError? Error, FindingVotes? Vo
 
 public sealed class SetFindingVoteHandler(
     IFindingRepository findingsRepository,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    IUnitOfWork unitOfWork)
     : IRequestHandler<SetFindingVote, FindingVoteResult>
 {
     public async Task<FindingVoteResult> Handle(SetFindingVote request, CancellationToken cancellationToken)
@@ -55,7 +56,7 @@ public sealed class SetFindingVoteHandler(
         if (digBuryOutcome == DigBuryOutcome.OwnFinding)
             return new FindingVoteResult(FindingVoteError.OwnFinding, null);
 
-        await findingsRepository.SaveAsync(finding, cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
 
         return new FindingVoteResult(null,
             new FindingVotes(finding.DigCount, finding.VoteBy(currentUser.UserName).ToApiString()));

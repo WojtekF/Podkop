@@ -63,6 +63,7 @@ public class PostCommentApiTests
             {
                 services.AddSingleton<IFindingRepository>(
                     new StubFindingRepository([CreateFinding(FindingId, seededCommentCount)]));
+                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
                 services.AddSingleton<ICommentRepository>(provider =>
                     new InMemoryCommentRepository(comments, provider.GetRequiredService<IPublisher>()));
             }));

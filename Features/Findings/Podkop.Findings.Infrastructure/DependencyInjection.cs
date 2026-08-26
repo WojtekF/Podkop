@@ -19,6 +19,9 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<GetMainPageFeed>());
         // Scoped: the repository reads through the slice's context, whose lifetime is the request.
         services.AddScoped<IFindingRepository, EfFindingRepository>();
+        // Scoped alongside it (issue #96): both resolve the same request's context, so the unit
+        // of work's one commit makes durable exactly what this request's loads mutated.
+        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         return services;
     }
 

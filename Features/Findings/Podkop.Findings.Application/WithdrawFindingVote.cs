@@ -12,7 +12,8 @@ public sealed record WithdrawFindingVote(Guid FindingId) : IRequest<FindingVoteR
 
 public sealed class WithdrawFindingVoteHandler(
     IFindingRepository findingsRepository,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    IUnitOfWork unitOfWork)
     : IRequestHandler<WithdrawFindingVote, FindingVoteResult>
 {
     public async Task<FindingVoteResult> Handle(WithdrawFindingVote request, CancellationToken cancellationToken)
@@ -25,7 +26,7 @@ public sealed class WithdrawFindingVoteHandler(
         if (withdrawOutcome == WithdrawOutcome.OwnFinding)
             return new FindingVoteResult(FindingVoteError.OwnFinding, null);
 
-        await findingsRepository.SaveAsync(finding, cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
 
         return new FindingVoteResult(null,
             new FindingVotes(finding.DigCount, finding.VoteBy(currentUser.UserName).ToApiString()));

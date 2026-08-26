@@ -103,6 +103,7 @@ public class ModerationPortAdapterTests
                 services.AddSingleton<IStatuteRepository>(new InMemoryStatuteRepository(SeededVersions()));
                 services.AddSingleton<IFindingRepository>(new StubFindingRepository(
                     [CreateFinding(FindingId, "grace_hopper")]));
+                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
                 services.AddSingleton<ICommentRepository>(provider => new InMemoryCommentRepository(
                 [
                     new Comment(CommentId, FindingId, null, "grace_hopper",

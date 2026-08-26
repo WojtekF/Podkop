@@ -64,6 +64,7 @@ public class ReportSideEffectsTests
                         promotedAt: At("2026-06-08T09:30:00Z"),
                         commentCount: 0),
                 ]));
+                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
                 // The discussion under scrutiny: a voted-on top-level comment and a reply, both
                 // authored by others, so the comment report action is live and the vote counts
                 // the filing must not touch are non-trivial.
