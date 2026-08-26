@@ -13,7 +13,6 @@ using Podkop.FindingComments.Domain;
 using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
-using Podkop.Findings.Infrastructure;
 using Podkop.Moderation.Application;
 using Podkop.Moderation.Infrastructure;
 
@@ -51,7 +50,7 @@ public class ReportSideEffectsTests
                     ]),
                 ]));
                 // Authored by someone other than the stub user, so its report action is live.
-                services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(
+                services.AddSingleton<IFindingRepository>(new StubFindingRepository(
                 [
                     new Finding(
                         id: FindingId,

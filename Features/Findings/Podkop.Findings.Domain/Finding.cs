@@ -3,7 +3,7 @@ namespace Podkop.Findings.Domain;
 public sealed class Finding
 {
     private readonly List<IDomainEvent> _domainEvents = [];
-    private readonly Dictionary<string, FindingVote> _votes;
+    private readonly List<FindingVoteEntry> _votes = [];
 
     public Finding(Guid id,
         string title,
@@ -27,7 +27,13 @@ public sealed class Finding
         CreatedAt = createdAt;
         PromotedAt = promotedAt;
         CommentCount = commentCount;
-        _votes = votes is null ? [] : new Dictionary<string, FindingVote>(votes);
+        _votes = votes is null
+            ? []
+            : votes.Select(v => new FindingVoteEntry(v.Key, v.Value.Side, v.Value.Reason)).ToList();
+    }
+
+    private Finding()
+    {
     }
 
     public Guid Id { get; }
@@ -39,8 +45,8 @@ public sealed class Finding
     public IReadOnlyList<string> Tags { get; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset? PromotedAt { get; private set; }
-    public int DigCount => _votes.Values.Count(vote => vote.Side == FindingVoteSide.Dig);
-    public int BuryCount => _votes.Values.Count(vote => vote.Side == FindingVoteSide.Bury);
+    public int DigCount => _votes.Count(vote => vote.Side == FindingVoteSide.Dig);
+    public int BuryCount => _votes.Count(vote => vote.Side == FindingVoteSide.Bury);
     public int CommentCount { get; private set; }
 
     public bool IsPromoted => PromotedAt is not null;
@@ -72,7 +78,8 @@ public sealed class Finding
     {
         if (voter == Author) return DigBuryOutcome.OwnFinding;
         if (side == FindingVoteSide.Bury && reason is null) return DigBuryOutcome.BuryReasonRequired;
-        _votes[voter] = new FindingVote(side, side == FindingVoteSide.Bury ? reason : null);
+        _votes.RemoveAll(v => v.Voter == voter);
+        _votes.Add(new FindingVoteEntry(voter, side, side == FindingVoteSide.Bury ? reason : null));
         return DigBuryOutcome.Applied;
     }
 
@@ -84,7 +91,7 @@ public sealed class Finding
     {
         if (voter == Author) return WithdrawOutcome.OwnFinding;
 
-        _votes.Remove(voter);
+        _votes.RemoveAll(v => v.Voter == voter);
         return WithdrawOutcome.Applied;
     }
 
@@ -98,5 +105,5 @@ public sealed class Finding
     public void IncrementCommentCount() => CommentCount++;
 
     public FindingVoteSide? VoteBy(string voter) =>
-        _votes.TryGetValue(voter, out var value) ? value.Side : null;
+        _votes.SingleOrDefault(v => v.Voter == voter)?.Side;
 }

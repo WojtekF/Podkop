@@ -1,28 +1,53 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Podkop.Findings.Infrastructure;
+using Podkop.Shared.Testing;
 
 namespace Podkop.FindingComments.Tests;
 
 /// <summary>
 ///     The number a finding card advertises must equal what its discussion actually contains
-///     (issue #16): the seeded comment threads are the authority for comment counts. These
-///     tests run against the default composition root — no repository overrides — so they
-///     exercise the real sample seeds through the same HTTP surface the frontend uses. The
-///     feed is the surface that advertises counts, so feed-visible findings are the ones held
-///     to account.
+///     (issue #16): the seeded comment threads are the authority for comment counts. Since issue
+///     #67 the pact spans the persistence boundary — the findings the feed lists come from
+///     PostgreSQL, seeded by the migration worker's own machinery, while the discussions still
+///     live in the API host's memory, seeded by the composition root. These specs seed the
+///     database the way the worker does and override no repository, so the two sides are held to
+///     one story across a process's worth of independent generation: every feed-visible
+///     finding's count equals its discussion, and the discussions actually hang off the findings
+///     the database holds.
 /// </summary>
-public class SampleSeedCoherenceTests
+[Collection(FindingsDatabaseCollection.Name)]
+public class SampleSeedCoherenceTests(FindingsPostgresDatabase database) : IAsyncLifetime
 {
+    public Task InitializeAsync() => database.ResetAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
+
+    private async Task<WebApplicationFactory<Program>> SeededAppAsync()
+    {
+        // The database is populated the way a fresh orchestrated volume is: the same seed step
+        // the migration worker runs, over the Findings slice's own generator. The comments are
+        // whatever the as-shipped composition root seeds — no overrides — because that pairing
+        // is exactly what the running app serves.
+        await using (var context = database.CreateDbContext())
+        {
+            await FindingsSeed.SeedAsync(context, SampleFindings.Generate(), CancellationToken.None);
+        }
+
+        return new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);
+    }
+
     [Fact]
     public async Task Every_sample_findings_comment_count_equals_its_seeded_discussion_replies_included()
     {
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = await SeededAppAsync();
         using var client = factory.CreateClient();
 
         var feed = await client.GetFromJsonAsync<FeedPageResponse>("/api/findings?feed=main&limit=100");
         Assert.NotNull(feed);
         Assert.NotEmpty(feed.Items);
 
+        var totalComments = 0;
         var totalReplies = 0;
         foreach (var finding in feed.Items)
         {
@@ -31,11 +56,14 @@ public class SampleSeedCoherenceTests
             Assert.NotNull(threads);
             var commentsInDiscussion = threads.Count + threads.Sum(t => t.Replies.Count);
             Assert.Equal(finding.CommentCount, commentsInDiscussion);
+            totalComments += commentsInDiscussion;
             totalReplies += threads.Sum(t => t.Replies.Count);
         }
 
-        // Realistic seeds hold conversations, not only top-level comments — without any
-        // replies, "replies included" would never actually be exercised above.
+        // The pact must be exercised for real, not satisfied by a world of zeroes: the seeded
+        // discussions have to actually hang off the findings the database holds, and realistic
+        // seeds hold conversations, not only top-level comments.
+        Assert.True(totalComments > 0, "expected the seeded discussions to reference the seeded findings");
         Assert.True(totalReplies > 0, "expected at least one seeded reply across the sample findings");
     }
 
@@ -45,7 +73,7 @@ public class SampleSeedCoherenceTests
         // Seeded comment votes are what makes highlighting visible on first load (issue #18):
         // somewhere across the sample discussions the stub user (ada_lovelace) must already
         // hold votes — and never on a comment she authored, since own comments can't be voted.
-        using var factory = new WebApplicationFactory<Program>();
+        using var factory = await SeededAppAsync();
         using var client = factory.CreateClient();
 
         var feed = await client.GetFromJsonAsync<FeedPageResponse>("/api/findings?feed=main&limit=100");

@@ -11,7 +11,6 @@ using Podkop.FindingComments.Domain;
 using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
-using Podkop.Findings.Infrastructure;
 using Podkop.Moderation.Application;
 using Podkop.Moderation.Domain;
 using Podkop.Users.Application;
@@ -102,7 +101,7 @@ public class ModerationPortAdapterTests
             {
                 services.AddSingleton<TimeProvider>(new FakeTimeProvider(now ?? Now));
                 services.AddSingleton<IStatuteRepository>(new InMemoryStatuteRepository(SeededVersions()));
-                services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(
+                services.AddSingleton<IFindingRepository>(new StubFindingRepository(
                     [CreateFinding(FindingId, "grace_hopper")]));
                 services.AddSingleton<ICommentRepository>(provider => new InMemoryCommentRepository(
                 [
@@ -152,7 +151,9 @@ public class ModerationPortAdapterTests
     public async Task The_target_lookup_answers_a_findings_id_and_author()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IReportTargetLookup>();
 
         var target = await lookup.GetAsync(ReportTargetKind.Finding, FindingId, CancellationToken.None);
 
@@ -165,7 +166,9 @@ public class ModerationPortAdapterTests
     public async Task The_target_lookup_answers_null_for_an_unknown_finding()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IReportTargetLookup>();
 
         var target = await lookup.GetAsync(ReportTargetKind.Finding,
             Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"), CancellationToken.None);
@@ -177,7 +180,9 @@ public class ModerationPortAdapterTests
     public async Task The_target_lookup_answers_a_comments_id_and_author_replies_included()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IReportTargetLookup>();
 
         var target = await lookup.GetAsync(ReportTargetKind.Comment, ReplyId, CancellationToken.None);
 
@@ -191,7 +196,9 @@ public class ModerationPortAdapterTests
     public async Task The_target_lookup_answers_null_for_an_unknown_comment()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<IReportTargetLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IReportTargetLookup>();
 
         // A finding's id is not a comment: the kinds resolve against different slices, so an id
         // that exists as a finding must still be unknown to the Comment kind.
@@ -204,7 +211,9 @@ public class ModerationPortAdapterTests
     public async Task The_comments_lookup_answers_every_comment_and_reply_id_of_the_finding()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<IFindingCommentsLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IFindingCommentsLookup>();
 
         var commentIds = await lookup.GetCommentIdsAsync(FindingId, CancellationToken.None);
 
@@ -216,7 +225,9 @@ public class ModerationPortAdapterTests
     public async Task The_comments_lookup_answers_null_for_an_unknown_finding()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<IFindingCommentsLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<IFindingCommentsLookup>();
 
         var commentIds = await lookup.GetCommentIdsAsync(
             Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"), CancellationToken.None);
@@ -242,7 +253,9 @@ public class ModerationPortAdapterTests
     public async Task The_case_content_lookup_answers_a_findings_author_title_and_own_page()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<ICaseContentLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<ICaseContentLookup>();
 
         var content = await lookup.GetAsync(ReportTargetKind.Finding, FindingId, CancellationToken.None);
 
@@ -257,7 +270,9 @@ public class ModerationPortAdapterTests
     public async Task The_case_content_lookup_answers_a_comments_author_text_and_host_finding()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<ICaseContentLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<ICaseContentLookup>();
 
         var content = await lookup.GetAsync(ReportTargetKind.Comment, ReplyId, CancellationToken.None);
 
@@ -273,7 +288,9 @@ public class ModerationPortAdapterTests
     public async Task The_case_content_lookup_answers_null_for_an_unknown_target()
     {
         using var factory = CreateFactory();
-        var lookup = factory.Services.GetRequiredService<ICaseContentLookup>();
+        // Scoped since issue #67, to match the findings repository lifetime behind it.
+        using var scope = factory.Services.CreateScope();
+        var lookup = scope.ServiceProvider.GetRequiredService<ICaseContentLookup>();
 
         Assert.Null(await lookup.GetAsync(ReportTargetKind.Finding,
             Guid.Parse("0d4f9a3e-9999-4222-8333-444455556666"), CancellationToken.None));

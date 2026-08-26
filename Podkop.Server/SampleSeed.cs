@@ -16,6 +16,15 @@ namespace Podkop.Server;
 ///     counts (issue #16) — every sample finding's <c>CommentCount</c> must equal the number of
 ///     seeded comments, replies included, attached to it. Generation is lazy so hosts and tests
 ///     that override the repositories never trigger it.
+///     Since issue #67 the Findings slice no longer consumes <see cref="Findings" /> — findings
+///     reach the database through the migration worker's own seed, in another process — yet the
+///     comments, reports, and verdicts this class hands the still-in-memory slices must keep
+///     describing the findings the database actually holds: the coherence pact now spans the
+///     persistence boundary, and the seed-coherence specs hold both sides of it to account. No
+///     coordinator sees both processes, so the pact is no longer patched up here after the fact:
+///     the generators are deterministic, drawing the comment counts from the shared
+///     <c>SampleDiscussions</c> plan, and this class only regenerates the same findings the
+///     worker persisted and hands their ids to the comments generator.
 /// </summary>
 internal static class SampleSeed
 {
@@ -58,14 +67,8 @@ internal static class SampleSeed
     private static (IReadOnlyList<Finding> Findings, IReadOnlyList<Comment> Comments) Generate()
     {
         var findings = SampleFindings.Generate();
-        var comments = SampleFindingComments.GenerateFor(findings.Select(f => f.Id).ToList());
-        UpdateFindingsWithComments(findings, comments);
+        var comments = SampleFindingComments.GenerateFor([.. findings.Select(f => f.Id)]);
         return (findings, comments);
-    }
-
-    private static void UpdateFindingsWithComments(IEnumerable<Finding> findings, IReadOnlyList<Comment> comments)
-    {
-        foreach (var finding in findings) finding.UpdateCommentCount(comments.Count(c => c.FindingId == finding.Id));
     }
 
     /// <summary>

@@ -9,7 +9,6 @@ using Podkop.FindingComments.Domain;
 using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
-using Podkop.Findings.Infrastructure;
 
 namespace Podkop.FindingComments.Tests;
 
@@ -68,7 +67,7 @@ public class CommentVotingApiTests
             builder.ConfigureServices(services =>
             {
                 services.AddSingleton<IFindingRepository>(
-                    new InMemoryFindingRepository([CreateFinding(FindingId)]));
+                    new StubFindingRepository([CreateFinding(FindingId)]));
                 services.AddSingleton<ICommentRepository>(provider =>
                     new InMemoryCommentRepository(comments, provider.GetRequiredService<IPublisher>()));
             }));

@@ -3,26 +3,31 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
-using Podkop.Findings.Infrastructure;
+using Podkop.Shared.Testing;
 
 namespace Podkop.Findings.Tests;
 
 /// <summary>
-///     Voting on findings (issue #15) through the HTTP seam: PUT is an idempotent set-my-vote
-///     covering fresh digs and buries and one-click side switches; a bury must name one of the
-///     five reasons; DELETE withdraws. The dig count is the only public tally — the bury count
-///     and bury reasons appear in no response. The current user is the composition root's stub —
-///     ada_lovelace — so "own finding" means one she authored. Seeded dig/bury counts are the
-///     votes of other, untracked voters; the stub user's vote (when seeded) sits on top of them,
-///     the same convention the comment-vote tests use.
+///     Voting on findings (issue #15) through the HTTP seam, now against the durable store
+///     (issue #67): PUT is an idempotent set-my-vote covering fresh digs and buries and one-click
+///     side switches; a bury must name one of the five reasons; DELETE withdraws. The dig count
+///     is the only public tally — the bury count and bury reasons appear in no response. The
+///     current user is the composition root's stub — ada_lovelace — so "own finding" means one
+///     she authored. The specs put findings into the real database and override no service, so
+///     every request runs in its own scope over its own context: a vote that only changed an
+///     in-memory aggregate — never saved — satisfies the mutation's response but is gone by the
+///     next request, which is exactly what the cross-request specs here refuse to let pass.
 /// </summary>
-public class FindingVotingApiTests
+[Collection(FindingsDatabaseCollection.Name)]
+public class FindingVotingApiTests(FindingsPostgresDatabase database) : IAsyncLifetime
 {
     private const string StubUser = "ada_lovelace";
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
+
+    public Task InitializeAsync() => database.ResetAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
 
@@ -57,10 +62,15 @@ public class FindingVotingApiTests
         return votes;
     }
 
-    private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
-        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings))));
+    private WebApplicationFactory<Program> CreateFactory() =>
+        new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);
+
+    private async Task GivenFindings(params Finding[] findings)
+    {
+        await using var context = database.CreateDbContext();
+        context.Findings.AddRange(findings);
+        await context.SaveChangesAsync();
+    }
 
     private static Task<HttpResponseMessage> PutDig(HttpClient client, Guid id)
         => client.PutAsJsonAsync($"/api/findings/{id}/my-vote", new { type = "dig" });
@@ -71,7 +81,8 @@ public class FindingVotingApiTests
     [Fact]
     public async Task Digging_a_fresh_finding_records_it_and_returns_the_new_dig_count()
     {
-        using var factory = CreateFactory(CreateFinding(FindingId, 5, 1));
+        await GivenFindings(CreateFinding(FindingId, 5, 1));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await PutDig(client, FindingId);
@@ -84,7 +95,8 @@ public class FindingVotingApiTests
     [Fact]
     public async Task Burying_a_fresh_finding_records_the_side_and_leaves_the_dig_count_alone()
     {
-        using var factory = CreateFactory(CreateFinding(FindingId, 5, 1));
+        await GivenFindings(CreateFinding(FindingId, 5, 1));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await PutBury(client, FindingId, "spam");
@@ -98,8 +110,9 @@ public class FindingVotingApiTests
     public async Task Setting_the_side_already_held_changes_nothing()
     {
         // 4 other diggers plus the stub user's dig: the dig count already reads 5.
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding(FindingId, 4, 1, stubUsersVote: new FindingVote(FindingVoteSide.Dig, null)));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await PutDig(client, FindingId);
@@ -113,8 +126,9 @@ public class FindingVotingApiTests
     public async Task Switching_from_dig_to_bury_moves_the_vote_in_one_request()
     {
         // Dig count reads 5 (4 others + the stub's dig); switching drops it back to 4.
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding(FindingId, 4, 1, stubUsersVote: new FindingVote(FindingVoteSide.Dig, null)));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await PutBury(client, FindingId, "duplicate");
@@ -128,9 +142,10 @@ public class FindingVotingApiTests
     public async Task Switching_from_bury_to_dig_moves_the_vote_in_one_request()
     {
         // Dig count reads 5 (the stub currently holds a bury, not a dig); switching lifts it to 6.
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding(FindingId, 5, 1,
                 stubUsersVote: new FindingVote(FindingVoteSide.Bury, BuryReason.Spam)));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await PutDig(client, FindingId);
@@ -143,8 +158,9 @@ public class FindingVotingApiTests
     [Fact]
     public async Task Withdrawing_a_vote_frees_the_count_it_was_held_in()
     {
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding(FindingId, 4, 1, stubUsersVote: new FindingVote(FindingVoteSide.Dig, null)));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.DeleteAsync($"/api/findings/{FindingId}/my-vote");
@@ -157,7 +173,8 @@ public class FindingVotingApiTests
     [Fact]
     public async Task Burying_without_a_reason_is_a_400()
     {
-        using var factory = CreateFactory(CreateFinding(FindingId, 5, 1));
+        await GivenFindings(CreateFinding(FindingId, 5, 1));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.PutAsJsonAsync($"/api/findings/{FindingId}/my-vote", new { type = "bury" });
@@ -170,7 +187,8 @@ public class FindingVotingApiTests
     [Fact]
     public async Task Voting_on_your_own_finding_is_a_400()
     {
-        using var factory = CreateFactory(CreateFinding(FindingId, 5, 1, StubUser));
+        await GivenFindings(CreateFinding(FindingId, 5, 1, StubUser));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await PutDig(client, FindingId);
@@ -183,7 +201,8 @@ public class FindingVotingApiTests
     [Fact]
     public async Task An_unrecognised_vote_type_is_a_400_that_names_the_valid_sides()
     {
-        using var factory = CreateFactory(CreateFinding(FindingId, 5, 1));
+        await GivenFindings(CreateFinding(FindingId, 5, 1));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.PutAsJsonAsync($"/api/findings/{FindingId}/my-vote", new { type = "smash" });
@@ -219,7 +238,10 @@ public class FindingVotingApiTests
     [Fact]
     public async Task A_recorded_vote_survives_into_the_next_detail_read()
     {
-        using var factory = CreateFactory(CreateFinding(FindingId, 5, 1));
+        // The detail read is a second request in its own scope over its own context: only a vote
+        // the mutation actually made durable can still be there (issue #67).
+        await GivenFindings(CreateFinding(FindingId, 5, 1));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var putResponse = await PutDig(client, FindingId);
@@ -233,10 +255,31 @@ public class FindingVotingApiTests
     }
 
     [Fact]
+    public async Task A_withdrawn_vote_is_gone_by_the_next_detail_read()
+    {
+        // The withdrawal too must outlive its own request — a delete that only touched the
+        // loaded aggregate would leave the highlight resurrected on reload.
+        await GivenFindings(
+            CreateFinding(FindingId, 4, 1, stubUsersVote: new FindingVote(FindingVoteSide.Dig, null)));
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var deleteResponse = await client.DeleteAsync($"/api/findings/{FindingId}/my-vote");
+        Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+
+        var detail = await client.GetFromJsonAsync<FindingDetailResponse>($"/api/findings/{FindingId}");
+
+        Assert.NotNull(detail);
+        Assert.Equal(4, detail.DigCount);
+        Assert.Null(detail.MyVote);
+    }
+
+    [Fact]
     public async Task The_detail_carries_a_dig_the_reader_already_cast()
     {
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding(FindingId, 5, 1, stubUsersVote: new FindingVote(FindingVoteSide.Dig, null)));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var detail = await client.GetFromJsonAsync<FindingDetailResponse>($"/api/findings/{FindingId}");
@@ -249,9 +292,10 @@ public class FindingVotingApiTests
     [Fact]
     public async Task The_detail_carries_a_bury_the_reader_already_cast_without_exposing_its_reason()
     {
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding(FindingId, 5, 1,
                 stubUsersVote: new FindingVote(FindingVoteSide.Bury, BuryReason.InappropriateContent)));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync($"/api/findings/{FindingId}");
@@ -273,7 +317,8 @@ public class FindingVotingApiTests
     [Fact]
     public async Task A_mutation_response_exposes_the_dig_count_and_my_vote_but_never_a_bury_count()
     {
-        using var factory = CreateFactory(CreateFinding(FindingId, 5, 1));
+        await GivenFindings(CreateFinding(FindingId, 5, 1));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await PutBury(client, FindingId, "spam");
