@@ -21,14 +21,14 @@ public class EfUserRepositoryTests(UsersPostgresDatabase database) : IAsyncLifet
 
     private async Task GivenUserRecords(params User[] users)
     {
-        await using var context = new UsersDbContextFactory().CreateDbContext([database.ConnectionString]);
+        await using var context = database.CreateDbContext();
         context.Users.AddRange(users);
         await context.SaveChangesAsync();
     }
 
     private async Task<User?> LookedUp(string userName)
     {
-        await using var context = new UsersDbContextFactory().CreateDbContext([database.ConnectionString]);
+        await using var context = database.CreateDbContext();
         return await new EfUserRepository(context).GetByUserNameAsync(userName, CancellationToken.None);
     }
 

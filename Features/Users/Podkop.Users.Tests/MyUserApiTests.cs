@@ -32,7 +32,7 @@ public class MyUserApiTests(UsersPostgresDatabase database) : IAsyncLifetime
 
     private async Task GivenUserRecords(params User[] users)
     {
-        await using var context = new UsersDbContextFactory().CreateDbContext([database.ConnectionString]);
+        await using var context = database.CreateDbContext();
         context.Users.AddRange(users);
         await context.SaveChangesAsync();
     }
@@ -80,10 +80,11 @@ public class MyUserApiTests(UsersPostgresDatabase database) : IAsyncLifetime
         // The worker's own machinery populates the database here — the same seed a fresh
         // orchestrated database receives — so the shipped pact (issue #31) holds end to end:
         // the stub acting user is among the sample users and holds the Moderator role.
-        await using (var context = new UsersDbContextFactory().CreateDbContext([database.ConnectionString]))
+        await using (var context = database.CreateDbContext())
         {
             await UsersSeed.SeedAsync(context, SampleUsers.Generate(), CancellationToken.None);
         }
+
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
 

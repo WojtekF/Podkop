@@ -18,8 +18,7 @@ public class UsersDatabaseFixtureTests(UsersPostgresDatabase database) : IAsyncL
 
     public Task DisposeAsync() => Task.CompletedTask;
 
-    private UsersDbContext NewContext() =>
-        new UsersDbContextFactory().CreateDbContext([database.ConnectionString]);
+    private UsersDbContext NewContext() => database.CreateDbContext();
 
     [Fact]
     public async Task The_database_comes_up_with_the_slices_migrations_applied()

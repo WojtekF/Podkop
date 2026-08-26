@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Podkop.Users.Application;
 using Podkop.Users.Domain;
 
@@ -15,5 +16,5 @@ namespace Podkop.Users.Infrastructure;
 public sealed class EfUserRepository(UsersDbContext context) : IUserRepository
 {
     public Task<User?> GetByUserNameAsync(string userName, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        context.Users.SingleOrDefaultAsync(user => user.UserName == userName, cancellationToken);
 }

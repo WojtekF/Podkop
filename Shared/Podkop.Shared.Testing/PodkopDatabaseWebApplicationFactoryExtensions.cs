@@ -22,5 +22,7 @@ public static class PodkopDatabaseWebApplicationFactoryExtensions
     public static WebApplicationFactory<TEntryPoint> WithPodkopDatabase<TEntryPoint>(
         this WebApplicationFactory<TEntryPoint> factory,
         string connectionString)
-        where TEntryPoint : class => throw new NotImplementedException();
+        where TEntryPoint : class =>
+        factory.WithWebHostBuilder(builder =>
+            builder.UseSetting("ConnectionStrings:podkopdb", connectionString));
 }
