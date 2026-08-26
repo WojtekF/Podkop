@@ -10,7 +10,6 @@ using Podkop.FindingComments.Domain;
 using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
-using Podkop.Findings.Infrastructure;
 using Podkop.Moderation.Application;
 using Podkop.Moderation.Domain;
 using Podkop.Users.Application;
@@ -49,7 +48,7 @@ public class DismissSideEffectsTests
                 services.AddSingleton<TimeProvider>(new FakeTimeProvider(At("2026-07-01T12:00:00Z")));
                 // Authored by others than the stub moderator, so the dismissals are not
                 // refused as own-case — the content facts flow through the real adapters.
-                services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(
+                services.AddSingleton<IFindingRepository>(new StubFindingRepository(
                 [
                     new Finding(
                         id: FindingId,

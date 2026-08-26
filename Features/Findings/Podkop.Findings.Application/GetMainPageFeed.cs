@@ -30,15 +30,11 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
 {
     public async Task<FeedPage> Handle(GetMainPageFeed request, CancellationToken cancellationToken)
     {
-        var findings = await findingsRepository.GetAllAsync(cancellationToken);
-        var findingSummary = findings
-            .Where(f => f.IsPromoted)
-            .OrderByDescending(f => f.PromotedAt)
-            .ThenByDescending(f => f.Id)
-            .Skip((request.Page - 1) * request.Limit)
-            .Take(request.Limit + 1)
-            .Select(MapFindingToFindingSummary)
-            .ToList();
+        // Filtering, ordering, and paging live in the repository since issue #67 (SQL paging,
+        // ADR 0004); the extra finding beyond the limit is the repository's next-page signal.
+        var findings = await findingsRepository.GetPromotedPageAsync(
+            request.Page, request.Limit, cancellationToken);
+        var findingSummary = findings.Select(MapFindingToFindingSummary).ToList();
         return new FeedPage(findingSummary.Take(request.Limit).ToList(),
             findingSummary.Count > request.Limit);
     }

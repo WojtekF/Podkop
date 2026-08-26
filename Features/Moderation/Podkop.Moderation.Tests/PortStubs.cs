@@ -41,6 +41,20 @@ internal sealed class StubCaseContentLookup(params (ReportTargetKind Kind, Guid 
             .FirstOrDefault());
 }
 
+/// <summary>
+///     Answers every target with deterministic content: findings live in PostgreSQL since issue
+///     #67, so the as-shipped seed specs — whose subject is the moderation seed's story, not the
+///     reported words themselves — double the content side at this slice's port instead of
+///     hauling a database in. The real content path stays specified in Podkop.Server.Tests.
+/// </summary>
+internal sealed class CatchAllCaseContentLookup : ICaseContentLookup
+{
+    public Task<CaseContent?> GetAsync(ReportTargetKind targetKind, Guid targetId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<CaseContent?>(
+            new CaseContent("someone_else", $"Seeded {targetKind} {targetId}", targetId));
+}
+
 internal sealed class StubReportTargetLookup(params (ReportTargetKind Kind, ReportTarget Target)[] targets)
     : IReportTargetLookup
 {

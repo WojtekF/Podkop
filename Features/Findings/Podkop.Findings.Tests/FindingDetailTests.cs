@@ -3,15 +3,24 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
-using Podkop.Findings.Infrastructure;
+using Podkop.Shared.Testing;
 
 namespace Podkop.Findings.Tests;
 
-public class FindingDetailTests
+/// <summary>
+///     The finding detail through the HTTP seam, now against the durable store (issue #67): the
+///     specs put findings into the real database and override no service, so the projection —
+///     the full description, the derived domain, the public dig count and the never-public bury
+///     count — answers from what actually round-tripped through PostgreSQL.
+/// </summary>
+[Collection(FindingsDatabaseCollection.Name)]
+public class FindingDetailTests(FindingsPostgresDatabase database) : IAsyncLifetime
 {
+    public Task InitializeAsync() => database.ResetAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
+
     private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
 
     private static Finding CreateFinding(
@@ -36,17 +45,22 @@ public class FindingDetailTests
             commentCount: commentCount,
             votes: VotesGenerator.Generate(digCount, buryCount));
 
-    private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
-        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings))));
+    private WebApplicationFactory<Program> CreateFactory() =>
+        new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);
+
+    private async Task GivenFindings(params Finding[] findings)
+    {
+        await using var context = database.CreateDbContext();
+        context.Findings.AddRange(findings);
+        await context.SaveChangesAsync();
+    }
 
     [Fact]
     public async Task Detail_returns_the_finding_addressed_by_its_id()
     {
         var id = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
         var promotedAt = At("2026-07-08T09:30:00Z");
-        using var factory = CreateFactory(CreateFinding(
+        await GivenFindings(CreateFinding(
             id,
             title: "Text-only finding",
             source: "https://blog.example.org/posts/42",
@@ -54,6 +68,7 @@ public class FindingDetailTests
             promotedAt: promotedAt,
             digCount: 123,
             commentCount: 9));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync($"/api/findings/{id}");
@@ -77,7 +92,8 @@ public class FindingDetailTests
     public async Task Detail_exposes_the_thumbnail_when_the_finding_has_one()
     {
         var id = Guid.Parse("0d4f9a3e-2222-4222-8333-444455556666");
-        using var factory = CreateFactory(CreateFinding(id, thumbnail: "https://example.com/thumb.jpg"));
+        await GivenFindings(CreateFinding(id, thumbnail: "https://example.com/thumb.jpg"));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var detail = await client.GetFromJsonAsync<FindingDetailResponse>($"/api/findings/{id}");
@@ -91,7 +107,8 @@ public class FindingDetailTests
     {
         var id = Guid.Parse("0d4f9a3e-3333-4222-8333-444455556666");
         var promotedAt = At("2026-07-08T09:30:00Z");
-        using var factory = CreateFactory(CreateFinding(id, promotedAt: promotedAt));
+        await GivenFindings(CreateFinding(id, promotedAt: promotedAt));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var detail = await client.GetFromJsonAsync<FindingDetailResponse>($"/api/findings/{id}");
@@ -105,7 +122,8 @@ public class FindingDetailTests
     public async Task Detail_response_carries_no_bury_count()
     {
         var id = Guid.Parse("0d4f9a3e-4444-4222-8333-444455556666");
-        using var factory = CreateFactory(CreateFinding(id, buryCount: 42));
+        await GivenFindings(CreateFinding(id, buryCount: 42));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync($"/api/findings/{id}");
@@ -124,7 +142,8 @@ public class FindingDetailTests
     {
         var known = Guid.Parse("0d4f9a3e-5555-4222-8333-444455556666");
         var unknown = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
-        using var factory = CreateFactory(CreateFinding(known));
+        await GivenFindings(CreateFinding(known));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync($"/api/findings/{unknown}");

@@ -21,6 +21,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Podkop.Server\Podkop.Server.csproj" />
+    <!-- The seed-coherence specs hold the seeded discussions and the findings database to one
+         story (issues #16, #67), so this suite brings the Findings schema up on the shared
+         PostgreSQL fixture — Docker is a hard requirement for those specs. -->
+    <ProjectReference Include="..\..\..\Shared\Podkop.Shared.Testing\Podkop.Shared.Testing.csproj" />
     <ProjectReference Include="..\Podkop.FindingComments.Domain\Podkop.FindingComments.Domain.csproj" />
     <ProjectReference Include="..\Podkop.FindingComments.Infrastructure\Podkop.FindingComments.Infrastructure.csproj" />
     <!-- The HTTP seam runs through the composition root, so seeding a discussion also means

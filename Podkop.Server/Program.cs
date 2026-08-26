@@ -20,8 +20,11 @@ builder.AddServiceDefaults();
 
 // Add services to the container.
 builder.Services.AddProblemDetails();
-// Both slices seed from SampleSeed so the sample data stays coherent across them (issue #16).
-builder.Services.AddFindings(() => SampleSeed.Findings);
+// Findings answer from PostgreSQL (issue #67): the slice takes no seed — sample findings reach
+// the database only through the migration worker — and the API host registers the slice's
+// context against the orchestrated podkopdb connection.
+builder.Services.AddFindings();
+builder.AddFindingsPersistence();
 builder.Services.AddFindingComments(() => SampleSeed.Comments);
 builder.Services.AddDocuments(() => SampleSeed.StatuteVersions, () => SampleSeed.PrivacyPolicyVersions);
 // Reports seed too since the case queue made them observable (issue #34), and verdicts since
@@ -32,12 +35,13 @@ builder.Services.AddModeration(() => SampleSeed.Reports, () => SampleSeed.Verdic
 // against the orchestrated podkopdb connection.
 builder.Services.AddUsers();
 builder.AddUsersPersistence();
-builder.Services.AddSingleton<IFindingLookup, FindingsBackedFindingLookup>();
-builder.Services.AddSingleton<IReportTargetLookup, ContentBackedReportTargetLookup>();
-builder.Services.AddSingleton<ICaseContentLookup, ContentBackedCaseContentLookup>();
+// Scoped to match the EF-backed IFindingRepository they read through (issue #67).
+builder.Services.AddScoped<IFindingLookup, FindingsBackedFindingLookup>();
+builder.Services.AddScoped<IReportTargetLookup, ContentBackedReportTargetLookup>();
+builder.Services.AddScoped<ICaseContentLookup, ContentBackedCaseContentLookup>();
 // Scoped to match the EF-backed IUserRepository it reads through (issue #89).
 builder.Services.AddScoped<IModeratorLookup, UsersBackedModeratorLookup>();
-builder.Services.AddSingleton<IFindingCommentsLookup, CommentsBackedFindingCommentsLookup>();
+builder.Services.AddScoped<IFindingCommentsLookup, CommentsBackedFindingCommentsLookup>();
 // Scoped to match the ISender it dispatches the Documents slice's current-statute query through.
 builder.Services.AddScoped<IStatuteLookup, DocumentsBackedStatuteLookup>();
 builder.Services.AddSingleton(TimeProvider.System);

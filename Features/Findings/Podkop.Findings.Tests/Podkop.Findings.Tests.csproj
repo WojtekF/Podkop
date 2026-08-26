@@ -16,11 +16,21 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The persistence specs (issue #67) build the slice's context from a host builder and from
+         the design-time factory; the model-shape specs open no connection, while the behavior
+         specs run against real PostgreSQL through the shared fixture — Docker is a hard
+         requirement for this suite. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Podkop.Server\Podkop.Server.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Podkop.Shared.Testing\Podkop.Shared.Testing.csproj" />
     <ProjectReference Include="..\Podkop.Findings.Domain\Podkop.Findings.Domain.csproj" />
     <ProjectReference Include="..\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
   </ItemGroup>

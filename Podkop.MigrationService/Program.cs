@@ -1,3 +1,4 @@
+using Podkop.Findings.Infrastructure;
 using Podkop.MigrationService;
 using Podkop.Users.Infrastructure;
 
@@ -13,6 +14,17 @@ builder.Services.AddSingleton(new SliceMigrationParticipant(
     (serviceProvider, cancellationToken) => UsersSeed.SeedAsync(
         serviceProvider.GetRequiredService<UsersDbContext>(),
         SampleUsers.Generate(),
+        cancellationToken)));
+
+// Findings convert second (issue #67): the worker migrates and seeds the findings schema, and
+// the API host answers the feed, the detail, and the votes from it.
+builder.AddFindingsPersistence();
+builder.Services.AddSingleton(new SliceMigrationParticipant(
+    "findings",
+    serviceProvider => serviceProvider.GetRequiredService<FindingsDbContext>(),
+    (serviceProvider, cancellationToken) => FindingsSeed.SeedAsync(
+        serviceProvider.GetRequiredService<FindingsDbContext>(),
+        SampleFindings.Generate(),
         cancellationToken)));
 
 builder.Services.AddHostedService<MigrationWorker>();

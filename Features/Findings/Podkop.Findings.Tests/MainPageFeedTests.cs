@@ -2,15 +2,25 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
-using Podkop.Findings.Infrastructure;
+using Podkop.Shared.Testing;
 
 namespace Podkop.Findings.Tests;
 
-public class MainPageFeedTests
+/// <summary>
+///     The Main Page feed through the HTTP seam, now against the durable store (issue #67): the
+///     specs put findings into the real database and override no service, so whatever repository
+///     the production wiring resolves is what answers — the same contract as before the
+///     conversion (promoted only, promotion time newest first, 1-based pages per ADR 0004), with
+///     the paging landing as SQL instead of in-memory LINQ.
+/// </summary>
+[Collection(FindingsDatabaseCollection.Name)]
+public class MainPageFeedTests(FindingsPostgresDatabase database) : IAsyncLifetime
 {
+    public Task InitializeAsync() => database.ResetAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
+
     private static DateTimeOffset At(string iso) => DateTimeOffset.Parse(iso, CultureInfo.InvariantCulture);
 
     private static Finding CreateFinding(
@@ -35,15 +45,21 @@ public class MainPageFeedTests
             commentCount: commentCount,
             votes: VotesGenerator.Generate(digCount, buryCount));
 
-    private static WebApplicationFactory<Program> CreateFactory(params Finding[] findings)
-        => new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services =>
-                services.AddSingleton<IFindingRepository>(new InMemoryFindingRepository(findings))));
+    private WebApplicationFactory<Program> CreateFactory() =>
+        new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);
+
+    private async Task GivenFindings(params Finding[] findings)
+    {
+        await using var context = database.CreateDbContext();
+        context.Findings.AddRange(findings);
+        await context.SaveChangesAsync();
+    }
 
     [Fact]
     public async Task Main_feed_returns_the_items_and_has_next_page_envelope()
     {
-        using var factory = CreateFactory(CreateFinding("Only finding", At("2026-07-08T10:00:00Z")));
+        await GivenFindings(CreateFinding("Only finding", At("2026-07-08T10:00:00Z")));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/findings?feed=main");
@@ -58,11 +74,12 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_contains_only_promoted_findings()
     {
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding("Promoted A", At("2026-07-08T10:00:00Z")),
             CreateFinding("Still upcoming", promotedAt: null),
             CreateFinding("Promoted B", At("2026-07-08T11:00:00Z")),
             CreateFinding("Also upcoming", promotedAt: null));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main");
@@ -74,10 +91,11 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_orders_findings_by_promotion_time_newest_first()
     {
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding("Promoted at 10", At("2026-07-08T10:00:00Z")),
             CreateFinding("Promoted at 12", At("2026-07-08T12:00:00Z")),
             CreateFinding("Promoted at 11", At("2026-07-08T11:00:00Z")));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main");
@@ -91,7 +109,8 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_defaults_to_the_first_page()
     {
-        using var factory = CreateFactory(FivePromotedFindings());
+        await GivenFindings(FivePromotedFindings());
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var withoutPage = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2");
@@ -107,7 +126,8 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_first_page_is_capped_at_limit_and_flags_a_next_page()
     {
-        using var factory = CreateFactory(FivePromotedFindings());
+        await GivenFindings(FivePromotedFindings());
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2&page=1");
@@ -120,7 +140,8 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_middle_page_continues_the_ordering_and_flags_a_next_page()
     {
-        using var factory = CreateFactory(FivePromotedFindings());
+        await GivenFindings(FivePromotedFindings());
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2&page=2");
@@ -133,7 +154,8 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_last_page_holds_the_remainder_and_flags_no_next_page()
     {
-        using var factory = CreateFactory(FivePromotedFindings());
+        await GivenFindings(FivePromotedFindings());
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main&limit=2&page=3");
@@ -146,7 +168,8 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_pages_through_the_whole_feed_without_gaps_or_repeats()
     {
-        using var factory = CreateFactory(FivePromotedFindings());
+        await GivenFindings(FivePromotedFindings());
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var seenIds = new List<Guid>();
@@ -177,9 +200,10 @@ public class MainPageFeedTests
         // Findings promoted at the same instant need a deterministic secondary
         // order, or items could repeat or vanish across page boundaries.
         var promotedAt = At("2026-07-08T10:00:00Z");
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding("Tied low id", promotedAt, id: Guid.Parse("00000000-0000-0000-0000-000000000001")),
             CreateFinding("Tied high id", promotedAt, id: Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff")));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main");
@@ -191,7 +215,8 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_page_past_the_end_is_an_empty_ok_page()
     {
-        using var factory = CreateFactory(FivePromotedFindings());
+        await GivenFindings(FivePromotedFindings());
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/findings?feed=main&limit=2&page=4");
@@ -206,9 +231,10 @@ public class MainPageFeedTests
     [Fact]
     public async Task Main_feed_is_empty_when_nothing_is_promoted_yet()
     {
-        using var factory = CreateFactory(
+        await GivenFindings(
             CreateFinding("Upcoming A", promotedAt: null),
             CreateFinding("Upcoming B", promotedAt: null));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/api/findings?feed=main");
@@ -224,13 +250,14 @@ public class MainPageFeedTests
     public async Task Main_feed_card_exposes_source_url_and_derived_domain()
     {
         var promotedAt = At("2026-07-08T09:30:00Z");
-        using var factory = CreateFactory(CreateFinding(
+        await GivenFindings(CreateFinding(
             "Text-only finding",
             promotedAt,
             source: "https://blog.example.org/posts/42",
             thumbnail: null,
             digCount: 123,
             commentCount: 7));
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var page = await client.GetFromJsonAsync<FeedResponse>("/api/findings?feed=main");
@@ -276,7 +303,8 @@ public class MainPageFeedTests
     [InlineData("not-a-page")]
     public async Task Main_feed_rejects_malformed_or_non_positive_pages(string page)
     {
-        using var factory = CreateFactory(FivePromotedFindings());
+        await GivenFindings(FivePromotedFindings());
+        using var factory = CreateFactory();
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync($"/api/findings?feed=main&page={page}");

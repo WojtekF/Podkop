@@ -157,11 +157,18 @@ public class CaseQueueSeedTests
         Assert.Distinct(reports.Select(r => r.FiledAt));
     }
 
-    /// <summary>The app as shipped, with only the moderator gate stubbed for the acting user.</summary>
+    /// <summary>
+    ///     The app as shipped, with the moderator gate stubbed for the acting user and — since
+    ///     findings live in PostgreSQL (issue #67) — the content side doubled at this slice's
+    ///     port, so the seed's own story stays observable without a database.
+    /// </summary>
     private static WebApplicationFactory<Program> AsShippedFactory() =>
         new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
             builder.ConfigureServices(services =>
-                services.AddSingleton<IModeratorLookup>(new StubModeratorLookup("ada_lovelace"))));
+            {
+                services.AddSingleton<IModeratorLookup>(new StubModeratorLookup("ada_lovelace"));
+                services.AddSingleton<ICaseContentLookup>(new CatchAllCaseContentLookup());
+            }));
 
     [Fact]
     public async Task The_app_as_shipped_serves_a_queue_of_cases()
