@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Infrastructure;
@@ -14,8 +15,13 @@ namespace Podkop.Findings.Infrastructure;
 /// </summary>
 public static class FindingsSeed
 {
-    public static Task SeedAsync(
+    public static async Task SeedAsync(
         FindingsDbContext context,
         IReadOnlyList<Finding> findings,
-        CancellationToken cancellationToken) => throw new NotImplementedException();
+        CancellationToken cancellationToken)
+    {
+        if (await context.Findings.AnyAsync(cancellationToken)) return;
+        context.Findings.AddRange(findings);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -4,10 +4,15 @@ using Podkop.Shared.Infrastructure;
 namespace Podkop.Findings.Infrastructure;
 
 /// <summary>
-///     Development seed data until PostgreSQL persistence lands. Roughly two thirds of the
-///     findings are promoted; some have no thumbnail. Since issue #16 the seeded comment threads
-///     are the authority for comment counts: a finding's CommentCount may no longer be invented
-///     here — the composition root's SampleSeed lines this generator up with the seeded discussion.
+///     The sample findings the Development database is seeded with (issue #67). Roughly two
+///     thirds of the findings are promoted; some have no thumbnail. Since issue #16 the seeded
+///     comment threads are the authority for comment counts, and since issue #67 the two sides of
+///     that pact generate in different processes — the migration worker writes the findings to
+///     PostgreSQL while the API host still seeds the discussions in memory — so nothing can line
+///     them up after the fact. Generation is therefore deterministic: ids derive from the
+///     finding's index, every draw comes from a per-finding stream, and the comment count is the
+///     shared <see cref="SampleDiscussions" /> plan's answer for that id. Any two calls, in any
+///     process, produce the same findings.
 /// </summary>
 public static class SampleFindings
 {
@@ -24,39 +29,50 @@ public static class SampleFindings
 
         return Enumerable.Range(1, count).Select(index =>
         {
-            var createdAt = now.AddHours(-Random.Shared.Next(2, 96));
+            // One stream per finding, seeded by its index: a draw added to one finding must not
+            // reshuffle the ones after it.
+            var random = new Random(index);
+            var id = IdFor(index);
+            var createdAt = now.AddHours(-random.Next(2, 96));
             var promoted = index % 3 != 0;
-            var digCount = promoted ? Random.Shared.Next(50, 150) : Random.Shared.Next(0, 49);
-            var buryCount = promoted ? Random.Shared.Next(0, 50) : Random.Shared.Next(50, 150);
+            var digCount = promoted ? random.Next(50, 150) : random.Next(0, 49);
+            var buryCount = promoted ? random.Next(0, 50) : random.Next(50, 150);
 
-            var stubVote = StubVoteFor(index);
+            var stubVote = StubVoteFor(index, random);
             // Nobody may vote on their own finding, so the stub user does not get to author the
             // ones her vote is due on — otherwise that vote is silently dropped and the mix
             // below degrades from guaranteed to merely likely.
             var author = stubVote is null
-                ? SampleData.Authors[Random.Shared.Next(SampleData.Authors.Length)]
-                : authorsWithoutStub[Random.Shared.Next(authorsWithoutStub.Length)];
+                ? SampleData.Authors[random.Next(SampleData.Authors.Length)]
+                : authorsWithoutStub[random.Next(authorsWithoutStub.Length)];
 
             // The crowd excludes her as well: her side is chosen deliberately rather than
             // inherited from wherever she happens to sit in the voter list.
             var voters = SampleData.Authors.Except(new[] { author, StubUser })
                 .Concat(SampleData.Voters).ToArray();
             return new Finding(
-                id: Guid.NewGuid(),
+                id: id,
                 title: $"Sample finding {index}",
                 description: string.Join(" ",
-                    Random.Shared.GetItems(SampleData.Lines.AsSpan(), Random.Shared.Next(1, 4))),
+                    random.GetItems(SampleData.Lines.AsSpan(), random.Next(1, 4))),
                 source: new Uri(
-                    $"https://{SampleData.Hosts[Random.Shared.Next(SampleData.Hosts.Length)]}/article/{index}"),
+                    $"https://{SampleData.Hosts[random.Next(SampleData.Hosts.Length)]}/article/{index}"),
                 thumbnail: index % 5 == 0 ? null : new Uri($"https://picsum.photos/id/{index * 10}/220/142"),
                 author: author,
-                tags: Random.Shared.GetItems(SampleData.Tags.AsSpan(), Random.Shared.Next(1, 4)).Distinct().ToArray(),
+                tags: random.GetItems(SampleData.Tags.AsSpan(), random.Next(1, 4)).Distinct().ToArray(),
                 createdAt: createdAt,
-                promotedAt: promoted ? createdAt.AddHours(Random.Shared.Next(1, 24)) : null,
-                commentCount: Random.Shared.Next(0, 250),
-                votes: SeedVotes(digCount, voters, buryCount, promoted, stubVote));
+                promotedAt: promoted ? createdAt.AddHours(random.Next(1, 24)) : null,
+                commentCount: SampleDiscussions.CommentCountFor(id),
+                votes: SeedVotes(random, digCount, voters, buryCount, promoted, stubVote));
         }).ToArray();
     }
+
+    /// <summary>
+    ///     The finding's identity as a pure function of its index — the anchor the whole
+    ///     deterministic seed hangs off, and legible in a database row to boot: the index sits in
+    ///     the id's last twelve digits.
+    /// </summary>
+    private static Guid IdFor(int index) => new($"00000000-0000-0000-0001-{index:D12}");
 
     /// <summary>
     ///     The stub user's own vote on a finding, or <c>null</c> where she has not voted. Fixed by
@@ -66,16 +82,16 @@ public static class SampleFindings
     ///     both sides on the promoted two thirds several times over, while the remaining half stays
     ///     unvoted so the highlight reads as scattered rather than blanket.
     /// </summary>
-    private static FindingVote? StubVoteFor(int index) =>
+    private static FindingVote? StubVoteFor(int index, Random random) =>
         (index % 4) switch
         {
-            1 => new FindingVote(FindingVoteSide.Bury, (BuryReason)Random.Shared.Next(0, 5)),
+            1 => new FindingVote(FindingVoteSide.Bury, (BuryReason)random.Next(0, 5)),
             2 => new FindingVote(FindingVoteSide.Dig, null),
             _ => null
         };
 
-    private static Dictionary<string, FindingVote> SeedVotes(int digCount, string[] voters, int buryCount,
-        bool promoted, FindingVote? stubVote)
+    private static Dictionary<string, FindingVote> SeedVotes(Random random, int digCount, string[] voters,
+        int buryCount, bool promoted, FindingVote? stubVote)
     {
         Dictionary<string, FindingVote> GetDigVotes(int starting, int count) =>
             Enumerable.Range(starting, count).Select(i => voters[i])
@@ -84,7 +100,7 @@ public static class SampleFindings
         Dictionary<string, FindingVote> GetBuryVotes(int starting, int count) =>
             Enumerable.Range(starting, count).Select(i => voters[i])
                 .ToDictionary(voter => voter,
-                    _ => new FindingVote(FindingVoteSide.Bury, (BuryReason)Random.Shared.Next(0, 5)));
+                    _ => new FindingVote(FindingVoteSide.Bury, (BuryReason)random.Next(0, 5)));
 
         var votes = (promoted
                 ? GetDigVotes(0, digCount).Concat(GetBuryVotes(digCount, buryCount))

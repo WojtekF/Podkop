@@ -80,7 +80,7 @@ public class EfFindingRepositoryTests(FindingsPostgresDatabase database) : IAsyn
                 ["linus_t"] = new(FindingVoteSide.Dig, null),
                 ["margaret_h"] = new(FindingVoteSide.Dig, null),
                 ["dennis_r"] = new(FindingVoteSide.Bury, BuryReason.Spam),
-                [StubUser] = new(FindingVoteSide.Dig, null),
+                [StubUser] = new(FindingVoteSide.Dig, null)
             }));
 
         var finding = await LookedUp(id);
@@ -214,7 +214,7 @@ public class EfFindingRepositoryTests(FindingsPostgresDatabase database) : IAsyn
             At("2026-07-08T09:30:00Z"),
             votes: new Dictionary<string, FindingVote>
             {
-                ["linus_t"] = new(FindingVoteSide.Dig, null),
+                ["linus_t"] = new(FindingVoteSide.Dig, null)
             }));
 
         await using (var context = database.CreateDbContext())
@@ -242,7 +242,7 @@ public class EfFindingRepositoryTests(FindingsPostgresDatabase database) : IAsyn
             At("2026-07-08T09:30:00Z"),
             votes: new Dictionary<string, FindingVote>
             {
-                [StubUser] = new(FindingVoteSide.Dig, null),
+                [StubUser] = new(FindingVoteSide.Dig, null)
             }));
 
         await using (var context = database.CreateDbContext())
@@ -273,7 +273,7 @@ public class EfFindingRepositoryTests(FindingsPostgresDatabase database) : IAsyn
             votes: new Dictionary<string, FindingVote>
             {
                 ["linus_t"] = new(FindingVoteSide.Dig, null),
-                [StubUser] = new(FindingVoteSide.Dig, null),
+                [StubUser] = new(FindingVoteSide.Dig, null)
             }));
 
         await using (var context = database.CreateDbContext())

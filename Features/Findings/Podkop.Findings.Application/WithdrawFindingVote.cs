@@ -25,6 +25,8 @@ public sealed class WithdrawFindingVoteHandler(
         if (withdrawOutcome == WithdrawOutcome.OwnFinding)
             return new FindingVoteResult(FindingVoteError.OwnFinding, null);
 
+        await findingsRepository.SaveAsync(finding, cancellationToken);
+
         return new FindingVoteResult(null,
             new FindingVotes(finding.DigCount, finding.VoteBy(currentUser.UserName).ToApiString()));
     }

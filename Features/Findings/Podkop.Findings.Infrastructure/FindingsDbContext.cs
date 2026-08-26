@@ -21,5 +21,31 @@ public sealed class FindingsDbContext(DbContextOptions<FindingsDbContext> option
 {
     public DbSet<Finding> Findings => Set<Finding>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) => throw new NotImplementedException();
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema(FindingsDbContextOptions.Schema);
+        modelBuilder.Entity<Finding>(finding =>
+        {
+            finding.HasKey(e => e.Id);
+            finding.PrimitiveCollection(e => e.Tags);
+            finding.Property(f => f.PromotedAt);
+            finding.Property(f => f.CommentCount);
+            finding.Property(f => f.Title);
+            finding.Property(f => f.Description);
+            finding.Property(f => f.Source);
+            finding.Property(f => f.Thumbnail);
+            finding.Property(f => f.Author);
+            finding.Property(f => f.CreatedAt);
+
+            finding.OwnsMany<FindingVoteEntry>("_votes", vote =>
+            {
+                vote.ToTable("finding_votes");
+                vote.WithOwner().HasForeignKey("finding_id");
+                vote.Property(v => v.Voter).HasColumnName("voter");
+                vote.HasKey("finding_id", nameof(FindingVoteEntry.Voter));
+                vote.Property(v => v.Side).HasColumnName("side").HasConversion<string>();
+                vote.Property(v => v.Reason).HasColumnName("reason").HasConversion<string>();
+            });
+        });
+    }
 }

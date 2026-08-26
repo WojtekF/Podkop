@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 
@@ -19,13 +20,22 @@ namespace Podkop.Findings.Infrastructure;
 /// </summary>
 public sealed class EfFindingRepository(FindingsDbContext context) : IFindingRepository
 {
-    public Task<IReadOnlyList<Finding>> GetPromotedPageAsync(
+    public async Task<IReadOnlyList<Finding>> GetPromotedPageAsync(
         int page, int limit, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        await context.Findings
+            .Where(finding => finding.PromotedAt.HasValue)
+            .OrderByDescending(finding => finding.PromotedAt.Value)
+            .ThenByDescending(finding => finding.Id)
+            .Skip((page - 1) * limit)
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
 
     public Task<Finding?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        context.Findings.FirstOrDefaultAsync(finding => finding.Id == id, cancellationToken);
 
-    public Task SaveAsync(Finding finding, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task SaveAsync(Finding finding, CancellationToken cancellationToken)
+    {
+        if (!context.Findings.Contains(finding)) context.Findings.Add(finding);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }
