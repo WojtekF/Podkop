@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
-using MediatR;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
@@ -64,17 +63,19 @@ public class ReportSideEffectsTests
                         promotedAt: At("2026-06-08T09:30:00Z"),
                         commentCount: 0),
                 ]));
+                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
                 // The discussion under scrutiny: a voted-on top-level comment and a reply, both
                 // authored by others, so the comment report action is live and the vote counts
                 // the filing must not touch are non-trivial.
-                services.AddSingleton<ICommentRepository>(provider => new InMemoryCommentRepository(
+                services.AddSingleton(new InMemoryCommentStore(
                 [
                     new Comment(CommentId, FindingId, null, "grace_hopper",
                         "A comment under scrutiny.", At("2026-06-08T10:00:00Z"),
                         new Dictionary<string, VoteDirection> { ["linus_torvalds"] = VoteDirection.Up }),
                     new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
                         "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
-                ], provider.GetRequiredService<IPublisher>()));
+                ]));
+                services.AddScoped<ICommentRepository, InMemoryCommentRepository>();
                 // Reports seed by default since issue #34, verdicts since issue #35; this
                 // proof is about the act of filing, so both start from an empty slate rather
                 // than the sample data.

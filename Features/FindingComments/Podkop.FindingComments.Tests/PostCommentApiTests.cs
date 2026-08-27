@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
-using MediatR;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Podkop.FindingComments.Application;
@@ -63,8 +62,9 @@ public class PostCommentApiTests
             {
                 services.AddSingleton<IFindingRepository>(
                     new StubFindingRepository([CreateFinding(FindingId, seededCommentCount)]));
-                services.AddSingleton<ICommentRepository>(provider =>
-                    new InMemoryCommentRepository(comments, provider.GetRequiredService<IPublisher>()));
+                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
+                services.AddSingleton(new InMemoryCommentStore(comments));
+                services.AddScoped<ICommentRepository, InMemoryCommentRepository>();
             }));
     }
 

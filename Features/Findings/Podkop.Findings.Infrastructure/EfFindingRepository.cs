@@ -13,10 +13,10 @@ namespace Podkop.Findings.Infrastructure;
 ///     paging in memory (issue #67's SQL paging, ADR 0004). The id lookup answers the one finding
 ///     with that id, rehydrated whole: its votes, tags, counts and timestamps all read back
 ///     exactly as they were saved, because dig counts and the reader's own vote are derived from
-///     them; it answers null when no finding has the id. Saving makes a loaded aggregate's
-///     current state durable, so a vote set, switched, or withdrawn in one request — and a
-///     comment counted by the contract event — is what the next request's own context reads.
-///     The specs in <c>Podkop.Findings.Tests</c> pin all three against the live database.
+///     them; it answers null when no finding has the id. The loaded aggregate stays tracked by
+///     the request's context (issue #96): the repository persists nothing itself — durability is
+///     <see cref="EfUnitOfWork" />'s single explicit commit. The specs in
+///     <c>Podkop.Findings.Tests</c> pin both reads against the live database.
 /// </summary>
 public sealed class EfFindingRepository(FindingsDbContext context) : IFindingRepository
 {
@@ -32,10 +32,4 @@ public sealed class EfFindingRepository(FindingsDbContext context) : IFindingRep
 
     public Task<Finding?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         context.Findings.FirstOrDefaultAsync(finding => finding.Id == id, cancellationToken);
-
-    public async Task SaveAsync(Finding finding, CancellationToken cancellationToken)
-    {
-        if (!context.Findings.Contains(finding)) context.Findings.Add(finding);
-        await context.SaveChangesAsync(cancellationToken);
-    }
 }

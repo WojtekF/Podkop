@@ -5,10 +5,16 @@ using Podkop.FindingComments.Domain;
 
 namespace Podkop.FindingComments.Infrastructure;
 
-public sealed class InMemoryCommentRepository(IEnumerable<Comment> comments, IPublisher publisher)
+/// <summary>
+///     Scoped over the singleton <see cref="InMemoryCommentStore" /> (issue #96): the comments it
+///     answers from live for the process, while the <see cref="IPublisher" /> it publishes
+///     through is the request's own — so the contract events it raises reach their consumers in
+///     the scope of the request that caused them.
+/// </summary>
+public sealed class InMemoryCommentRepository(InMemoryCommentStore store, IPublisher publisher)
     : ICommentRepository
 {
-    private readonly List<Comment> _comments = comments.ToList();
+    private readonly List<Comment> _comments = store.Comments;
 
     public Task<IReadOnlyList<Comment>> GetByFindingIdAsync(Guid findingId, CancellationToken cancellationToken) =>
         Task.FromResult<IReadOnlyList<Comment>>(

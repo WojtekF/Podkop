@@ -8,8 +8,8 @@ namespace Podkop.Server.Tests;
 ///     issue #67, so suites whose subject is the host's cross-slice wiring answer content facts
 ///     from a fixed list instead of hauling a database into specs that are not about
 ///     persistence. Feed order and the one-past-the-limit next-page signal mirror the durable
-///     store's contract; saving is a no-op because mutations on the held aggregates are already
-///     visible in place.
+///     store's contract; mutations on the held aggregates are already visible in place, which is
+///     why the paired <see cref="StubUnitOfWork" /> has nothing left to commit (issue #96).
 /// </summary>
 internal sealed class StubFindingRepository(IEnumerable<Finding> findings) : IFindingRepository
 {
@@ -27,6 +27,4 @@ internal sealed class StubFindingRepository(IEnumerable<Finding> findings) : IFi
 
     public Task<Finding?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         Task.FromResult(_findings.FirstOrDefault(finding => finding.Id == id));
-
-    public Task SaveAsync(Finding finding, CancellationToken cancellationToken) => Task.CompletedTask;
 }
