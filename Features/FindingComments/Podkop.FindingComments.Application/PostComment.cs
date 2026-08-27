@@ -25,7 +25,8 @@ public sealed record PostCommentResponse(PostCommentOutcome Outcome, CommentRepl
 public sealed class PostCommentHandler(
     ICommentRepository commentsRepository,
     IFindingLookup findingLookup,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    IUnitOfWork unitOfWork)
     : IRequestHandler<PostComment, PostCommentResponse>
 {
     public async Task<PostCommentResponse> Handle(PostComment request, CancellationToken cancellationToken)
@@ -42,17 +43,19 @@ public sealed class PostCommentHandler(
         }
 
         var postCommentResult = Comment.Post(
-            id: Guid.CreateVersion7(),
+            Guid.CreateVersion7(),
             request.FindingId,
             parentComment,
-            author: currentUser.UserName,
+            currentUser.UserName,
             request.Text,
-            createdAt: DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow);
 
         if (postCommentResult.Outcome != PostCommentOutcome.Posted)
             return new PostCommentResponse(postCommentResult.Outcome, null);
 
         await commentsRepository.AddAsync(postCommentResult.Comment!, cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
+
         return new PostCommentResponse(PostCommentOutcome.Posted,
             postCommentResult.Comment!.ToCommentReply(currentUser.UserName));
     }

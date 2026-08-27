@@ -35,7 +35,8 @@ public sealed record CommentVoteResult(CommentVoteError? Error, CommentVotes? Vo
 
 public sealed class SetCommentVoteHandler(
     ICommentRepository commentsRepository,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    IUnitOfWork unitOfWork)
     : IRequestHandler<SetCommentVote, CommentVoteResult>
 {
     public async Task<CommentVoteResult> Handle(SetCommentVote request, CancellationToken cancellationToken)
@@ -45,6 +46,8 @@ public sealed class SetCommentVoteHandler(
 
         if (comment.SetVote(currentUser.UserName, request.Direction) == ActionOutcome.OwnComment)
             return new CommentVoteResult(CommentVoteError.OwnComment, null);
+
+        await unitOfWork.CommitAsync(cancellationToken);
 
         return new CommentVoteResult(null, new CommentVotes(
             comment.UpvoteCount,
