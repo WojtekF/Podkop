@@ -1,4 +1,7 @@
+using MediatR;
 using Podkop.FindingComments.Application;
+using Podkop.FindingComments.Contracts;
+using Podkop.FindingComments.Domain;
 
 namespace Podkop.FindingComments.Infrastructure;
 
@@ -8,8 +11,19 @@ namespace Podkop.FindingComments.Infrastructure;
 ///     instance the repository loads and adds through, so exactly what the use case mutated is
 ///     what turns durable, in one commit.
 /// </summary>
-public sealed class EfUnitOfWork(FindingCommentsDbContext context) : IUnitOfWork
+public sealed class EfUnitOfWork(FindingCommentsDbContext context, IPublisher publisher) : IUnitOfWork
 {
-    public Task CommitAsync(CancellationToken cancellationToken) =>
-        context.SaveChangesAsync(cancellationToken);
+    public async Task CommitAsync(CancellationToken cancellationToken)
+    {
+        await context.SaveChangesAsync(cancellationToken);
+
+        var comments = context.ChangeTracker.Entries<Comment>().Select(e => e.Entity);
+
+        foreach (var comment in comments)
+        {
+            foreach (var added in comment.DomainEvents.OfType<CommentAdded>())
+                await publisher.Publish(new CommentPosted(added.CommentId, added.FindingId), cancellationToken);
+            comment.ClearDomainEvents();
+        }
+    }
 }

@@ -1,7 +1,5 @@
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Podkop.FindingComments.Application;
-using Podkop.FindingComments.Contracts;
 using Podkop.FindingComments.Domain;
 
 namespace Podkop.FindingComments.Infrastructure;
@@ -15,20 +13,17 @@ namespace Podkop.FindingComments.Infrastructure;
 ///     were written, because both counts and the reader's own highlighted vote are derived from
 ///     them; thread composition (best-first, chronological replies) stays the query handler's
 ///     job, exactly as in memory. The id lookup answers the one comment with that id, or null.
-///     Adding hands a newly posted comment to the request's context and publishes the slice's
-///     contract events translated from the aggregate's domain events (ADR 0003) — through the
-///     request's own publisher, the scope lesson issue #96 settled. Loaded and added comments
-///     stay tracked: nothing is durable until the use case commits through the slice's
-///     <see cref="IUnitOfWork" />. The specs in <c>Podkop.FindingComments.Tests</c> pin all of
-///     this against the live database.
+///     Adding hands a newly posted comment to the request's context and announces nothing:
+///     loaded and added comments stay tracked, and the use case's commit through the slice's
+///     <see cref="IUnitOfWork" /> is what makes them durable and publishes the contract events
+///     translated from what the aggregates raised (ADR 0003). The specs in
+///     <c>Podkop.FindingComments.Tests</c> pin all of this against the live database.
 /// </summary>
-public sealed class EfCommentRepository(FindingCommentsDbContext context, IPublisher publisher)
-    : ICommentRepository
+public sealed class EfCommentRepository(FindingCommentsDbContext context) : ICommentRepository
 {
     public async Task<IReadOnlyList<Comment>> GetByFindingIdAsync(
         Guid findingId, CancellationToken cancellationToken) =>
         await context.Comments
-            .AsNoTracking()
             .Where(comment => comment.FindingId == findingId)
             .ToListAsync(cancellationToken);
 
@@ -36,9 +31,6 @@ public sealed class EfCommentRepository(FindingCommentsDbContext context, IPubli
         context.Comments
             .SingleOrDefaultAsync(comment => comment.Id == commentId, cancellationToken);
 
-    public async Task AddAsync(Comment comment, CancellationToken cancellationToken)
-    {
-        await publisher.Publish(new CommentPosted(comment.Id, comment.FindingId), cancellationToken);
+    public async Task AddAsync(Comment comment, CancellationToken cancellationToken) =>
         await context.AddAsync(comment, cancellationToken);
-    }
 }

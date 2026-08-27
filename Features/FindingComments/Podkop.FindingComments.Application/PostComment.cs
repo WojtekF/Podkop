@@ -43,12 +43,12 @@ public sealed class PostCommentHandler(
         }
 
         var postCommentResult = Comment.Post(
-            Guid.CreateVersion7(),
+            id: Guid.CreateVersion7(),
             request.FindingId,
             parentComment,
-            currentUser.UserName,
+            author: currentUser.UserName,
             request.Text,
-            DateTimeOffset.UtcNow);
+            createdAt: DateTimeOffset.UtcNow);
 
         if (postCommentResult.Outcome != PostCommentOutcome.Posted)
             return new PostCommentResponse(postCommentResult.Outcome, null);

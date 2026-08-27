@@ -15,9 +15,10 @@ public interface ICommentRepository
     Task<Comment?> GetByIdAsync(Guid commentId, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Hands a newly posted comment to the store and publishes the slice's contract events
-    ///     translated from the aggregate's domain events (ADR 0003) — the add and the events
-    ///     travel together; durability is the use case's commit.
+    ///     Hands a newly posted comment to the store. Adding announces nothing: the contract
+    ///     events translated from what the aggregate raised (ADR 0003) are published by the
+    ///     use case's commit through <see cref="IUnitOfWork" />, after durability — a consumer
+    ///     can never see a contract event for a comment that was not stored.
     /// </summary>
     Task AddAsync(Comment comment, CancellationToken cancellationToken);
 }

@@ -40,7 +40,7 @@ public class EfUnitOfWorkTests(FindingCommentsPostgresDatabase database) : IAsyn
     private async Task<Comment?> LookedUp(Guid id)
     {
         await using var context = database.CreateDbContext();
-        return await new EfCommentRepository(context, new NoOpPublisher())
+        return await new EfCommentRepository(context)
             .GetByIdAsync(id, CancellationToken.None);
     }
 
@@ -51,8 +51,8 @@ public class EfUnitOfWorkTests(FindingCommentsPostgresDatabase database) : IAsyn
     private async Task InOneUseCase(Func<EfCommentRepository, Task> useCase, bool committed = true)
     {
         await using var context = database.CreateDbContext();
-        await useCase(new EfCommentRepository(context, new NoOpPublisher()));
-        if (committed) await new EfUnitOfWork(context).CommitAsync(CancellationToken.None);
+        await useCase(new EfCommentRepository(context));
+        if (committed) await new EfUnitOfWork(context, new NoOpPublisher()).CommitAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -143,7 +143,7 @@ public class EfUnitOfWorkTests(FindingCommentsPostgresDatabase database) : IAsyn
             await repository.AddAsync(CreateComment(addedId), CancellationToken.None);
             var comment = await repository.GetByIdAsync(CommentId, CancellationToken.None);
             comment!.SetVote(StubUser, VoteDirection.Up);
-        }, committed: false);
+        }, false);
 
         Assert.Null(await LookedUp(addedId));
         var reloaded = await LookedUp(CommentId);
@@ -152,7 +152,7 @@ public class EfUnitOfWorkTests(FindingCommentsPostgresDatabase database) : IAsyn
         Assert.Null(reloaded.VoteBy(StubUser));
     }
 
-    /// <summary>Adding publishes through the request's publisher; these round trips need none.</summary>
+    /// <summary>The commit publishes through the request's publisher; these round trips need none.</summary>
     private sealed class NoOpPublisher : IPublisher
     {
         public Task Publish(object notification, CancellationToken cancellationToken = default) =>

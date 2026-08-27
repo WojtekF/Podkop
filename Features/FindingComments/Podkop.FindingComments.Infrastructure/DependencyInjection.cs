@@ -19,11 +19,12 @@ public static class DependencyInjection
     {
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<GetFindingComments>());
         // Scoped: the repository reads and tracks through the slice's context, whose lifetime is
-        // the request — and publishes contract events through the request's own IPublisher, the
-        // scope lesson issue #96 settled for this slice's in-memory predecessor.
+        // the request.
         services.AddScoped<ICommentRepository, EfCommentRepository>();
         // Scoped alongside it (issue #96's pattern): both resolve the same request's context, so
-        // the unit of work's one commit makes durable exactly what this request's use case did.
+        // the unit of work's one commit makes durable exactly what this request's use case did —
+        // and its contract events publish through the request's own IPublisher, the scope lesson
+        // issue #96 settled for this slice's in-memory predecessor.
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         return services;
     }

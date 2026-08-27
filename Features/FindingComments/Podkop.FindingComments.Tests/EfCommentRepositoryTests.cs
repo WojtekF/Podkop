@@ -1,5 +1,4 @@
 using System.Globalization;
-using MediatR;
 using Podkop.FindingComments.Domain;
 using Podkop.FindingComments.Infrastructure;
 
@@ -47,14 +46,14 @@ public class EfCommentRepositoryTests(FindingCommentsPostgresDatabase database) 
     private async Task<Comment?> LookedUp(Guid id)
     {
         await using var context = database.CreateDbContext();
-        return await new EfCommentRepository(context, new NoOpPublisher())
+        return await new EfCommentRepository(context)
             .GetByIdAsync(id, CancellationToken.None);
     }
 
     private async Task<IReadOnlyList<Comment>> Discussion(Guid findingId)
     {
         await using var context = database.CreateDbContext();
-        return await new EfCommentRepository(context, new NoOpPublisher())
+        return await new EfCommentRepository(context)
             .GetByFindingIdAsync(findingId, CancellationToken.None);
     }
 
@@ -144,17 +143,5 @@ public class EfCommentRepositoryTests(FindingCommentsPostgresDatabase database) 
         await GivenComments(CreateComment(Guid.NewGuid()));
 
         Assert.Empty(await Discussion(Guid.Parse("0d4f9a3e-3333-4222-8333-444455556666")));
-    }
-
-    /// <summary>Adding publishes through the request's publisher; these read specs need none.</summary>
-    private sealed class NoOpPublisher : IPublisher
-    {
-        public Task Publish(object notification, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
-
-        public Task Publish<TNotification>(
-            TNotification notification, CancellationToken cancellationToken = default)
-            where TNotification : INotification =>
-            Task.CompletedTask;
     }
 }

@@ -123,4 +123,6 @@ public sealed class Comment
     }
 
     public VoteDirection? VoteBy(string voter) => Votes.FirstOrDefault(vote => vote.Voter == voter)?.VoteDirection;
+
+    public void ClearDomainEvents() => _domainEvents.Clear();
 }
