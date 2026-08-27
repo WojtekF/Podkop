@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Podkop.FindingComments.Application;
 using Podkop.FindingComments.Domain;
-using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Moderation.Application;
@@ -64,7 +63,7 @@ public class DismissSideEffectsTests
                 services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
                 // The discussion under judgment: a voted-on top-level comment and a reply, so
                 // the vote counts the dismissal must not touch are non-trivial.
-                services.AddSingleton(new InMemoryCommentStore(
+                services.AddSingleton<ICommentRepository>(new StubCommentRepository(
                 [
                     new Comment(CommentId, FindingId, null, "grace_hopper",
                         "A comment under scrutiny.", At("2026-06-08T10:00:00Z"),
@@ -72,7 +71,8 @@ public class DismissSideEffectsTests
                     new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
                         "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
                 ]));
-                services.AddScoped<ICommentRepository, InMemoryCommentRepository>();
+                services.AddSingleton<Podkop.FindingComments.Application.IUnitOfWork>(
+                    new StubCommentsUnitOfWork());
                 // One open case per target kind, pending until the spec dismisses it; the
                 // verdict slate starts empty rather than with the sample dismissals.
                 services.AddSingleton<IReportRepository>(new InMemoryReportRepository(

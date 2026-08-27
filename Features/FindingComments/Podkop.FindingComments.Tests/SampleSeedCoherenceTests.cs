@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Infrastructure;
 using Podkop.Shared.Testing;
 
@@ -8,16 +9,15 @@ namespace Podkop.FindingComments.Tests;
 /// <summary>
 ///     The number a finding card advertises must equal what its discussion actually contains
 ///     (issue #16): the seeded comment threads are the authority for comment counts. Since issue
-///     #67 the pact spans the persistence boundary — the findings the feed lists come from
-///     PostgreSQL, seeded by the migration worker's own machinery, while the discussions still
-///     live in the API host's memory, seeded by the composition root. These specs seed the
+///     #68 both sides of the pact live in PostgreSQL, each seeded by the migration worker's own
+///     machinery — findings first, then the discussions hanging off them. These specs seed the
 ///     database the way the worker does and override no repository, so the two sides are held to
-///     one story across a process's worth of independent generation: every feed-visible
+///     one story across the worker's two independent generator runs: every feed-visible
 ///     finding's count equals its discussion, and the discussions actually hang off the findings
 ///     the database holds.
 /// </summary>
-[Collection(FindingsDatabaseCollection.Name)]
-public class SampleSeedCoherenceTests(FindingsPostgresDatabase database) : IAsyncLifetime
+[Collection(FindingCommentsDatabaseCollection.Name)]
+public class SampleSeedCoherenceTests(FindingCommentsPostgresDatabase database) : IAsyncLifetime
 {
     public Task InitializeAsync() => database.ResetAsync();
 
@@ -25,13 +25,21 @@ public class SampleSeedCoherenceTests(FindingsPostgresDatabase database) : IAsyn
 
     private async Task<WebApplicationFactory<Program>> SeededAppAsync()
     {
-        // The database is populated the way a fresh orchestrated volume is: the same seed step
-        // the migration worker runs, over the Findings slice's own generator. The comments are
-        // whatever the as-shipped composition root seeds — no overrides — because that pairing
-        // is exactly what the running app serves.
+        // The database is populated the way a fresh orchestrated volume is: the same seed steps
+        // the migration worker runs, in the worker's order, over each slice's own generator —
+        // the comments generator handed the same finding ids the findings seed persisted.
+        var findings = SampleFindings.Generate();
+        await using (var context = database.CreateFindingsDbContext())
+        {
+            await FindingsSeed.SeedAsync(context, findings, CancellationToken.None);
+        }
+
         await using (var context = database.CreateDbContext())
         {
-            await FindingsSeed.SeedAsync(context, SampleFindings.Generate(), CancellationToken.None);
+            await FindingCommentsSeed.SeedAsync(
+                context,
+                SampleFindingComments.GenerateFor([.. findings.Select(finding => finding.Id)]),
+                CancellationToken.None);
         }
 
         return new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);

@@ -1,3 +1,4 @@
+using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Infrastructure;
 using Podkop.MigrationService;
 using Podkop.Users.Infrastructure;
@@ -25,6 +26,19 @@ builder.Services.AddSingleton(new SliceMigrationParticipant(
     (serviceProvider, cancellationToken) => FindingsSeed.SeedAsync(
         serviceProvider.GetRequiredService<FindingsDbContext>(),
         SampleFindings.Generate(),
+        cancellationToken)));
+
+// FindingComments convert third (issue #68), registered after Findings on purpose: the worker
+// walks participants in registration order, and every seeded comment hangs off a finding the
+// findings seed must already have put there. The comments generator regenerates the same finding
+// ids the findings seed persisted — the deterministic-generation pact SampleSeed describes.
+builder.AddFindingCommentsPersistence();
+builder.Services.AddSingleton(new SliceMigrationParticipant(
+    "finding_comments",
+    serviceProvider => serviceProvider.GetRequiredService<FindingCommentsDbContext>(),
+    (serviceProvider, cancellationToken) => FindingCommentsSeed.SeedAsync(
+        serviceProvider.GetRequiredService<FindingCommentsDbContext>(),
+        SampleFindingComments.GenerateFor([.. SampleFindings.Generate().Select(finding => finding.Id)]),
         cancellationToken)));
 
 builder.Services.AddHostedService<MigrationWorker>();

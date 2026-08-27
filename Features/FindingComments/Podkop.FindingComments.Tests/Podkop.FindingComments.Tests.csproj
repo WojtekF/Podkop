@@ -16,14 +16,22 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The persistence specs (issue #68) build the slice's context from a host builder and from
+         the design-time factory; the model-shape specs open no connection, while the behavior
+         specs run against real PostgreSQL through the shared fixture — Docker is a hard
+         requirement for this suite. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Podkop.Server\Podkop.Server.csproj" />
-    <!-- The seed-coherence specs hold the seeded discussions and the findings database to one
-         story (issues #16, #67), so this suite brings the Findings schema up on the shared
-         PostgreSQL fixture — Docker is a hard requirement for those specs. -->
+    <!-- The behavior specs run against real PostgreSQL with BOTH slices' schemas up on the
+         shared fixture (issue #68) — Docker is a hard requirement for this suite. -->
     <ProjectReference Include="..\..\..\Shared\Podkop.Shared.Testing\Podkop.Shared.Testing.csproj" />
     <ProjectReference Include="..\Podkop.FindingComments.Domain\Podkop.FindingComments.Domain.csproj" />
     <ProjectReference Include="..\Podkop.FindingComments.Infrastructure\Podkop.FindingComments.Infrastructure.csproj" />

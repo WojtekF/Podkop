@@ -13,8 +13,10 @@
 
     <!-- As slices convert to PostgreSQL, their Infrastructure projects get referenced here — the
          sanctioned isolation exception of ADR 0010, like Podkop.Server is for Server projects.
-         Users converts first, then Findings, per ADR 0010's conversion order (issues #88, #67). -->
+         Users converts first, then Findings, then FindingComments, per ADR 0010's conversion
+         order (issues #88, #67, #68). -->
     <ItemGroup>
+        <ProjectReference Include="..\Features\FindingComments\Podkop.FindingComments.Infrastructure\Podkop.FindingComments.Infrastructure.csproj" />
         <ProjectReference Include="..\Features\Findings\Podkop.Findings.Infrastructure\Podkop.Findings.Infrastructure.csproj" />
         <ProjectReference Include="..\Features\Users\Podkop.Users.Infrastructure\Podkop.Users.Infrastructure.csproj" />
     </ItemGroup>
