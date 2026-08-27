@@ -37,6 +37,8 @@
     <Project Path="Features/Users/Podkop.Users.Tests/Podkop.Users.Tests.csproj" />
   </Folder>
   <Folder Name="/Shared/">
+    <Project Path="Shared/Podkop.Shared.Domain/Podkop.Shared.Domain.csproj" />
+    <Project Path="Shared/Podkop.Shared.Domain.Tests/Podkop.Shared.Domain.Tests.csproj" />
     <Project Path="Shared/Podkop.Shared.Infrastructure/Podkop.Shared.Infrastructure.csproj" />
     <Project Path="Shared/Podkop.Shared.Testing/Podkop.Shared.Testing.csproj" />
   </Folder>
