@@ -12,9 +12,11 @@ namespace Podkop.FindingComments.Infrastructure;
 ///     PostgreSQL while the discussions are still seeded here, in the API host's memory — so each
 ///     discussion's shape is a deterministic function of its finding's id: the size is the shared
 ///     <see cref="SampleDiscussions" /> plan's answer — the same number the findings generator
-///     stamped on the finding it persisted — and every other choice comes from the id-seeded
-///     stream. Only the comment ids stay fresh per process; nothing outside this process ever
-///     references them. The stub user (ada_lovelace) must also arrive with scattered pre-existing
+///     stamped on the finding it persisted — and every other choice, the comment ids included,
+///     comes from the id-seeded stream: since issue #68 the migration worker persists the
+///     generated comments while the API host regenerates them for Moderation's report targets,
+///     so both processes must arrive at the very same rows. The stub user (ada_lovelace) must
+///     also arrive with scattered pre-existing
 ///     votes over the generated set — never on her own comments — so vote highlighting is visible
 ///     on first load (issue #18); like the findings seed, her votes are placed by position rather
 ///     than by chance.
@@ -55,8 +57,14 @@ public static class SampleFindingComments
             // top-level, so a parent exists by the time one is needed.
             var parent = position % 3 == 2 ? topComments[random.Next(topComments.Count)] : null;
 
+            // The id comes from the id-seeded stream too: the worker persists these rows while
+            // the API host regenerates them for Moderation's report targets, so both processes
+            // must mint the same ids (issue #68).
+            var idBytes = new byte[16];
+            random.NextBytes(idBytes);
+
             var comment = new Comment(
-                Guid.CreateVersion7(),
+                new Guid(idBytes),
                 findingId,
                 parent?.Id,
                 author,

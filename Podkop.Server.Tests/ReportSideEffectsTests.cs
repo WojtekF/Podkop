@@ -9,7 +9,6 @@ using Podkop.Documents.Domain;
 using Podkop.Documents.Infrastructure;
 using Podkop.FindingComments.Application;
 using Podkop.FindingComments.Domain;
-using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Moderation.Application;
@@ -67,7 +66,7 @@ public class ReportSideEffectsTests
                 // The discussion under scrutiny: a voted-on top-level comment and a reply, both
                 // authored by others, so the comment report action is live and the vote counts
                 // the filing must not touch are non-trivial.
-                services.AddSingleton(new InMemoryCommentStore(
+                services.AddSingleton<ICommentRepository>(new StubCommentRepository(
                 [
                     new Comment(CommentId, FindingId, null, "grace_hopper",
                         "A comment under scrutiny.", At("2026-06-08T10:00:00Z"),
@@ -75,7 +74,8 @@ public class ReportSideEffectsTests
                     new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
                         "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
                 ]));
-                services.AddScoped<ICommentRepository, InMemoryCommentRepository>();
+                services.AddSingleton<Podkop.FindingComments.Application.IUnitOfWork>(
+                    new StubCommentsUnitOfWork());
                 // Reports seed by default since issue #34, verdicts since issue #35; this
                 // proof is about the act of filing, so both start from an empty slate rather
                 // than the sample data.

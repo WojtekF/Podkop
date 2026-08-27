@@ -3,18 +3,29 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Podkop.FindingComments.Application;
 using Podkop.FindingComments.Domain;
-using Podkop.FindingComments.Infrastructure;
-using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
+using Podkop.Shared.Testing;
 
 namespace Podkop.FindingComments.Tests;
 
-public class FindingCommentsApiTests
+/// <summary>
+///     Reading a finding's discussion (issue #16) through the HTTP seam, now against the durable
+///     store (issue #68): top-level comments come best-first by net score with ties oldest-first,
+///     replies sit under their parent chronologically and never surface as threads of their own,
+///     and every row carries author, text, both vote counts, and when it was written. The specs
+///     put the finding and its discussion into the real database and override no service, so
+///     the ordering and the one-level shape are answered by exactly the wiring the running app
+///     serves.
+/// </summary>
+[Collection(FindingCommentsDatabaseCollection.Name)]
+public class FindingCommentsApiTests(FindingCommentsPostgresDatabase database) : IAsyncLifetime
 {
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
+
+    public Task InitializeAsync() => database.ResetAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private static DateTimeOffset At(string iso)
     {
@@ -61,25 +72,36 @@ public class FindingCommentsApiTests
             VotesGenerator.Generate(downvotes, upvotes));
     }
 
-    private static WebApplicationFactory<Program> CreateFactory(
+    /// <summary>
+    ///     Seeds the finding into its slice's schema and the discussion into this slice's, then
+    ///     answers a factory with no overrides: production wiring handles the requests.
+    /// </summary>
+    private async Task<WebApplicationFactory<Program>> GivenWorld(
         IReadOnlyList<Finding> findings,
         IReadOnlyList<Comment> comments)
     {
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services =>
-            {
-                services.AddSingleton<IFindingRepository>(new StubFindingRepository(findings));
-                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
-                services.AddSingleton(new InMemoryCommentStore(comments));
-                services.AddScoped<ICommentRepository, InMemoryCommentRepository>();
-            }));
+        if (findings.Count > 0)
+        {
+            await using var findingsContext = database.CreateFindingsDbContext();
+            findingsContext.Findings.AddRange(findings);
+            await findingsContext.SaveChangesAsync();
+        }
+
+        if (comments.Count > 0)
+        {
+            await using var context = database.CreateDbContext();
+            context.Comments.AddRange(comments);
+            await context.SaveChangesAsync();
+        }
+
+        return new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);
     }
 
     [Fact]
     public async Task Comments_of_an_unknown_finding_are_a_404()
     {
         var unknown = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
-        using var factory = CreateFactory([CreateFinding(FindingId)], []);
+        using var factory = await GivenWorld([CreateFinding(FindingId)], []);
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync($"/api/findings/{unknown}/comments");
@@ -90,7 +112,7 @@ public class FindingCommentsApiTests
     [Fact]
     public async Task A_finding_with_no_comments_has_an_empty_discussion_not_an_error()
     {
-        using var factory = CreateFactory([CreateFinding(FindingId)], []);
+        using var factory = await GivenWorld([CreateFinding(FindingId)], []);
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync($"/api/findings/{FindingId}/comments");
@@ -110,7 +132,7 @@ public class FindingCommentsApiTests
         var middling = Guid.Parse("c0000000-0000-4000-8000-000000000001");
         var best = Guid.Parse("c0000000-0000-4000-8000-000000000002");
         var runnerUp = Guid.Parse("c0000000-0000-4000-8000-000000000003");
-        using var factory = CreateFactory(
+        using var factory = await GivenWorld(
             [CreateFinding(FindingId)],
             [
                 TopLevel(middling, 5, 4, "2026-07-08T10:00:00Z"),
@@ -133,7 +155,7 @@ public class FindingCommentsApiTests
         // first so insertion order cannot masquerade as the tie-breaker.
         var newer = Guid.Parse("c0000000-0000-4000-8000-000000000004");
         var older = Guid.Parse("c0000000-0000-4000-8000-000000000005");
-        using var factory = CreateFactory(
+        using var factory = await GivenWorld(
             [CreateFinding(FindingId)],
             [
                 TopLevel(newer, 4, 1, "2026-07-08T12:00:00Z"),
@@ -156,7 +178,7 @@ public class FindingCommentsApiTests
         var replyEarly = Guid.Parse("c0000000-0000-4000-8000-000000000011");
         var replyLate = Guid.Parse("c0000000-0000-4000-8000-000000000012");
         var replyToB = Guid.Parse("c0000000-0000-4000-8000-000000000013");
-        using var factory = CreateFactory(
+        using var factory = await GivenWorld(
             [CreateFinding(FindingId)],
             [
                 TopLevel(parentA, 1, 0, "2026-07-08T10:00:00Z"),
@@ -183,7 +205,7 @@ public class FindingCommentsApiTests
     {
         var topLevelId = Guid.Parse("c0000000-0000-4000-8000-000000000021");
         var replyId = Guid.Parse("c0000000-0000-4000-8000-000000000022");
-        using var factory = CreateFactory(
+        using var factory = await GivenWorld(
             [CreateFinding(FindingId)],
             [
                 TopLevel(topLevelId, 12, 2, "2026-07-08T10:00:00Z",

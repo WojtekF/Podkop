@@ -2,30 +2,37 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.DependencyInjection;
-using Podkop.FindingComments.Application;
 using Podkop.FindingComments.Domain;
-using Podkop.FindingComments.Infrastructure;
-using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
+using Podkop.Shared.Testing;
 
 namespace Podkop.FindingComments.Tests;
 
 /// <summary>
-///     Posting comments and replies (issue #17) through the HTTP seam: POST creates a top-level
-///     comment or a one-level-deep reply as the stub user (ada_lovelace), text is trimmed and
-///     validated (empty and over-5000 rejected), the depth invariant is enforced, and every
-///     error answer carries a stable <c>podkop:problem:&lt;slug&gt;</c> ProblemDetails type so
-///     same-status outcomes stay distinguishable. Posting also increments the finding's comment
-///     count via the CommentPosted contract event — asserted across the slice boundary by
-///     re-fetching the finding, the event staying invisible plumbing.
+///     Posting comments and replies (issue #17) through the HTTP seam, now against the durable
+///     store (issue #68): POST creates a top-level comment or a one-level-deep reply as the stub
+///     user (ada_lovelace), text is trimmed and validated (empty and over-5000 rejected), the
+///     depth invariant is enforced, and every error answer carries a stable
+///     <c>podkop:problem:&lt;slug&gt;</c> ProblemDetails type so same-status outcomes stay
+///     distinguishable. Posting also increments the finding's comment count via the CommentPosted
+///     contract event — asserted across the slice boundary by re-fetching the finding. The specs
+///     put the finding and any pre-existing discussion into the real database and override no
+///     service, so every request runs in its own scope over its own contexts: a comment or a
+///     count that only ever changed in memory — never committed — satisfies the posting response
+///     but is gone by the next request, which is exactly what the read-back specs here refuse to
+///     let pass.
 /// </summary>
-public class PostCommentApiTests
+[Collection(FindingCommentsDatabaseCollection.Name)]
+public class PostCommentApiTests(FindingCommentsPostgresDatabase database) : IAsyncLifetime
 {
     private const string StubUser = "ada_lovelace";
     private static readonly Guid FindingId = Guid.Parse("0d4f9a3e-1111-4222-8333-444455556666");
     private static readonly Guid TopLevelId = Guid.Parse("c0000000-0000-4000-8000-000000000001");
     private static readonly Guid ReplyId = Guid.Parse("c0000000-0000-4000-8000-000000000002");
+
+    public Task InitializeAsync() => database.ResetAsync();
+
+    public Task DisposeAsync() => Task.CompletedTask;
 
     private static DateTimeOffset At(string iso)
     {
@@ -54,18 +61,28 @@ public class PostCommentApiTests
             At(createdAt));
     }
 
-    private static WebApplicationFactory<Program> CreateFactory(
+    /// <summary>
+    ///     Seeds the world the specs post into — the finding in the Findings slice's schema, the
+    ///     pre-existing discussion in this slice's — and answers a factory with no overrides:
+    ///     whatever the production wiring resolves is what handles the requests.
+    /// </summary>
+    private async Task<WebApplicationFactory<Program>> GivenWorld(
         IReadOnlyList<Comment> comments, int seededCommentCount = 0)
     {
-        return new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.ConfigureServices(services =>
-            {
-                services.AddSingleton<IFindingRepository>(
-                    new StubFindingRepository([CreateFinding(FindingId, seededCommentCount)]));
-                services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
-                services.AddSingleton(new InMemoryCommentStore(comments));
-                services.AddScoped<ICommentRepository, InMemoryCommentRepository>();
-            }));
+        await using (var findings = database.CreateFindingsDbContext())
+        {
+            findings.Findings.Add(CreateFinding(FindingId, seededCommentCount));
+            await findings.SaveChangesAsync();
+        }
+
+        if (comments.Count > 0)
+        {
+            await using var context = database.CreateDbContext();
+            context.Comments.AddRange(comments);
+            await context.SaveChangesAsync();
+        }
+
+        return new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);
     }
 
     private static Task<HttpResponseMessage> Post(HttpClient client, string? text, Guid? parentCommentId = null)
@@ -77,7 +94,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Posting_a_top_level_comment_returns_201_with_the_created_row()
     {
-        using var factory = CreateFactory([]);
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "A fresh take.");
@@ -97,7 +114,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Text_is_stored_trimmed()
     {
-        using var factory = CreateFactory([]);
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "  A fresh take. \n");
@@ -110,7 +127,9 @@ public class PostCommentApiTests
     [Fact]
     public async Task A_posted_comment_appears_in_the_next_read_of_the_discussion()
     {
-        using var factory = CreateFactory([]);
+        // The read is a second request in its own scope over its own context: only a comment the
+        // posting request actually made durable can still be there (issue #68).
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "A fresh take.");
@@ -126,7 +145,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Posting_a_reply_returns_201_and_lands_under_its_parent_chronologically()
     {
-        using var factory = CreateFactory([
+        using var factory = await GivenWorld([
             CreateComment(TopLevelId),
             CreateComment(ReplyId, parentCommentId: TopLevelId, createdAt: "2026-07-08T11:00:00Z"),
         ]);
@@ -147,9 +166,10 @@ public class PostCommentApiTests
     [Fact]
     public async Task Posting_a_top_level_comment_increments_the_finding_comment_count()
     {
-        // The count crosses the slice boundary via the CommentPosted contract event; the seam
-        // this test sees is just POST then GET — the event stays invisible plumbing.
-        using var factory = CreateFactory([], seededCommentCount: 7);
+        // The count crosses the slice boundary via the CommentPosted contract event and the
+        // persistence boundary via the Findings slice's own commit — the seam this test sees is
+        // just POST then GET, two requests in their own scopes.
+        using var factory = await GivenWorld([], seededCommentCount: 7);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "A fresh take.");
@@ -163,7 +183,7 @@ public class PostCommentApiTests
     public async Task Posting_a_reply_increments_the_finding_comment_count_too()
     {
         // Story 24: the count includes replies.
-        using var factory = CreateFactory([CreateComment(TopLevelId)], seededCommentCount: 1);
+        using var factory = await GivenWorld([CreateComment(TopLevelId)], seededCommentCount: 1);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "An answer.", TopLevelId);
@@ -176,7 +196,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Empty_text_is_a_400_typed_comment_empty()
     {
-        using var factory = CreateFactory([]);
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "");
@@ -189,7 +209,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Whitespace_only_text_counts_as_empty()
     {
-        using var factory = CreateFactory([]);
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "  \n\t ");
@@ -202,7 +222,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Text_over_5000_characters_is_a_400_typed_comment_too_long()
     {
-        using var factory = CreateFactory([]);
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await Post(client, new string('x', 5001));
@@ -215,7 +235,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Text_of_exactly_5000_characters_is_accepted()
     {
-        using var factory = CreateFactory([]);
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await Post(client, new string('x', 5000));
@@ -226,7 +246,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Replying_to_a_reply_is_a_400_typed_parent_is_a_reply()
     {
-        using var factory = CreateFactory([
+        using var factory = await GivenWorld([
             CreateComment(TopLevelId),
             CreateComment(ReplyId, parentCommentId: TopLevelId),
         ]);
@@ -242,7 +262,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Posting_under_an_unknown_finding_is_a_404_typed_unknown_finding()
     {
-        using var factory = CreateFactory([]);
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await client.PostAsJsonAsync(
@@ -257,7 +277,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task Replying_to_an_unknown_parent_is_a_404_typed_unknown_parent()
     {
-        using var factory = CreateFactory([]);
+        using var factory = await GivenWorld([]);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "An answer to nobody.",
@@ -273,7 +293,7 @@ public class PostCommentApiTests
     {
         // The parent exists and is top-level, but belongs to a different finding — for the
         // finding being posted under it is unknown, not a valid thread to land in.
-        using var factory = CreateFactory([
+        using var factory = await GivenWorld([
             CreateComment(TopLevelId, findingId: Guid.Parse("77777777-7777-4777-8777-777777777777")),
         ]);
         using var client = factory.CreateClient();
@@ -288,7 +308,7 @@ public class PostCommentApiTests
     [Fact]
     public async Task A_rejected_post_leaves_the_discussion_and_the_count_untouched()
     {
-        using var factory = CreateFactory([], seededCommentCount: 3);
+        using var factory = await GivenWorld([], seededCommentCount: 3);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "   ");

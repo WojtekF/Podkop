@@ -25,7 +25,11 @@ builder.Services.AddProblemDetails();
 // context against the orchestrated podkopdb connection.
 builder.Services.AddFindings();
 builder.AddFindingsPersistence();
-builder.Services.AddFindingComments(() => SampleSeed.Comments);
+// Comments answer from PostgreSQL too (issue #68): the slice takes no seed — sample discussions
+// reach the database only through the migration worker — and the API host registers the slice's
+// context against the orchestrated podkopdb connection.
+builder.Services.AddFindingComments();
+builder.AddFindingCommentsPersistence();
 builder.Services.AddDocuments(() => SampleSeed.StatuteVersions, () => SampleSeed.PrivacyPolicyVersions);
 // Reports seed too since the case queue made them observable (issue #34), and verdicts since
 // the Moderation Log made them observable (issue #35).

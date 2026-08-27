@@ -12,7 +12,8 @@ public sealed record WithdrawCommentVote(Guid CommentId) : IRequest<CommentVoteR
 
 public sealed class WithdrawCommentVoteHandler(
     ICommentRepository commentsRepository,
-    ICurrentUser currentUser)
+    ICurrentUser currentUser,
+    IUnitOfWork unitOfWork)
     : IRequestHandler<WithdrawCommentVote, CommentVoteResult>
 {
     public async Task<CommentVoteResult> Handle(WithdrawCommentVote request, CancellationToken cancellationToken)
@@ -23,6 +24,8 @@ public sealed class WithdrawCommentVoteHandler(
 
         if (comment.WithdrawVote(currentUser.UserName) == ActionOutcome.OwnComment)
             return new CommentVoteResult(CommentVoteError.OwnComment, null);
+
+        await unitOfWork.CommitAsync(cancellationToken);
 
         return new CommentVoteResult(null, new CommentVotes(comment.UpvoteCount, comment.DownvoteCount, null));
     }

@@ -7,7 +7,6 @@ using Podkop.Documents.Domain;
 using Podkop.Documents.Infrastructure;
 using Podkop.FindingComments.Application;
 using Podkop.FindingComments.Domain;
-using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Application;
 using Podkop.Findings.Domain;
 using Podkop.Moderation.Application;
@@ -103,14 +102,15 @@ public class ModerationPortAdapterTests
                 services.AddSingleton<IFindingRepository>(new StubFindingRepository(
                     [CreateFinding(FindingId, "grace_hopper")]));
                 services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
-                services.AddSingleton(new InMemoryCommentStore(
+                services.AddSingleton<ICommentRepository>(new StubCommentRepository(
                 [
                     new Comment(CommentId, FindingId, null, "grace_hopper",
                         "A comment under scrutiny.", At("2026-06-08T10:00:00Z")),
                     new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
                         "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
                 ]));
-                services.AddScoped<ICommentRepository, InMemoryCommentRepository>();
+                services.AddSingleton<Podkop.FindingComments.Application.IUnitOfWork>(
+                    new StubCommentsUnitOfWork());
                 // The users store is doubled at its port: since issue #89 the real one is
                 // the database, and the adapter under test is indifferent to which store
                 // answers the record.
