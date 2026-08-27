@@ -12,7 +12,7 @@ public sealed class Comment
     public const int MaxTextLength = 5000;
 
     private readonly List<IDomainEvent> _domainEvents = [];
-    private readonly Dictionary<string, VoteDirection> _votes;
+    private readonly List<CommentVoteEntry> _votes = [];
 
     public Comment(
         Guid id,
@@ -29,7 +29,11 @@ public sealed class Comment
         Author = author;
         Text = text;
         CreatedAt = createdAt;
-        _votes = votes is null ? [] : new Dictionary<string, VoteDirection>(votes);
+        _votes = votes is null ? [] : votes.Select(vote => new CommentVoteEntry(vote.Key, vote.Value)).ToList();
+    }
+
+    private Comment()
+    {
     }
 
     public Guid Id { get; }
@@ -38,14 +42,14 @@ public sealed class Comment
     public string Author { get; }
     public string Text { get; }
     public DateTimeOffset CreatedAt { get; }
-    public int UpvoteCount => _votes.Count(vote => vote.Value == VoteDirection.Up);
-    public int DownvoteCount => _votes.Count(vote => vote.Value == VoteDirection.Down);
+    public int UpvoteCount => _votes.Count(vote => vote.VoteDirection == VoteDirection.Up);
+    public int DownvoteCount => _votes.Count(vote => vote.VoteDirection == VoteDirection.Down);
 
     /// <summary>
     ///     The individual votes tracked per voter. Tracked voter can have their
     ///     vote highlighted, switched, or withdrawn.
     /// </summary>
-    public IReadOnlyDictionary<string, VoteDirection> Votes => _votes;
+    public IReadOnlyList<CommentVoteEntry> Votes => _votes;
 
     public bool IsReply => ParentCommentId is not null;
     public int NetScore => UpvoteCount - DownvoteCount;
@@ -102,7 +106,9 @@ public sealed class Comment
     {
         if (voter == Author) return ActionOutcome.OwnComment;
 
-        _votes[voter] = direction;
+        _votes.RemoveAll(vote => vote.Voter == voter);
+        _votes.Add(new CommentVoteEntry(voter, direction));
+
         return ActionOutcome.Applied;
     }
 
@@ -112,9 +118,9 @@ public sealed class Comment
     public ActionOutcome WithdrawVote(string voter)
     {
         if (voter == Author) return ActionOutcome.OwnComment;
-        _votes.Remove(voter);
+        _votes.RemoveAll(vote => vote.Voter == voter);
         return ActionOutcome.Applied;
     }
 
-    public VoteDirection? VoteBy(string voter) => Votes.TryGetValue(voter, out var value) ? value : null;
+    public VoteDirection? VoteBy(string voter) => Votes.FirstOrDefault(vote => vote.Voter == voter)?.VoteDirection;
 }

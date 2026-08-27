@@ -24,5 +24,27 @@ public sealed class FindingCommentsDbContext(DbContextOptions<FindingCommentsDbC
 {
     public DbSet<Comment> Comments => Set<Comment>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) => throw new NotImplementedException();
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema(FindingCommentsDbContextOptions.Schema);
+        modelBuilder.Entity<Comment>(comment =>
+        {
+            comment.ToTable("comments");
+            comment.HasKey(p => p.Id);
+            comment.Property(p => p.Id);
+            comment.Property(p => p.FindingId);
+            comment.Property(p => p.ParentCommentId);
+            comment.Property(p => p.Author);
+            comment.Property(p => p.Text);
+            comment.Property(p => p.CreatedAt);
+            comment.OwnsMany(p => p.Votes, vote =>
+            {
+                vote.ToTable("comment_votes");
+                vote.WithOwner().HasForeignKey("comment_id");
+                vote.Property(p => p.Voter).HasColumnName("voter");
+                vote.HasKey("comment_id", nameof(CommentVoteEntry.Voter));
+                vote.Property(p => p.VoteDirection).HasColumnName("vote_direction").HasConversion<string>();
+            });
+        });
+    }
 }

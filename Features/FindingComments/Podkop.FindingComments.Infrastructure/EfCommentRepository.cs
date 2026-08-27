@@ -1,5 +1,7 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Podkop.FindingComments.Application;
+using Podkop.FindingComments.Contracts;
 using Podkop.FindingComments.Domain;
 
 namespace Podkop.FindingComments.Infrastructure;
@@ -23,13 +25,20 @@ namespace Podkop.FindingComments.Infrastructure;
 public sealed class EfCommentRepository(FindingCommentsDbContext context, IPublisher publisher)
     : ICommentRepository
 {
-    public Task<IReadOnlyList<Comment>> GetByFindingIdAsync(
+    public async Task<IReadOnlyList<Comment>> GetByFindingIdAsync(
         Guid findingId, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        await context.Comments
+            .AsNoTracking()
+            .Where(comment => comment.FindingId == findingId)
+            .ToListAsync(cancellationToken);
 
     public Task<Comment?> GetByIdAsync(Guid commentId, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        context.Comments
+            .SingleOrDefaultAsync(comment => comment.Id == commentId, cancellationToken);
 
-    public Task AddAsync(Comment comment, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task AddAsync(Comment comment, CancellationToken cancellationToken)
+    {
+        await publisher.Publish(new CommentPosted(comment.Id, comment.FindingId), cancellationToken);
+        await context.AddAsync(comment, cancellationToken);
+    }
 }
