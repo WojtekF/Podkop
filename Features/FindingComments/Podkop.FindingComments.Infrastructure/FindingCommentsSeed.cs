@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Podkop.FindingComments.Domain;
 
 namespace Podkop.FindingComments.Infrastructure;
@@ -15,9 +16,14 @@ namespace Podkop.FindingComments.Infrastructure;
 /// </summary>
 public static class FindingCommentsSeed
 {
-    public static Task SeedAsync(
+    public static async Task SeedAsync(
         FindingCommentsDbContext context,
         IReadOnlyList<Comment> comments,
-        CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        CancellationToken cancellationToken)
+    {
+        if (await context.Comments.AnyAsync(cancellationToken)) return;
+
+        context.Comments.AddRange(comments);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }
