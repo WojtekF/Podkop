@@ -1,10 +1,8 @@
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
-using MediatR;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Podkop.FindingComments.Application;
 using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Domain;
 using Podkop.Shared.Testing;
@@ -53,13 +51,13 @@ public class PostCommentDurabilityTests(FindingsPostgresDatabase database) : IAs
             await context.SaveChangesAsync();
         }
 
-        // Only the discussion store is doubled (empty, in memory); the findings side answers
-        // from the real database through whatever the production wiring resolves.
+        // Only the discussion's backing store is overridden (empty, in memory); the repository
+        // over it and the whole findings side stay the production wiring, so the CommentPosted
+        // consumer resolves in the request's own scope over the real database.
         return new WebApplicationFactory<Program>()
             .WithPodkopDatabase(database.ConnectionString)
             .WithWebHostBuilder(builder => builder.ConfigureServices(services =>
-                services.AddSingleton<ICommentRepository>(provider =>
-                    new InMemoryCommentRepository([], provider.GetRequiredService<IPublisher>()))));
+                services.AddSingleton(new InMemoryCommentStore([]))));
     }
 
     [Fact]

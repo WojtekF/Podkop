@@ -1,5 +1,4 @@
 using System.Globalization;
-using MediatR;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
@@ -104,13 +103,14 @@ public class ModerationPortAdapterTests
                 services.AddSingleton<IFindingRepository>(new StubFindingRepository(
                     [CreateFinding(FindingId, "grace_hopper")]));
                 services.AddSingleton<Podkop.Findings.Application.IUnitOfWork>(new StubUnitOfWork());
-                services.AddSingleton<ICommentRepository>(provider => new InMemoryCommentRepository(
+                services.AddSingleton(new InMemoryCommentStore(
                 [
                     new Comment(CommentId, FindingId, null, "grace_hopper",
                         "A comment under scrutiny.", At("2026-06-08T10:00:00Z")),
                     new Comment(ReplyId, FindingId, CommentId, "linus_torvalds",
                         "A reply under scrutiny.", At("2026-06-08T11:00:00Z")),
-                ], provider.GetRequiredService<IPublisher>()));
+                ]));
+                services.AddScoped<ICommentRepository, InMemoryCommentRepository>();
                 // The users store is doubled at its port: since issue #89 the real one is
                 // the database, and the adapter under test is indifferent to which store
                 // answers the record.
