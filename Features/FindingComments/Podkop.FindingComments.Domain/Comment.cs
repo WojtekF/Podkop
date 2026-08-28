@@ -1,3 +1,5 @@
+using Podkop.Shared.Domain;
+
 namespace Podkop.FindingComments.Domain;
 
 /// <summary>
@@ -6,12 +8,11 @@ namespace Podkop.FindingComments.Domain;
 ///     comment) by id only; it is never held as a collection on the finding (ADR 0005). A reply
 ///     can never have replies — threads are exactly one level deep.
 /// </summary>
-public sealed class Comment
+public sealed class Comment : AggregateRoot
 {
     /// <summary>The most text one comment may carry (issue #17); longer text is rejected.</summary>
     public const int MaxTextLength = 5000;
 
-    private readonly List<IDomainEvent> _domainEvents = [];
     private readonly List<CommentVoteEntry> _votes = [];
 
     public Comment(
@@ -54,8 +55,6 @@ public sealed class Comment
     public bool IsReply => ParentCommentId is not null;
     public int NetScore => UpvoteCount - DownvoteCount;
 
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents;
-
     /// <summary>
     ///     Creates a newly posted comment (issue #17). A reply's parent is passed in loaded so
     ///     the factory owns the depth invariant — a reply can never answer a reply; whether the
@@ -94,7 +93,7 @@ public sealed class Comment
         );
     }
 
-    private void RaiseCommentAdded() => _domainEvents.Add(new CommentAdded(Id, FindingId));
+    private void RaiseCommentAdded() => Raise(new CommentAdded(Id, FindingId));
 
     /// <summary>
     ///     Records the voter's vote (issue #18): a fresh vote or a one-step switch to the other
@@ -123,6 +122,4 @@ public sealed class Comment
     }
 
     public VoteDirection? VoteBy(string voter) => Votes.FirstOrDefault(vote => vote.Voter == voter)?.VoteDirection;
-
-    public void ClearDomainEvents() => _domainEvents.Clear();
 }
