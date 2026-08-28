@@ -24,6 +24,7 @@ Podkop.Server/               # ASP.NET Core API host / composition root
 Features/
   Findings/                  # Findings feature slice (Domain/Application/Infrastructure/Server/Tests projects)
 Shared/
+  Podkop.Shared.Domain/          # Shared kernel — IDomainEvent, AggregateRoot (ADR 0013)
   Podkop.Shared.Infrastructure/  # Cross-slice infrastructure helpers (sample-data vocabulary for seed generators)
 frontend/                    # Angular 22 app
   src/app/                   # Root component, routing, app config
@@ -65,7 +66,7 @@ The backend is evolving from inline endpoints in `Program.cs` toward a **feature
 ```
 Features/
   Findings/
-    Podkop.Findings.Domain/         # entities, value objects, domain events; no dependencies
+    Podkop.Findings.Domain/         # entities, value objects, domain events; depends only on the shared kernel
     Podkop.Findings.Application/    # commands/queries + handlers + validators for this feature
     Podkop.Findings.Infrastructure/ # EF Core (PostgreSQL), persistence, external services
     Podkop.Findings.Server/         # minimal API endpoints (MapGroup), thin HTTP layer
@@ -82,6 +83,7 @@ Conventions:
 
 - **CQRS with MediatR**: `IRequest`/`IRequestHandler` per use case; endpoints dispatch through MediatR rather than calling services directly
 - Dependency direction always points inward within a feature (Server → Application → Domain; Infrastructure implements Application/Domain abstractions); features don't reference each other's internals — cross-feature communication goes through contracts/events
+- **Shared kernel**: `Shared/Podkop.Shared.Domain` holds the DDD building blocks every slice would otherwise hand-roll — `IDomainEvent` and the `AggregateRoot` base that records domain events. Every slice's Domain project may reference it; it references nothing. It is the one sanctioned exception to slice isolation, and admission is narrow: a type belongs there only if it carries no feature vocabulary. Anything naming a finding, comment, user, report, tag, or vote stays in its slice, and `Podkop.<Feature>.Contracts` projects stay kernel-free so contract events remain primitive-only. ADR 0013 is the canonical statement of the rules
 - **Cross-feature events** go through an optional `Podkop.<Feature>.Contracts` project — ADR 0003 is the canonical statement of the pattern's rules
 - Keep the service-defaults pattern (`Extensions.cs`: OpenTelemetry, health checks, resilience) intact when restructuring
 
