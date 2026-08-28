@@ -16,6 +16,14 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The outbox specs (issue #94) must build this slice's context with the interceptor
+         attached, and must configure it through the same UseFindingCommentsPostgres every other
+         caller uses — a spec spelling the provider facts itself would prove nothing about the
+         context the running system builds. Test access rather than a wider public surface. -->
+    <InternalsVisibleTo Include="Podkop.FindingComments.Tests" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

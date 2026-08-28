@@ -1,9 +1,24 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The transactional outbox (ADR 0014) is EF Core machinery: an interceptor, a row entity,
+         and the model configuration every converted slice applies to its own schema. Relational
+         alone — the shared project stays provider-agnostic, and each slice picks Npgsql itself. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The interceptor drains any slice's aggregates through the shared kernel's AggregateRoot
+         and IDomainEvent (ADR 0013) — the whole reason one interceptor can serve every slice.
+         No MediatR here on purpose (ADR 0014): translators hand back plain objects, so the
+         shared project never depends on a particular message bus. -->
+    <ProjectReference Include="..\Podkop.Shared.Domain\Podkop.Shared.Domain.csproj" />
+  </ItemGroup>
 
 </Project>
