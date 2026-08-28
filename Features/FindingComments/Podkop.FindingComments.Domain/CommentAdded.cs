@@ -1,3 +1,5 @@
+using Podkop.Shared.Domain;
+
 namespace Podkop.FindingComments.Domain;
 
 /// <summary>

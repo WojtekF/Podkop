@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Shared\Podkop.Shared.Domain\Podkop.Shared.Domain.csproj" />
+  </ItemGroup>
+
 </Project>

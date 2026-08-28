@@ -8,21 +8,23 @@ namespace Podkop.Shared.Domain;
 /// </summary>
 public abstract class AggregateRoot
 {
+    private readonly List<IDomainEvent> _domainEvents = [];
+
     /// <summary>
     ///     The events raised on this aggregate and not yet cleared, oldest first. Read-only to
     ///     callers: only the aggregate itself adds, via <see cref="Raise" />.
     /// </summary>
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => throw new NotImplementedException();
+    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents.AsReadOnly();
 
     /// <summary>
     ///     Records that something happened to this aggregate. Visible only to the aggregate — an
     ///     aggregate's events are its own to raise.
     /// </summary>
-    protected void Raise(IDomainEvent domainEvent) => throw new NotImplementedException();
+    protected void Raise(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
 
     /// <summary>
     ///     Drops the recorded events, leaving the aggregate ready to record what happens next.
     ///     Called by the unit of work once the events have been published.
     /// </summary>
-    public void ClearDomainEvents() => throw new NotImplementedException();
+    public void ClearDomainEvents() => _domainEvents.Clear();
 }

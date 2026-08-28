@@ -1,8 +1,9 @@
+using Podkop.Shared.Domain;
+
 namespace Podkop.Findings.Domain;
 
-public sealed class Finding
+public sealed class Finding : AggregateRoot
 {
-    private readonly List<IDomainEvent> _domainEvents = [];
     private readonly List<FindingVoteEntry> _votes = [];
 
     public Finding(Guid id,
@@ -52,8 +53,6 @@ public sealed class Finding
     public bool IsPromoted => PromotedAt is not null;
     public int NetScore => DigCount - BuryCount;
 
-    public IReadOnlyCollection<IDomainEvent> DomainEvents => _domainEvents;
-
     /// <summary>
     ///     One-way promotion to the Main Page (ADR 0001): stamps <see cref="PromotedAt" /> and raises
     ///     <see cref="FindingPromoted" />. Idempotent — promoting an already-promoted finding changes
@@ -63,7 +62,7 @@ public sealed class Finding
     {
         if (IsPromoted) return;
         PromotedAt = promotedAt;
-        _domainEvents.Add(new FindingPromoted(Id, promotedAt));
+        Raise(new FindingPromoted(Id, promotedAt));
     }
 
     /// <summary>
