@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Podkop.FindingComments.Domain;
+using Podkop.Shared.Infrastructure.Outbox;
 
 namespace Podkop.FindingComments.Infrastructure;
 
@@ -24,9 +25,19 @@ public sealed class FindingCommentsDbContext(DbContextOptions<FindingCommentsDbC
 {
     public DbSet<Comment> Comments => Set<Comment>();
 
+    /// <summary>
+    ///     The slice's own outbox (ADR 0014): the announcements it has made, living in this
+    ///     slice's schema like everything else it owns, so one commit covers a discussion
+    ///     change and the announcement it causes.
+    /// </summary>
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(FindingCommentsDbContextOptions.Schema);
+
+        modelBuilder.AddOutboxMessages();
+
         modelBuilder.Entity<Comment>(comment =>
         {
             comment.ToTable("comments");

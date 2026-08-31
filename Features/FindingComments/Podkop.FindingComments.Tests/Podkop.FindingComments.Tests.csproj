@@ -22,6 +22,8 @@
          requirement for this suite. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.11" />
+    <!-- The outbox specs (issue #94) pin the clock the interceptor stamps rows with. -->
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.8.0" />
   </ItemGroup>
 
   <ItemGroup>

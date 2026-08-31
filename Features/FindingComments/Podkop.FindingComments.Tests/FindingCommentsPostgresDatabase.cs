@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Infrastructure;
+using Podkop.Shared.Infrastructure.Outbox;
 using Podkop.Shared.Testing;
 
 namespace Podkop.FindingComments.Tests;
@@ -33,6 +34,23 @@ public sealed class FindingCommentsPostgresDatabase : PostgresTestDatabase
 
     public FindingCommentsDbContext CreateDbContext() =>
         new FindingCommentsDbContextFactory().CreateDbContext([ConnectionString]);
+
+    /// <summary>
+    ///     The same context with the outbox interceptor attached (issue #94, ADR 0014). It is
+    ///     configured through the slice's own provider facts, so what the outbox specs exercise
+    ///     is the context the running system builds plus the one seam under specification —
+    ///     never a context spelled differently for the convenience of a test.
+    /// </summary>
+    public FindingCommentsDbContext CreateDbContextWithOutbox(
+        IContractEventTranslator translator,
+        TimeProvider timeProvider)
+    {
+        var options = new DbContextOptionsBuilder<FindingCommentsDbContext>();
+        options
+            .UseFindingCommentsPostgres(ConnectionString)
+            .AddInterceptors(new OutboxSaveChangesInterceptor(translator, timeProvider));
+        return new FindingCommentsDbContext(options.Options);
+    }
 }
 
 [CollectionDefinition(Name)]
