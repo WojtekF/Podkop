@@ -9,6 +9,8 @@ namespace Podkop.Shared.Infrastructure.Outbox;
 ///     makes their state durable (ADR 0014). This is the whole point of the pattern and the one
 ///     thing the loss window in the old publish-after-save arrangement could not offer: the rows
 ///     and the state change either both land or neither does, because they are one transaction.
+///     Both save paths — synchronous and asynchronous — drain identically: a save is a save, and
+///     one that slipped past the outbox would silently reopen the loss window.
 ///     <para>
 ///         What it must do, on a save that is about to happen: find the aggregates this context
 ///         is saving that have recorded something, ask the slice's
@@ -32,10 +34,24 @@ public sealed class OutboxSaveChangesInterceptor(
     IContractEventTranslator translator,
     TimeProvider timeProvider) : SaveChangesInterceptor
 {
-    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
+    public override InterceptionResult<int> SavingChanges(
+        DbContextEventData eventData,
+        InterceptionResult<int> result)
+    {
+        DrainIntoOutbox(eventData);
+        return base.SavingChanges(eventData, result);
+    }
+
+    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
+    {
+        DrainIntoOutbox(eventData);
+        return base.SavingChangesAsync(eventData, result, cancellationToken);
+    }
+
+    private void DrainIntoOutbox(DbContextEventData eventData)
     {
         var entries = eventData.Context?.ChangeTracker.Entries<AggregateRoot>().ToList();
         var outboxMessages = new List<OutboxMessage>();
@@ -58,7 +74,5 @@ public sealed class OutboxSaveChangesInterceptor(
             }
 
         eventData.Context?.AddRange(outboxMessages);
-
-        return await base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 }

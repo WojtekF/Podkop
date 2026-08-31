@@ -223,4 +223,22 @@ public class OutboxWriteTests(FindingCommentsPostgresDatabase database) : IAsync
 
         Assert.Single(await AnnouncedAsync());
     }
+
+    [Fact]
+    public async Task A_synchronous_save_announces_exactly_as_an_asynchronous_one()
+    {
+        // The guarantee belongs to the transaction, not to the calling convention: a slice that
+        // commits synchronously must announce identically, or every sync save would silently
+        // reopen the loss window the outbox exists to close.
+        await InOneUseCase((repository, context) =>
+        {
+            context.Comments.Add(PostedComment(CommentId));
+            context.SaveChanges();
+            return Task.CompletedTask;
+        });
+
+        var row = Assert.Single(await AnnouncedAsync());
+        Assert.Contains(typeof(CommentPosted).FullName!, row.Type);
+        Assert.Null(row.ProcessedAt);
+    }
 }

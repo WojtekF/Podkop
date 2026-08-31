@@ -25,7 +25,7 @@ Features/
   Findings/                  # Findings feature slice (Domain/Application/Infrastructure/Server/Tests projects)
 Shared/
   Podkop.Shared.Domain/          # Shared kernel — IDomainEvent, AggregateRoot (ADR 0013)
-  Podkop.Shared.Infrastructure/  # Cross-slice infrastructure helpers (sample-data vocabulary for seed generators)
+  Podkop.Shared.Infrastructure/  # Cross-slice infrastructure — transactional outbox machinery (ADR 0014) + sample-data vocabulary for seed generators
 frontend/                    # Angular 22 app
   src/app/                   # Root component, routing, app config
   src/sink/                  # Feature: main post feed (component, service, post-card/)
