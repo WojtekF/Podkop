@@ -1,3 +1,5 @@
+using Podkop.FindingComments.Contracts;
+using Podkop.FindingComments.Domain;
 using Podkop.Shared.Domain;
 using Podkop.Shared.Infrastructure.Outbox;
 
@@ -19,5 +21,10 @@ namespace Podkop.FindingComments.Infrastructure;
 /// </summary>
 public sealed class FindingCommentsContractEventTranslator : IContractEventTranslator
 {
-    public object? Translate(IDomainEvent domainEvent) => throw new NotImplementedException();
+    public object? Translate(IDomainEvent domainEvent) =>
+        domainEvent switch
+        {
+            CommentAdded added => new CommentPosted(added.CommentId, added.FindingId),
+            _ => null
+        };
 }

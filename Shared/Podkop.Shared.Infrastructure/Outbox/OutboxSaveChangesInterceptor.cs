@@ -1,4 +1,6 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Podkop.Shared.Domain;
 
 namespace Podkop.Shared.Infrastructure.Outbox;
 
@@ -30,9 +32,33 @@ public sealed class OutboxSaveChangesInterceptor(
     IContractEventTranslator translator,
     TimeProvider timeProvider) : SaveChangesInterceptor
 {
-    public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+    public override async ValueTask<InterceptionResult<int>> SavingChangesAsync(
         DbContextEventData eventData,
         InterceptionResult<int> result,
-        CancellationToken cancellationToken = default) =>
-        throw new NotImplementedException();
+        CancellationToken cancellationToken = default)
+    {
+        var entries = eventData.Context?.ChangeTracker.Entries<AggregateRoot>().ToList();
+        var outboxMessages = new List<OutboxMessage>();
+
+        if (entries != null)
+            foreach (var entry in entries)
+            {
+                foreach (var @event in entry.Entity.DomainEvents)
+                {
+                    var translated = translator.Translate(@event);
+                    if (translated != null)
+                        outboxMessages.Add(new OutboxMessage(
+                            Guid.CreateVersion7(),
+                            translated.GetType().FullName!,
+                            JsonSerializer.Serialize(translated),
+                            timeProvider.GetUtcNow()));
+                }
+
+                entry.Entity.ClearDomainEvents();
+            }
+
+        eventData.Context?.AddRange(outboxMessages);
+
+        return await base.SavingChangesAsync(eventData, result, cancellationToken);
+    }
 }

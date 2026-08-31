@@ -35,7 +35,9 @@ public sealed class FindingCommentsDbContext(DbContextOptions<FindingCommentsDbC
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(FindingCommentsDbContextOptions.Schema);
+
         modelBuilder.AddOutboxMessages();
+
         modelBuilder.Entity<Comment>(comment =>
         {
             comment.ToTable("comments");

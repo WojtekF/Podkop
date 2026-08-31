@@ -191,4 +191,36 @@ public class OutboxWriteTests(FindingCommentsPostgresDatabase database) : IAsync
 
         Assert.Single(await AnnouncedAsync());
     }
+
+    [Fact]
+    public async Task A_failed_save_still_drains_the_aggregate_and_a_retried_save_announces_the_post_once()
+    {
+        // The drain belongs to the save, not to its success: attempting the save turned the
+        // announcement into this context's own pending work, so the aggregate has nothing left
+        // to say — and retrying the same work, once the obstruction is gone, must land the
+        // comment together with its one announcement, not announce the post a second time.
+        await GivenComments(RehydratedComment(CommentId));
+
+        var posted = PostedComment(CommentId);
+
+        await InOneUseCase(async (repository, context) =>
+        {
+            await repository.AddAsync(posted, CancellationToken.None);
+            await Assert.ThrowsAnyAsync<DbUpdateException>(() => context.SaveChangesAsync());
+
+            Assert.Empty(posted.DomainEvents);
+
+            // The obstruction clears — the comment squatting on the id is deleted elsewhere —
+            // and the same unit of work is retried.
+            await using (var other = database.CreateDbContext())
+            {
+                other.Comments.Remove(await other.Comments.SingleAsync(c => c.Id == CommentId));
+                await other.SaveChangesAsync();
+            }
+
+            await context.SaveChangesAsync();
+        });
+
+        Assert.Single(await AnnouncedAsync());
+    }
 }
