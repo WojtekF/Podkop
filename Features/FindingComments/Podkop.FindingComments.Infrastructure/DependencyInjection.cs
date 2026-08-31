@@ -51,23 +51,33 @@ public static class DependencyInjection
         builder.Services.AddDbContext<FindingCommentsDbContext>(options =>
             options.UseFindingCommentsPostgres(builder.Configuration.GetConnectionString("podkopdb")));
 
-        // ADR 0014, and still deliberately not wired — no longer because the interceptor would
-        // throw (it is implemented, and green under OutboxWriteTests, which attach it to a
-        // context of their own), but because nothing reads the outbox yet. The interceptor
-        // drains DomainEvents as part of the save, and EfUnitOfWork's publish-after-save reads
-        // them after it: attach the interceptor now and CommentPosted goes silent — rows pile
-        // up that no processor drains, and nothing is published in-process, severing Findings'
-        // comment count. The wiring therefore lands on the processor branch, in the same change
-        // that adds the reader (issue #94's staged cutover), along with what it needs in every
-        // host that calls this method: registering the interceptor itself, and a TimeProvider
-        // where the host lacks one (the API host registers TimeProvider.System; the migration
-        // worker registers neither):
+        // ADR 0014, and still deliberately not wired — every piece of the read side now exists
+        // (the processor, the registry, the host's publisher adapter and background service, the
+        // Findings inbox), but the cutover is one flip performed by hand once the read-side specs
+        // are green, because the pieces are unsafe separately: attach the interceptor before the
+        // processor delivers and CommentPosted goes silent; point the processor at a consumer
+        // before the inbox guards it and redelivery double-counts. The flip, in one change:
         //
-        //     builder.Services.AddScoped<OutboxSaveChangesInterceptor>();
-        //     builder.Services.AddDbContext<FindingCommentsDbContext>((serviceProvider, options) =>
-        //         options
-        //             .UseFindingCommentsPostgres(...)
-        //             .AddInterceptors(serviceProvider.GetRequiredService<OutboxSaveChangesInterceptor>()));
+        //  1. Attach the interceptor in every host that calls this method (the migration worker
+        //     needs a TimeProvider registered alongside it; the API host already has one):
+        //
+        //         builder.Services.AddScoped<OutboxSaveChangesInterceptor>();
+        //         builder.Services.AddDbContext<FindingCommentsDbContext>((serviceProvider, options) =>
+        //             options
+        //                 .UseFindingCommentsPostgres(...)
+        //                 .AddInterceptors(serviceProvider.GetRequiredService<OutboxSaveChangesInterceptor>()));
+        //
+        //  2. In the API host, register the delivery chain and start the heartbeat:
+        //     OutboxProcessorOptions, a ContractEventTypeRegistry holding every contract event
+        //     the slices announce (today: CommentPosted), IContractEventPublisher →
+        //     MediatRBackedContractEventPublisher and OutboxProcessor as scoped, and
+        //     AddHostedService<OutboxProcessingService>().
+        //
+        //  3. Reduce EfUnitOfWork to the save alone — the publish-after-save loop and its
+        //     IPublisher dependency die here, and with them the loss window.
+        //
+        //  4. Delete CommentPostedPublicationTests, which specify the dying path;
+        //     OutboxWriteTests and OutboxDeliveryTests now carry the announcement's story.
         //
         // Until then this slice writes no outbox rows and EfUnitOfWork's publish-after-save
         // remains the only delivery path.

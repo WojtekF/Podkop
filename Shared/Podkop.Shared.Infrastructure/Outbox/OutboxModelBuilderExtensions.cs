@@ -22,6 +22,8 @@ public static class OutboxModelBuilderExtensions
             message.Property(m => m.Payload);
             message.Property(m => m.OccurredAt);
             message.Property(m => m.ProcessedAt);
+            message.Property(m => m.Attempts);
+            message.Property(m => m.Error);
         });
 
         return modelBuilder;

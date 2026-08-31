@@ -30,6 +30,29 @@ public class FindingCommentsContractEventTranslatorTests
     }
 
     [Fact]
+    public void An_announcement_carries_a_fresh_identity_of_its_own()
+    {
+        // Delivery is at-least-once (issue #94): consumers recognize a redelivered announcement
+        // by its EventId, so an announcement without one — Guid.Empty is not one — can never be
+        // deduplicated and would be counted once per delivery.
+        var posted = Assert.IsType<CommentPosted>(_translator.Translate(new CommentAdded(CommentId, FindingId)));
+
+        Assert.NotEqual(Guid.Empty, posted.EventId);
+    }
+
+    [Fact]
+    public void Two_announcements_are_two_identities_even_of_the_same_fact()
+    {
+        // The identity belongs to the announcement, not to the fact it announces: deduplication
+        // exists to swallow the same announcement delivered twice, never to swallow a genuine
+        // second announcement — so it must not be derivable from the fact's own ids.
+        var first = Assert.IsType<CommentPosted>(_translator.Translate(new CommentAdded(CommentId, FindingId)));
+        var second = Assert.IsType<CommentPosted>(_translator.Translate(new CommentAdded(CommentId, FindingId)));
+
+        Assert.NotEqual(first.EventId, second.EventId);
+    }
+
+    [Fact]
     public void An_event_the_slice_keeps_to_itself_is_announced_as_nothing()
     {
         // Nothing rather than an empty announcement: the outbox writes a row per answer it gets,

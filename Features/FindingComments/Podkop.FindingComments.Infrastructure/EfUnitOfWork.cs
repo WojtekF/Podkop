@@ -21,8 +21,13 @@ public sealed class EfUnitOfWork(FindingCommentsDbContext context, IPublisher pu
 
         foreach (var comment in comments)
         {
+            // The legacy delivery path stamps its own identity so the running app stays coherent
+            // until the outbox owns delivery (issue #94); this whole publish loop dies at the
+            // cutover, when committing becomes nothing but the save.
             foreach (var added in comment.DomainEvents.OfType<CommentAdded>())
-                await publisher.Publish(new CommentPosted(added.CommentId, added.FindingId), cancellationToken);
+                await publisher.Publish(
+                    new CommentPosted(Guid.CreateVersion7(), added.CommentId, added.FindingId),
+                    cancellationToken);
             comment.ClearDomainEvents();
         }
     }
