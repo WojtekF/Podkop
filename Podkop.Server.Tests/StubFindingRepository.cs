@@ -27,4 +27,9 @@ internal sealed class StubFindingRepository(IEnumerable<Finding> findings) : IFi
 
     public Task<Finding?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         Task.FromResult(_findings.FirstOrDefault(finding => finding.Id == id));
+
+    public Task<IReadOnlyList<Finding>> GetByIdsAsync(
+        IReadOnlyList<Guid> ids, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Finding>>(
+            _findings.Where(finding => ids.Contains(finding.Id)).ToList());
 }

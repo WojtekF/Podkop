@@ -11,6 +11,10 @@ export const routes: Routes = [
     loadComponent: () => import('../finding-detail/finding-detail').then((m) => m.FindingDetail),
   },
   {
+    path: 'tag/:name',
+    loadComponent: () => import('../tags/tag-page/tag-page').then((m) => m.TagPage),
+  },
+  {
     path: 'moderation',
     canActivate: [moderatorGuard],
     loadComponent: () => import('../moderation/case-queue').then((m) => m.CaseQueue),

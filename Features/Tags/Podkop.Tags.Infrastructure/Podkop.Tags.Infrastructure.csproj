@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Podkop.Tags.Application\Podkop.Tags.Application.csproj" />
+    <ProjectReference Include="..\Podkop.Tags.Contracts\Podkop.Tags.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Shared\Podkop.Shared.Infrastructure\Podkop.Shared.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ADR 0010: the slice owns its context, its migrations, and its design-time factory.
+         The Design package is a build-time dependency of the EF tooling, so it does not flow
+         on to the hosts that reference this project. -->
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.6" />
+    <PackageReference Include="EFCore.NamingConventions" Version="10.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.11" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.11" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The persistence specs must configure the slice's context through the same
+         UseTagsPostgres every other caller uses — a spec spelling the provider facts itself
+         would prove nothing about the context the running system builds. Test access rather
+         than a wider public surface. -->
+    <InternalsVisibleTo Include="Podkop.Tags.Tests" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
