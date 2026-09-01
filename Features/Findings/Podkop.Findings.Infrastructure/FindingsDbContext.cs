@@ -29,11 +29,20 @@ public sealed class FindingsDbContext(DbContextOptions<FindingsDbContext> option
     /// </summary>
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
 
+    /// <summary>
+    ///     The slice's own outbox (ADR 0014): the announcements it has made about its findings —
+    ///     their tag sets, and their removal (issue #77) — living in this slice's schema like
+    ///     everything else it owns, so one commit covers a change to a finding and the
+    ///     announcement it causes.
+    /// </summary>
+    public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(FindingsDbContextOptions.Schema);
 
         modelBuilder.AddInboxMessages();
+        modelBuilder.AddOutboxMessages();
         modelBuilder.Entity<Finding>(finding =>
         {
             finding.HasKey(e => e.Id);

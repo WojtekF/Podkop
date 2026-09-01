@@ -343,5 +343,6 @@ public class MainPageFeedTests(FindingsPostgresDatabase database) : IAsyncLifeti
         List<string> Tags,
         int DigCount,
         int CommentCount,
-        DateTimeOffset PromotedAt);
+        DateTimeOffset CreatedAt,
+        DateTimeOffset? PromotedAt);
 }

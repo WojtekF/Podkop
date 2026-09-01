@@ -19,6 +19,9 @@ public static class FindingsEndpoints
     private const int DefaultLimit = 25;
     private const int MaxLimit = 100;
 
+    /// <summary>The most findings one batch-by-ids call may hydrate — one full page's worth.</summary>
+    private const int MaxBatchSize = MaxLimit;
+
     public static IEndpointRouteBuilder MapFindings(this IEndpointRouteBuilder routes)
     {
         var group = routes.MapGroup("/api/findings");
@@ -52,6 +55,22 @@ public static class FindingsEndpoints
                 return Results.Ok(result);
             })
             .WithName("GetFindingsFeed");
+
+        // Declared before the /{id:guid} route only for reading order — the guid constraint means
+        // "batch" could never have matched it anyway.
+        group.MapGet("/batch", async (ISender sender, string? ids, CancellationToken cancellationToken) =>
+            {
+                var requested = ParseIds(ids);
+                if (requested is null)
+                {
+                    return Results.Problem(statusCode: StatusCodes.Status400BadRequest,
+                        detail: $"ids must be 1 to {MaxBatchSize} comma-separated finding ids.");
+                }
+
+                var findings = await sender.Send(new GetFindingsByIds(requested), cancellationToken);
+                return Results.Ok(findings);
+            })
+            .WithName("GetFindingsByIds");
 
         group.MapGet("/{id:guid}", async (Guid id, ISender sender, CancellationToken cancellationToken) =>
             {
@@ -88,6 +107,26 @@ public static class FindingsEndpoints
             .WithName("WithdrawFindingVote");
 
         return routes;
+    }
+
+    /// <summary>
+    ///     The ids a batch request names, or <c>null</c> when it names none, names something that
+    ///     is not an id, or names more than one page's worth (issue #77). The cap matches the
+    ///     largest page a caller can ask any feed for, because hydrating one page is what this
+    ///     serves.
+    /// </summary>
+    private static IReadOnlyList<Guid>? ParseIds(string? ids)
+    {
+        if (string.IsNullOrWhiteSpace(ids)) return null;
+
+        var parsed = new List<Guid>();
+        foreach (var candidate in ids.Split(',', StringSplitOptions.TrimEntries))
+        {
+            if (!Guid.TryParse(candidate, out var id)) return null;
+            parsed.Add(id);
+        }
+
+        return parsed.Count is 0 or > MaxBatchSize ? null : parsed;
     }
 
     private static FindingVoteSide? ParseSide(string? type) => type switch

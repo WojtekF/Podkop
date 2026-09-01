@@ -8,6 +8,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\Shared\Podkop.Shared.Domain\Podkop.Shared.Domain.csproj" />
+    <!-- ADR 0009: content slices fold their tags through the Tags slice's value contract at
+         write time, and reference nothing else of that slice. -->
+    <ProjectReference Include="..\..\Tags\Podkop.Tags.Contracts\Podkop.Tags.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

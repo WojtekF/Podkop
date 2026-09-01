@@ -22,6 +22,9 @@ import { FindingDetail } from './finding-detail';
 @Component({ template: 'main page' })
 class MainPageStub {}
 
+@Component({ template: 'tag page' })
+class TagPageStub {}
+
 describe('FindingDetail', () => {
   let harness: RouterTestingHarness;
   let httpMock: HttpTestingController;
@@ -69,6 +72,7 @@ describe('FindingDetail', () => {
           [
             { path: '', component: MainPageStub },
             { path: 'finding/:id', component: FindingDetail },
+            { path: 'tag/:name', component: TagPageStub },
           ],
           withComponentInputBinding(),
         ),
@@ -148,6 +152,28 @@ describe('FindingDetail', () => {
     expect(element().querySelector('.promoted-at')?.textContent).toContain('2026');
 
     expect(element().querySelector('.detail-state.loading')).toBeNull();
+  });
+
+  it('clicking a tag opens that tag page (issue #77)', async () => {
+    await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
+    flushAll();
+    harness.detectChanges();
+
+    element().querySelector<HTMLElement>('.tag')?.click();
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe('/tag/angular');
+  });
+
+  it('a tag chip links to the tag page by its bare name, hash and all', async () => {
+    // The "#" is presentation; the route carries the canonical name the URL is built from.
+    await harness.navigateByUrl(`/finding/${id}`, FindingDetail);
+    flushAll();
+    harness.detectChanges();
+
+    const chip = element().querySelector<HTMLAnchorElement>('.tag');
+    expect(chip?.textContent).toContain('#angular');
+    expect(chip?.getAttribute('href')).toBe('/tag/angular');
   });
 
   it('renders the discussion: threads in server order, replies nested one level under their parent', async () => {

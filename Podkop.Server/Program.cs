@@ -11,6 +11,9 @@ using Podkop.Server;
 using Podkop.Documents.Infrastructure;
 using Podkop.Documents.Server;
 using Podkop.Shared.Infrastructure.Outbox;
+using Podkop.Tags.Contracts;
+using Podkop.Tags.Infrastructure;
+using Podkop.Tags.Server;
 using Podkop.Users.Infrastructure;
 using Podkop.Users.Server;
 using Scalar.AspNetCore;
@@ -41,6 +44,12 @@ builder.Services.AddModeration(() => SampleSeed.Reports, () => SampleSeed.Verdic
 // against the orchestrated podkopdb connection.
 builder.Services.AddUsers();
 builder.AddUsersPersistence();
+// The tag namespace answers from PostgreSQL too (issue #77): the slice takes no seed — the
+// sample membership index reaches the database only through the migration worker — and the API
+// host registers the slice's context so it can answer tag pages and index the announcements the
+// outbox delivers to it.
+builder.Services.AddTags();
+builder.AddTagsPersistence();
 // Scoped to match the EF-backed IFindingRepository they read through (issue #67).
 builder.Services.AddScoped<IFindingLookup, FindingsBackedFindingLookup>();
 builder.Services.AddScoped<IReportTargetLookup, ContentBackedReportTargetLookup>();
@@ -62,7 +71,13 @@ builder.Services.AddSingleton<Podkop.Users.Application.ICurrentUser, StubCurrent
 // Outbox/inbox processing.
 builder.Services.AddSingleton<OutboxProcessorOptions>();
 builder.Services.AddSingleton<ContractEventTypeRegistry>(provider =>
-    new ContractEventTypeRegistry([typeof(CommentPosted)]));
+    new ContractEventTypeRegistry([
+        typeof(CommentPosted),
+        // The tag namespace's announce pair (issue #77): Findings writes them, Tags consumes
+        // them, and only this composition root sees both Contracts projects.
+        typeof(TaggedContentAnnounced),
+        typeof(TaggedContentRemoved),
+    ]));
 builder.Services.AddScoped<IContractEventPublisher, MediatRBackedContractEventPublisher>();
 builder.Services.AddHostedService<OutboxProcessingService>();
 
@@ -86,6 +101,7 @@ app.MapFindingComments();
 app.MapDocuments();
 app.MapModeration();
 app.MapUsers();
+app.MapTags();
 
 app.MapDefaultEndpoints();
 

@@ -1,6 +1,8 @@
 using Podkop.FindingComments.Infrastructure;
 using Podkop.Findings.Infrastructure;
 using Podkop.MigrationService;
+using Podkop.Tags.Contracts;
+using Podkop.Tags.Infrastructure;
 using Podkop.Users.Infrastructure;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -39,6 +41,25 @@ builder.Services.AddSingleton(new SliceMigrationParticipant(
     (serviceProvider, cancellationToken) => FindingCommentsSeed.SeedAsync(
         serviceProvider.GetRequiredService<FindingCommentsDbContext>(),
         SampleFindingComments.GenerateFor([.. SampleFindings.Generate().Select(finding => finding.Id)]),
+        cancellationToken)));
+
+// Tags convert last (issue #77), registered after Findings on purpose: the worker walks
+// participants in registration order, and every seeded membership row names a finding the
+// findings seed must already have put there. The index is normally built only by consuming
+// announce events — nothing announces a seeded finding — so the seed stands in for the
+// announcements that never happened, projecting the same deterministic findings the findings
+// seed persisted into the primitive announcement rows the Tags generator folds and files.
+builder.AddTagsPersistence();
+builder.Services.AddSingleton(new SliceMigrationParticipant(
+    "tags",
+    serviceProvider => serviceProvider.GetRequiredService<TagsDbContext>(),
+    (serviceProvider, cancellationToken) => TagsSeed.SeedAsync(
+        serviceProvider.GetRequiredService<TagsDbContext>(),
+        SampleTagMemberships.GenerateFor(
+        [
+            .. SampleFindings.Generate().Select(finding => new SampleTaggedContent(
+                TaggedContentTypes.Finding, finding.Id, finding.Tags, finding.CreatedAt))
+        ]),
         cancellationToken)));
 
 builder.Services.AddHostedService<MigrationWorker>();
