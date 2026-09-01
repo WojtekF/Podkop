@@ -58,7 +58,7 @@ public sealed class OutboxMessage
     ///     Records that the processor delivered this row at the given moment, after which no pass
     ///     may ever pick it up again.
     /// </summary>
-    public void MarkProcessed(DateTimeOffset processedAt) => throw new NotImplementedException();
+    public void MarkProcessed(DateTimeOffset processedAt) => ProcessedAt = processedAt;
 
     /// <summary>
     ///     Records one failed delivery of this row: the failure joins the row's tally and its
@@ -66,5 +66,10 @@ public sealed class OutboxMessage
     ///     a delivery, so it must not retire the row the way <see cref="MarkProcessed" /> does.
     ///     Specified by <c>OutboxDeliveryTests</c> in the FindingComments slice.
     /// </summary>
-    public void RecordFailure(string error) => throw new NotImplementedException();
+    public void RecordFailure(string error)
+    {
+        Error = error;
+        Attempts++;
+        ProcessedAt = null;
+    }
 }

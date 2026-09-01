@@ -25,8 +25,43 @@ namespace Podkop.Server;
 public sealed class OutboxProcessingService(
     IServiceScopeFactory scopeFactory,
     OutboxProcessorOptions options,
-    ILogger<OutboxProcessingService> logger) : BackgroundService
+    ILogger<OutboxProcessingService> logger,
+    TimeProvider timeProvider) : BackgroundService
 {
-    protected override Task ExecuteAsync(CancellationToken stoppingToken) =>
-        throw new NotImplementedException();
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        logger.LogInformation($"{nameof(OutboxProcessingService)} service started at: {timeProvider.GetUtcNow()}");
+
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            logger.LogInformation(
+                $"{nameof(OutboxProcessingService)} service processing at: {timeProvider.GetUtcNow()}");
+            try
+            {
+                await using var scope = scopeFactory.CreateAsyncScope();
+                logger.LogDebug("Scope created");
+
+                var registry = scope.ServiceProvider.GetRequiredService<ContractEventTypeRegistry>();
+                var publisher = scope.ServiceProvider.GetRequiredService<IContractEventPublisher>();
+                var timeProviderForProcessor = scope.ServiceProvider.GetRequiredService<TimeProvider>();
+                logger.LogDebug("Processor dependencies resolved");
+
+                var processor = new OutboxProcessor(registry, publisher, timeProviderForProcessor, options);
+
+                var dbContext = scope.ServiceProvider.GetService<FindingCommentsDbContext>();
+                await processor.ProcessPendingAsync(dbContext!, stoppingToken);
+
+                logger.LogInformation(
+                    $"{nameof(OutboxProcessingService)} processing finished at: {timeProvider.GetUtcNow()}");
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, $"{nameof(OutboxProcessingService)} error occured");
+            }
+
+            await Task.Delay(options.PollInterval, timeProvider, stoppingToken);
+        }
+
+        logger.LogInformation($"{nameof(OutboxProcessingService)} service finished at: {timeProvider.GetUtcNow()}");
+    }
 }

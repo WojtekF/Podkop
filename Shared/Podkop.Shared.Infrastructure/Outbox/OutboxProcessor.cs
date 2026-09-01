@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 
 namespace Podkop.Shared.Infrastructure.Outbox;
@@ -40,6 +41,29 @@ public sealed class OutboxProcessor(
     ///     One pass over the given slice's outbox: publish what is waiting, mark what was
     ///     delivered, record what failed, and leave the rest for the next pass.
     /// </summary>
-    public Task ProcessPendingAsync(DbContext sliceContext, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task ProcessPendingAsync(DbContext sliceContext, CancellationToken cancellationToken)
+    {
+        var pending = await sliceContext
+            .Set<OutboxMessage>()
+            .Where(m => m.ProcessedAt == null && m.Attempts < options.MaxAttempts)
+            .OrderBy(m => m.Id)
+            .Take(options.BatchSize)
+            .ToListAsync(cancellationToken);
+
+        foreach (var outboxMessage in pending)
+            try
+            {
+                var destinationType = registry.Resolve(outboxMessage.Type);
+                var payload = JsonSerializer.Deserialize(outboxMessage.Payload, destinationType);
+
+                await publisher.PublishAsync(payload!, cancellationToken);
+                outboxMessage.MarkProcessed(timeProvider.GetUtcNow());
+            }
+            catch (Exception ex)
+            {
+                outboxMessage.RecordFailure(ex.ToString());
+            }
+
+        await sliceContext.SaveChangesAsync(cancellationToken);
+    }
 }
