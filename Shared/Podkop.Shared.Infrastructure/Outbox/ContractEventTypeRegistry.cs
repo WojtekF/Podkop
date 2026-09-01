@@ -23,5 +23,5 @@ public sealed class ContractEventTypeRegistry
     ///     error, not a <c>null</c> — the row's failure handling is the caller's business, but
     ///     silently resolving nothing must not look like resolving something.
     /// </summary>
-    public Type Resolve(string typeName) => throw new NotImplementedException();
+    public Type Resolve(string typeName) => _contractEventTypes.First(t => t.FullName == typeName);
 }
