@@ -18,8 +18,9 @@ namespace Podkop.Server;
 ///         the service down with it: delivery's whole promise is that it outlives crashes, so
 ///         the loop logs and keeps beating until the host itself stops it.
 ///     </para>
-///     Not yet registered with the host: the cutover — wiring this service, the interceptor,
-///     and the death of the legacy publish path — is one deliberate flip, described in
+///     The API host registers this as its one hosted delivery loop, alongside the registry,
+///     publisher, and options it resolves; the worker runs no loop — it only writes. The write
+///     side it drains is described in
 ///     <see cref="DependencyInjection.AddFindingCommentsPersistence" />.
 /// </summary>
 public sealed class OutboxProcessingService(
@@ -30,12 +31,11 @@ public sealed class OutboxProcessingService(
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation($"{nameof(OutboxProcessingService)} service started at: {timeProvider.GetUtcNow()}");
+        logger.LogInformation("Outbox delivery service started");
 
         while (!stoppingToken.IsCancellationRequested)
         {
-            logger.LogInformation(
-                $"{nameof(OutboxProcessingService)} service processing at: {timeProvider.GetUtcNow()}");
+            logger.LogInformation("Outbox delivery pass starting");
             try
             {
                 await using var scope = scopeFactory.CreateAsyncScope();
@@ -48,20 +48,19 @@ public sealed class OutboxProcessingService(
 
                 var processor = new OutboxProcessor(registry, publisher, timeProviderForProcessor, options);
 
-                var dbContext = scope.ServiceProvider.GetService<FindingCommentsDbContext>();
-                await processor.ProcessPendingAsync(dbContext!, stoppingToken);
+                var dbContext = scope.ServiceProvider.GetRequiredService<FindingCommentsDbContext>();
+                await processor.ProcessPendingAsync(dbContext, stoppingToken);
 
-                logger.LogInformation(
-                    $"{nameof(OutboxProcessingService)} processing finished at: {timeProvider.GetUtcNow()}");
+                logger.LogInformation("Outbox delivery pass finished");
             }
             catch (Exception e)
             {
-                logger.LogError(e, $"{nameof(OutboxProcessingService)} error occured");
+                logger.LogError(e, "Outbox delivery pass failed; retrying in {PollInterval}", options.PollInterval);
             }
 
             await Task.Delay(options.PollInterval, timeProvider, stoppingToken);
         }
 
-        logger.LogInformation($"{nameof(OutboxProcessingService)} service finished at: {timeProvider.GetUtcNow()}");
+        logger.LogInformation("Outbox delivery service stopped");
     }
 }

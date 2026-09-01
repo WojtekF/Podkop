@@ -1,5 +1,3 @@
-using Podkop.Documents.Infrastructure;
-using Podkop.Documents.Server;
 using Podkop.FindingComments.Application;
 using Podkop.FindingComments.Contracts;
 using Podkop.FindingComments.Infrastructure;
@@ -10,18 +8,17 @@ using Podkop.Moderation.Application;
 using Podkop.Moderation.Infrastructure;
 using Podkop.Moderation.Server;
 using Podkop.Server;
+using Podkop.Documents.Infrastructure;
+using Podkop.Documents.Server;
 using Podkop.Shared.Infrastructure.Outbox;
 using Podkop.Users.Infrastructure;
 using Podkop.Users.Server;
 using Scalar.AspNetCore;
-using ICurrentUser = Podkop.FindingComments.Application.ICurrentUser;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
-
-builder.Services.AddSingleton(TimeProvider.System);
 
 // Add services to the container.
 builder.Services.AddProblemDetails();
@@ -53,10 +50,11 @@ builder.Services.AddScoped<IModeratorLookup, UsersBackedModeratorLookup>();
 builder.Services.AddScoped<IFindingCommentsLookup, CommentsBackedFindingCommentsLookup>();
 // Scoped to match the ISender it dispatches the Documents slice's current-statute query through.
 builder.Services.AddScoped<IStatuteLookup, DocumentsBackedStatuteLookup>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // Every slice owns its own current-user port (ADR 0003); the same stub backs them all
 // (issues #13, #15, #32). Qualified because the port name repeats across the slices.
-builder.Services.AddSingleton<ICurrentUser, StubCurrentUser>();
+builder.Services.AddSingleton<Podkop.FindingComments.Application.ICurrentUser, StubCurrentUser>();
 builder.Services.AddSingleton<Podkop.Findings.Application.ICurrentUser, StubCurrentUser>();
 builder.Services.AddSingleton<Podkop.Moderation.Application.ICurrentUser, StubCurrentUser>();
 builder.Services.AddSingleton<Podkop.Users.Application.ICurrentUser, StubCurrentUser>();
