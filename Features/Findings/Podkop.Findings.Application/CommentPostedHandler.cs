@@ -26,7 +26,11 @@ public sealed class CommentPostedHandler(
     public async Task Handle(CommentPosted notification, CancellationToken cancellationToken)
     {
         var finding = await findingsRepository.GetByIdAsync(notification.FindingId, cancellationToken);
+
+        if (await inbox.AlreadyConsumedAsync(notification.EventId, cancellationToken)) return;
         finding?.IncrementCommentCount();
+
+        await inbox.RecordConsumedAsync(notification.EventId, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);
     }
 }
