@@ -2,8 +2,10 @@ using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Podkop.FindingComments.Domain;
 using Podkop.Findings.Domain;
+using Podkop.Shared.Infrastructure.Outbox;
 using Podkop.Shared.Testing;
 
 namespace Podkop.FindingComments.Tests;
@@ -15,12 +17,14 @@ namespace Podkop.FindingComments.Tests;
 ///     depth invariant is enforced, and every error answer carries a stable
 ///     <c>podkop:problem:&lt;slug&gt;</c> ProblemDetails type so same-status outcomes stay
 ///     distinguishable. Posting also increments the finding's comment count via the CommentPosted
-///     contract event — asserted across the slice boundary by re-fetching the finding. The specs
-///     put the finding and any pre-existing discussion into the real database and override no
-///     service, so every request runs in its own scope over its own contexts: a comment or a
-///     count that only ever changed in memory — never committed — satisfies the posting response
-///     but is gone by the next request, which is exactly what the read-back specs here refuse to
-///     let pass.
+///     contract event — asserted across the slice boundary by re-fetching the finding, and since
+///     the outbox owns delivery (issue #94, ADR 0014) that count is eventually consistent: the
+///     count specs poll until the processor's next pass has counted the comment, within a window
+///     bounded by the fast poll cadence the factory configures. The specs put the finding and any
+///     pre-existing discussion into the real database and stub no service, so every request runs
+///     in its own scope over its own contexts: a comment or a count that only ever changed in
+///     memory — never committed — satisfies the posting response but is gone by the next request,
+///     which is exactly what the read-back specs here refuse to let pass.
 /// </summary>
 [Collection(FindingCommentsDatabaseCollection.Name)]
 public class PostCommentApiTests(FindingCommentsPostgresDatabase database) : IAsyncLifetime
@@ -63,8 +67,10 @@ public class PostCommentApiTests(FindingCommentsPostgresDatabase database) : IAs
 
     /// <summary>
     ///     Seeds the world the specs post into — the finding in the Findings slice's schema, the
-    ///     pre-existing discussion in this slice's — and answers a factory with no overrides:
-    ///     whatever the production wiring resolves is what handles the requests.
+    ///     pre-existing discussion in this slice's — and answers a factory that stubs no service:
+    ///     whatever the production wiring resolves is what handles the requests. The one thing it
+    ///     tunes is the outbox delivery cadence, so the count specs' eventual-consistency window
+    ///     is milliseconds here instead of the production poll interval.
     /// </summary>
     private async Task<WebApplicationFactory<Program>> GivenWorld(
         IReadOnlyList<Comment> comments, int seededCommentCount = 0)
@@ -82,7 +88,32 @@ public class PostCommentApiTests(FindingCommentsPostgresDatabase database) : IAs
             await context.SaveChangesAsync();
         }
 
-        return new WebApplicationFactory<Program>().WithPodkopDatabase(database.ConnectionString);
+        return new WebApplicationFactory<Program>()
+            .WithPodkopDatabase(database.ConnectionString)
+            .WithWebHostBuilder(builder => builder.ConfigureServices(services =>
+                services.AddSingleton(new OutboxProcessorOptions
+                {
+                    PollInterval = TimeSpan.FromMilliseconds(50)
+                })));
+    }
+
+    /// <summary>
+    ///     The count is eventually consistent across the slice boundary (ADR 0014): the GET may
+    ///     land before the processor's next pass, so the spec polls until the count arrives —
+    ///     and on timeout asserts once more, so the failure names the count that never came.
+    /// </summary>
+    private static async Task AssertCommentCountEventuallyBecomes(HttpClient client, int expected)
+    {
+        var deadline = DateTimeOffset.UtcNow + TimeSpan.FromSeconds(5);
+        FindingResponse? finding = null;
+        while (DateTimeOffset.UtcNow < deadline)
+        {
+            finding = await client.GetFromJsonAsync<FindingResponse>($"/api/findings/{FindingId}");
+            if (finding!.CommentCount == expected) return;
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        }
+
+        Assert.Equal(expected, finding?.CommentCount);
     }
 
     private static Task<HttpResponseMessage> Post(HttpClient client, string? text, Guid? parentCommentId = null)
@@ -166,17 +197,17 @@ public class PostCommentApiTests(FindingCommentsPostgresDatabase database) : IAs
     [Fact]
     public async Task Posting_a_top_level_comment_increments_the_finding_comment_count()
     {
-        // The count crosses the slice boundary via the CommentPosted contract event and the
-        // persistence boundary via the Findings slice's own commit — the seam this test sees is
-        // just POST then GET, two requests in their own scopes.
+        // The count crosses the slice boundary as the CommentPosted contract event through the
+        // outbox (issue #94): the posting commit records the announcement, the processor's next
+        // pass delivers it, and the Findings slice's own commit counts it — so the count arrives
+        // within the delivery window rather than inside the POST.
         using var factory = await GivenWorld([], seededCommentCount: 7);
         using var client = factory.CreateClient();
 
         var response = await Post(client, "A fresh take.");
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var finding = await client.GetFromJsonAsync<FindingResponse>($"/api/findings/{FindingId}");
-        Assert.Equal(8, finding!.CommentCount);
+        await AssertCommentCountEventuallyBecomes(client, 8);
     }
 
     [Fact]
@@ -189,8 +220,7 @@ public class PostCommentApiTests(FindingCommentsPostgresDatabase database) : IAs
         var response = await Post(client, "An answer.", TopLevelId);
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
 
-        var finding = await client.GetFromJsonAsync<FindingResponse>($"/api/findings/{FindingId}");
-        Assert.Equal(2, finding!.CommentCount);
+        await AssertCommentCountEventuallyBecomes(client, 2);
     }
 
     [Fact]
