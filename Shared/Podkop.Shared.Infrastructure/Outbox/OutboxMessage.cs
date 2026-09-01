@@ -39,4 +39,37 @@ public sealed class OutboxMessage
     ///     write side only ever leaves it null; marking rows processed belongs to the processor.
     /// </summary>
     public DateTimeOffset? ProcessedAt { get; private set; }
+
+    /// <summary>
+    ///     How many times the processor has tried to publish this row and failed (issue #94).
+    ///     Zero for a row that has never been tried or that published on its first try; the
+    ///     processor stops trying a row once its failures reach the configured cap, which is what
+    ///     parks a poison row without ever pretending it was delivered.
+    /// </summary>
+    public int Attempts { get; private set; }
+
+    /// <summary>
+    ///     What went wrong the last time publishing this row failed, or <c>null</c> if it never
+    ///     has — the trace an operator reads before deciding a parked row's fate.
+    /// </summary>
+    public string? Error { get; private set; }
+
+    /// <summary>
+    ///     Records that the processor delivered this row at the given moment, after which no pass
+    ///     may ever pick it up again.
+    /// </summary>
+    public void MarkProcessed(DateTimeOffset processedAt) => ProcessedAt = processedAt;
+
+    /// <summary>
+    ///     Records one failed delivery of this row: the failure joins the row's tally and its
+    ///     description goes on record, while the row itself remains waiting — a failure is never
+    ///     a delivery, so it must not retire the row the way <see cref="MarkProcessed" /> does.
+    ///     Specified by <c>OutboxDeliveryTests</c> in the FindingComments slice.
+    /// </summary>
+    public void RecordFailure(string error)
+    {
+        Error = error;
+        Attempts++;
+        ProcessedAt = null;
+    }
 }

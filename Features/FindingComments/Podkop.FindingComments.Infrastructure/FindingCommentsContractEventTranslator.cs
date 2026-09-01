@@ -24,7 +24,9 @@ public sealed class FindingCommentsContractEventTranslator : IContractEventTrans
     public object? Translate(IDomainEvent domainEvent) =>
         domainEvent switch
         {
-            CommentAdded added => new CommentPosted(added.CommentId, added.FindingId),
+            // Guid.Empty is not an identity — every announcement must leave here carrying a
+            // fresh one of its own (issue #94); the translator specs define what that means.
+            CommentAdded added => new CommentPosted(Guid.CreateVersion7(), added.CommentId, added.FindingId),
             _ => null
         };
 }

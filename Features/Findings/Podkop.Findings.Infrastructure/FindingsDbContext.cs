@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Podkop.Findings.Domain;
+using Podkop.Shared.Infrastructure.Outbox;
 
 namespace Podkop.Findings.Infrastructure;
 
@@ -21,9 +22,18 @@ public sealed class FindingsDbContext(DbContextOptions<FindingsDbContext> option
 {
     public DbSet<Finding> Findings => Set<Finding>();
 
+    /// <summary>
+    ///     The slice's own inbox (issue #94, ADR 0014): the announcements it has already acted
+    ///     on, living in this slice's schema like everything else it owns, so one commit covers
+    ///     an announcement's effect and the memory of having caused it.
+    /// </summary>
+    public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(FindingsDbContextOptions.Schema);
+
+        modelBuilder.AddInboxMessages();
         modelBuilder.Entity<Finding>(finding =>
         {
             finding.HasKey(e => e.Id);

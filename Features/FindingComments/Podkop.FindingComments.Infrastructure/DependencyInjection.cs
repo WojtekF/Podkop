@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Podkop.FindingComments.Application;
 using Podkop.Shared.Infrastructure.Outbox;
@@ -24,14 +25,9 @@ public static class DependencyInjection
         services.AddScoped<ICommentRepository, EfCommentRepository>();
         // Scoped alongside it (issue #96's pattern): both resolve the same request's context, so
         // the unit of work's one commit makes durable exactly what this request's use case did —
-        // and its contract events publish through the request's own IPublisher, the scope lesson
-        // issue #96 settled for this slice's in-memory predecessor.
+        // announcements included, which the outbox interceptor turns into rows of that same
+        // commit (ADR 0014); the commit itself publishes nothing.
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
-        // What this slice announces to the rest of the system, in the form the outbox stores
-        // (ADR 0014). Stateless, so a singleton. Only OutboxWriteTests resolve it today: the
-        // outbox interceptor is implemented, but stays off the production context until the
-        // processor branch — see AddFindingCommentsPersistence for why.
-        services.AddSingleton<IContractEventTranslator, FindingCommentsContractEventTranslator>();
         return services;
     }
 
@@ -45,32 +41,31 @@ public static class DependencyInjection
     ///     expects of a database client: a health check, connection retries, logging and
     ///     telemetry. Both hosts call this — the worker to migrate and seed, the API host to
     ///     answer the discussions and the comment votes from the same database.
+    ///     <para>
+    ///         The context carries the outbox interceptor (issue #94, ADR 0014): every save this
+    ///         slice makes drains what its aggregates raised into <c>outbox_messages</c> rows of
+    ///         that same commit, translated to the slice's public contract events. Registration
+    ///         is self-contained — the interceptor's translator and clock come along — so any
+    ///         host that persists through this slice announces correctly, the worker included
+    ///         (its seeds construct aggregates raw and raise nothing, so it announces nothing).
+    ///         Reading the outbox back is the API host's business: its
+    ///         <c>OutboxProcessingService</c> owns delivery.
+    ///     </para>
     /// </summary>
     public static IHostApplicationBuilder AddFindingCommentsPersistence(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddDbContext<FindingCommentsDbContext>(options =>
-            options.UseFindingCommentsPostgres(builder.Configuration.GetConnectionString("podkopdb")));
-
-        // ADR 0014, and still deliberately not wired — no longer because the interceptor would
-        // throw (it is implemented, and green under OutboxWriteTests, which attach it to a
-        // context of their own), but because nothing reads the outbox yet. The interceptor
-        // drains DomainEvents as part of the save, and EfUnitOfWork's publish-after-save reads
-        // them after it: attach the interceptor now and CommentPosted goes silent — rows pile
-        // up that no processor drains, and nothing is published in-process, severing Findings'
-        // comment count. The wiring therefore lands on the processor branch, in the same change
-        // that adds the reader (issue #94's staged cutover), along with what it needs in every
-        // host that calls this method: registering the interceptor itself, and a TimeProvider
-        // where the host lacks one (the API host registers TimeProvider.System; the migration
-        // worker registers neither):
-        //
-        //     builder.Services.AddScoped<OutboxSaveChangesInterceptor>();
-        //     builder.Services.AddDbContext<FindingCommentsDbContext>((serviceProvider, options) =>
-        //         options
-        //             .UseFindingCommentsPostgres(...)
-        //             .AddInterceptors(serviceProvider.GetRequiredService<OutboxSaveChangesInterceptor>()));
-        //
-        // Until then this slice writes no outbox rows and EfUnitOfWork's publish-after-save
-        // remains the only delivery path.
+        // What this slice announces, and the clock its announcements are stamped with — the
+        // interceptor's own dependencies, registered with it so the attachment below can never
+        // outrun them in any host. Try-add on purpose: a host that already chose its own
+        // TimeProvider keeps it, this is only the fallback for hosts (like the worker) that
+        // never cared about time before the interceptor made them.
+        builder.Services.AddSingleton<IContractEventTranslator, FindingCommentsContractEventTranslator>();
+        builder.Services.TryAddSingleton(TimeProvider.System);
+        builder.Services.AddScoped<OutboxSaveChangesInterceptor>();
+        builder.Services.AddDbContext<FindingCommentsDbContext>((serviceProvider, options) =>
+            options
+                .UseFindingCommentsPostgres(builder.Configuration.GetConnectionString("podkopdb"))
+                .AddInterceptors(serviceProvider.GetRequiredService<OutboxSaveChangesInterceptor>()));
 
         builder.EnrichNpgsqlDbContext<FindingCommentsDbContext>();
 

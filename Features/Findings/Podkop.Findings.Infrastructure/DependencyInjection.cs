@@ -22,6 +22,9 @@ public static class DependencyInjection
         // Scoped alongside it (issue #96): both resolve the same request's context, so the unit
         // of work's one commit makes durable exactly what this request's loads mutated.
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
+        // Scoped for the same reason (issue #94): the inbox tracks consumed announcements
+        // through the request's context, so recording one commits with the effect it guards.
+        services.AddScoped<IInbox, EfInbox>();
         return services;
     }
 

@@ -1,5 +1,4 @@
 using System.Globalization;
-using MediatR;
 using Podkop.FindingComments.Domain;
 using Podkop.FindingComments.Infrastructure;
 
@@ -52,7 +51,7 @@ public class EfUnitOfWorkTests(FindingCommentsPostgresDatabase database) : IAsyn
     {
         await using var context = database.CreateDbContext();
         await useCase(new EfCommentRepository(context));
-        if (committed) await new EfUnitOfWork(context, new NoOpPublisher()).CommitAsync(CancellationToken.None);
+        if (committed) await new EfUnitOfWork(context).CommitAsync(CancellationToken.None);
     }
 
     [Fact]
@@ -150,17 +149,5 @@ public class EfUnitOfWorkTests(FindingCommentsPostgresDatabase database) : IAsyn
         Assert.NotNull(reloaded);
         Assert.Equal(0, reloaded.UpvoteCount);
         Assert.Null(reloaded.VoteBy(StubUser));
-    }
-
-    /// <summary>The commit publishes through the request's publisher; these round trips need none.</summary>
-    private sealed class NoOpPublisher : IPublisher
-    {
-        public Task Publish(object notification, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
-
-        public Task Publish<TNotification>(
-            TNotification notification, CancellationToken cancellationToken = default)
-            where TNotification : INotification =>
-            Task.CompletedTask;
     }
 }

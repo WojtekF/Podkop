@@ -1,4 +1,5 @@
 using Podkop.FindingComments.Application;
+using Podkop.FindingComments.Contracts;
 using Podkop.FindingComments.Infrastructure;
 using Podkop.FindingComments.Server;
 using Podkop.Findings.Infrastructure;
@@ -9,6 +10,7 @@ using Podkop.Moderation.Server;
 using Podkop.Server;
 using Podkop.Documents.Infrastructure;
 using Podkop.Documents.Server;
+using Podkop.Shared.Infrastructure.Outbox;
 using Podkop.Users.Infrastructure;
 using Podkop.Users.Server;
 using Scalar.AspNetCore;
@@ -56,6 +58,13 @@ builder.Services.AddSingleton<Podkop.FindingComments.Application.ICurrentUser, S
 builder.Services.AddSingleton<Podkop.Findings.Application.ICurrentUser, StubCurrentUser>();
 builder.Services.AddSingleton<Podkop.Moderation.Application.ICurrentUser, StubCurrentUser>();
 builder.Services.AddSingleton<Podkop.Users.Application.ICurrentUser, StubCurrentUser>();
+
+// Outbox/inbox processing.
+builder.Services.AddSingleton<OutboxProcessorOptions>();
+builder.Services.AddSingleton<ContractEventTypeRegistry>(provider =>
+    new ContractEventTypeRegistry([typeof(CommentPosted)]));
+builder.Services.AddScoped<IContractEventPublisher, MediatRBackedContractEventPublisher>();
+builder.Services.AddHostedService<OutboxProcessingService>();
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
