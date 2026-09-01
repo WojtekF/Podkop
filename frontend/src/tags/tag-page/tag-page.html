@@ -1,0 +1,40 @@
+<!--
+  Tag Page — one tag's combined stream. The template renders exactly ONE of four states, chosen
+  from the tag page store's status. The class hooks and copy below are what the colocated
+  tag-page.spec.ts asserts; how you structure and render them is yours to choose.
+
+  ALWAYS, above whichever state is showing — except NOT FOUND, which replaces the whole page:
+    - the header, marked `tag-header`, whose text is the tag's bare name with no `#`
+      (e.g. `dotnet`) — matching Wykop, whose tag-page heading carries no hash.
+    - the type filter: three controls marked `type-filter`, each additionally marked
+      `filter-all`, `filter-findings`, and `filter-entries`, with the texts `All`, `Findings`,
+      and `Entries`. Whichever one the page is currently showing carries `selected` as well.
+      Choosing one goes through the component's selectFilter(). Entries is offered and works
+      exactly like the others — it simply lists nothing until the Microblog slice lands.
+
+  LOADING (status 'loading'):
+    A container carrying the classes `tag-state loading`, holding a centered loading spinner
+    (the spec pins the exact spinner element).
+
+  LOADED (status 'loaded'):
+    The stream, marked `tag-stream`, rendering the store's items in the order the store holds
+    them — never re-sorted here; the server decided the order. Each finding-typed item renders
+    the existing finding card component, given that item's card.
+    When the stream is empty, show instead a container marked `tag-state empty` whose text
+    includes exactly `Nothing here yet.`
+    Below the stream, the page turners: a control marked `previous-page` with the text
+    `Previous` and one marked `next-page` with the text `Next`, going through the component's
+    goToPreviousPage() and goToNextPage(). Previous is unavailable on page 1, and Next is
+    unavailable when the store says there is no next page.
+
+  NOT FOUND (status 'notFound' — no content carries this tag):
+    A container carrying the classes `tag-state not-found` whose text includes exactly
+    `Tag not found`, plus a link back to the Main Page, marked `back-link`, whose text includes
+    `Main Page` and which navigates to the Main Page route. No retry control here, and none of
+    the always-on header or filter: there is no tag to head or to filter.
+
+  ERROR (status 'error' — any other load failure):
+    A container carrying the classes `tag-state error` whose text includes exactly
+    `Couldn't load the tag page.`, plus a control marked `retry-button` that re-requests the
+    page (the component exposes retry() for this).
+-->

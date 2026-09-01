@@ -17,6 +17,7 @@ const navSummary: FindingSummaryDto = {
   tags: ['dotnet'],
   digCount: 123,
   commentCount: 7,
+  createdAt: '2026-07-08T06:00:00Z',
   promotedAt: '2026-07-08T09:30:00Z',
 };
 
@@ -30,6 +31,9 @@ class CardHost {
 
 @Component({ template: 'finding detail' })
 class DetailStub {}
+
+@Component({ template: 'tag page' })
+class TagPageStub {}
 
 describe('FindingCard', () => {
   let fixture: ComponentFixture<FindingCard>;
@@ -45,6 +49,7 @@ describe('FindingCard', () => {
     tags: ['dotnet', 'webdev'],
     digCount: 123,
     commentCount: 7,
+    createdAt: '2026-07-08T06:00:00Z',
     promotedAt: '2026-07-08T09:30:00Z',
   };
 
@@ -143,6 +148,7 @@ describe('FindingCard — navigation to the finding', () => {
         provideRouter([
           { path: '', component: CardHost },
           { path: 'finding/:id', component: DetailStub },
+          { path: 'tag/:name', component: TagPageStub },
         ]),
       ],
     });
@@ -180,6 +186,24 @@ describe('FindingCard — navigation to the finding', () => {
     await harness.fixture.whenStable();
 
     expect(router.url).toBe(`/finding/${navSummary.id}`);
+  });
+
+  it('clicking a tag opens that tag page (issue #77)', async () => {
+    const card = await renderCard();
+
+    card.querySelector<HTMLElement>('.tag')?.click();
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe('/tag/dotnet');
+  });
+
+  it('a tag chip links to the tag page by its bare name, hash and all', async () => {
+    // The "#" is presentation; the route carries the canonical name the URL is built from.
+    const card = await renderCard();
+
+    const chip = card.querySelector<HTMLAnchorElement>('.tag');
+    expect(chip?.textContent).toContain('#dotnet');
+    expect(chip?.getAttribute('href')).toBe('/tag/dotnet');
   });
 
   it('keeps the domain pointing at the external Source, not the finding page', async () => {

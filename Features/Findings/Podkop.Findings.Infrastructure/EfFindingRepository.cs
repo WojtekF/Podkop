@@ -32,4 +32,8 @@ public sealed class EfFindingRepository(FindingsDbContext context) : IFindingRep
 
     public Task<Finding?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         context.Findings.FirstOrDefaultAsync(finding => finding.Id == id, cancellationToken);
+
+    public Task<IReadOnlyList<Finding>> GetByIdsAsync(
+        IReadOnlyList<Guid> ids, CancellationToken cancellationToken) =>
+        throw new NotImplementedException();
 }

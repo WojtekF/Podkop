@@ -24,4 +24,13 @@ public interface IFindingRepository
     Task<IReadOnlyList<Finding>> GetPromotedPageAsync(int page, int limit, CancellationToken cancellationToken);
 
     Task<Finding?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
+
+    /// <summary>
+    ///     The findings named by <paramref name="ids" />, in one round trip rather than one per
+    ///     id (issue #77) — what tag-page hydration reads through. Promoted or not: this is a
+    ///     lookup, not a feed. An id naming no finding contributes nothing, so the answer may be
+    ///     shorter than the request and carries no ordering promise of its own; the caller
+    ///     already knows the order it wants.
+    /// </summary>
+    Task<IReadOnlyList<Finding>> GetByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken cancellationToken);
 }

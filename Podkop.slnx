@@ -29,6 +29,14 @@
     <Project Path="Features/Moderation/Podkop.Moderation.Server/Podkop.Moderation.Server.csproj" />
     <Project Path="Features/Moderation/Podkop.Moderation.Tests/Podkop.Moderation.Tests.csproj" />
   </Folder>
+  <Folder Name="/Features/Tags/">
+    <Project Path="Features/Tags/Podkop.Tags.Application/Podkop.Tags.Application.csproj" />
+    <Project Path="Features/Tags/Podkop.Tags.Contracts/Podkop.Tags.Contracts.csproj" />
+    <Project Path="Features/Tags/Podkop.Tags.Domain/Podkop.Tags.Domain.csproj" />
+    <Project Path="Features/Tags/Podkop.Tags.Infrastructure/Podkop.Tags.Infrastructure.csproj" />
+    <Project Path="Features/Tags/Podkop.Tags.Server/Podkop.Tags.Server.csproj" />
+    <Project Path="Features/Tags/Podkop.Tags.Tests/Podkop.Tags.Tests.csproj" />
+  </Folder>
   <Folder Name="/Features/Users/">
     <Project Path="Features/Users/Podkop.Users.Application/Podkop.Users.Application.csproj" />
     <Project Path="Features/Users/Podkop.Users.Domain/Podkop.Users.Domain.csproj" />
