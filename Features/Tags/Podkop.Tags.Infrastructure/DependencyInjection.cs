@@ -23,6 +23,7 @@ public static class DependencyInjection
         services.AddScoped<ITagMembershipRepository, EfTagMembershipRepository>();
         services.AddScoped<IUnitOfWork, EfUnitOfWork>();
         services.AddScoped<IInbox, EfInbox>();
+
         return services;
     }
 

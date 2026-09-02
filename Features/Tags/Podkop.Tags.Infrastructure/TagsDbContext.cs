@@ -37,5 +37,23 @@ public sealed class TagsDbContext(DbContextOptions<TagsDbContext> options) : DbC
 
     public DbSet<InboxMessage> InboxMessages => Set<InboxMessage>();
 
-    protected override void OnModelCreating(ModelBuilder modelBuilder) => throw new NotImplementedException();
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.HasDefaultSchema(TagsDbContextOptions.Schema);
+
+        modelBuilder.AddInboxMessages();
+
+        modelBuilder.Entity<TagMembership>(tagMembership =>
+        {
+            tagMembership.Property(tag => tag.ContentId);
+            tagMembership.Property(tag => tag.Tag);
+            tagMembership.Property(tag => tag.CreatedAt);
+            tagMembership.Property(tag => tag.ContentType).HasConversion<string>();
+
+            tagMembership.HasIndex(tag => new { tag.Tag, tag.CreatedAt });
+            tagMembership.HasKey(tag => new { tag.Tag, tag.ContentType, tag.ContentId });
+        });
+
+        base.OnModelCreating(modelBuilder);
+    }
 }

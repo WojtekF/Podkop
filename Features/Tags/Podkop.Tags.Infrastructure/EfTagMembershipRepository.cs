@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Podkop.Tags.Application;
 using Podkop.Tags.Domain;
 
@@ -18,23 +19,34 @@ namespace Podkop.Tags.Infrastructure;
 public sealed class EfTagMembershipRepository(TagsDbContext context) : ITagMembershipRepository
 {
     public Task<bool> AnyContentCarriesAsync(string tag, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        context.TagMemberships.AnyAsync(t => t.Tag == tag, cancellationToken);
 
-    public Task<IReadOnlyList<TagMembership>> GetPageAsync(
+    public async Task<IReadOnlyList<TagMembership>> GetPageAsync(
         string tag,
         TaggedContentType? contentType,
         int page,
         int limit,
         CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        await context.TagMemberships
+            .Where(t => t.Tag == tag)
+            .Where(t => !contentType.HasValue || t.ContentType == contentType.Value)
+            .OrderByDescending(t => t.CreatedAt)
+            .ThenByDescending(t => t.ContentId)
+            .Skip((page - 1) * limit)
+            .Take(limit + 1)
+            .ToListAsync(cancellationToken);
 
-    public Task<IReadOnlyList<TagMembership>> GetForContentAsync(
+    public async Task<IReadOnlyList<TagMembership>> GetForContentAsync(
         TaggedContentType contentType,
         Guid contentId,
         CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        await context.TagMemberships
+            .Where(t => t.ContentType == contentType)
+            .Where(t => t.ContentId == contentId)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync(cancellationToken);
 
-    public void Add(TagMembership membership) => throw new NotImplementedException();
+    public void Add(TagMembership membership) => context.TagMemberships.Add(membership);
 
-    public void RemoveRange(IEnumerable<TagMembership> memberships) => throw new NotImplementedException();
+    public void RemoveRange(IEnumerable<TagMembership> memberships) => context.TagMemberships.RemoveRange(memberships);
 }

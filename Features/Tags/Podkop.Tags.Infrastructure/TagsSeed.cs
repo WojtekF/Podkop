@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Podkop.Tags.Domain;
 
 namespace Podkop.Tags.Infrastructure;
@@ -14,9 +15,13 @@ namespace Podkop.Tags.Infrastructure;
 /// </summary>
 public static class TagsSeed
 {
-    public static Task SeedAsync(
+    public static async Task SeedAsync(
         TagsDbContext context,
         IReadOnlyList<TagMembership> memberships,
-        CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+        CancellationToken cancellationToken)
+    {
+        if (await context.TagMemberships.AnyAsync(cancellationToken)) return;
+        context.TagMemberships.AddRange(memberships);
+        await context.SaveChangesAsync(cancellationToken);
+    }
 }
