@@ -1,5 +1,4 @@
 using MediatR;
-using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Application;
 
@@ -23,7 +22,13 @@ public sealed record GetFindingsByIds(IReadOnlyList<Guid> Ids) : IRequest<IReadO
 public sealed class GetFindingsByIdsHandler(IFindingRepository findingsRepository)
     : IRequestHandler<GetFindingsByIds, IReadOnlyList<FindingSummary>>
 {
-    public Task<IReadOnlyList<FindingSummary>> Handle(
-        GetFindingsByIds request, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task<IReadOnlyList<FindingSummary>> Handle(
+        GetFindingsByIds request, CancellationToken cancellationToken)
+    {
+        var findings = await findingsRepository.GetByIdsAsync(request.Ids, cancellationToken);
+
+        return findings
+            .Select(f => f.MapFindingToFindingSummary())
+            .ToList();
+    }
 }

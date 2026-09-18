@@ -1,5 +1,4 @@
 using MediatR;
-using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Application;
 
@@ -47,25 +46,8 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
         // ADR 0004); the extra finding beyond the limit is the repository's next-page signal.
         var findings = await findingsRepository.GetPromotedPageAsync(
             request.Page, request.Limit, cancellationToken);
-        var findingSummary = findings.Select(MapFindingToFindingSummary).ToList();
+        var findingSummary = findings.Select(FindingExtensions.MapFindingToFindingSummary).ToList();
         return new FeedPage(findingSummary.Take(request.Limit).ToList(),
             findingSummary.Count > request.Limit);
-    }
-
-    private static FindingSummary MapFindingToFindingSummary(Finding finding)
-    {
-        return new FindingSummary(
-            finding.Id,
-            finding.Title,
-            finding.Description,
-            finding.Source.AbsoluteUri,
-            finding.Source.Host,
-            finding.Thumbnail?.AbsoluteUri,
-            finding.Author,
-            finding.Tags,
-            finding.DigCount,
-            finding.CommentCount,
-            finding.CreatedAt,
-            finding.PromotedAt);
     }
 }

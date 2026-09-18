@@ -45,14 +45,14 @@ public sealed record Tag
     {
         if (string.IsNullOrWhiteSpace(input)) return null;
 
-        input = input
+        var sanitizedInput = input
             .Trim()
             .Normalize(NormalizationForm.FormD)
             .Replace("ł", "l")
             .Replace("Ł", "l")
             .ToLowerInvariant();
 
-        var folded = new string(input.Where(c => c is >= 'a' and <= 'z' or >= '0' and <= '9').ToArray());
+        var folded = new string(sanitizedInput.Where(c => c is >= 'a' and <= 'z' or >= '0' and <= '9').ToArray());
 
         return string.IsNullOrWhiteSpace(folded) || folded.Length > MaxLength
             ? null

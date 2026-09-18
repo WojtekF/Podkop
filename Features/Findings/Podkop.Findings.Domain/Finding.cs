@@ -111,7 +111,19 @@ public sealed class Finding : AggregateRoot
     ///         an old finding never jumps it to the top of a tag page.
     ///     </para>
     /// </summary>
-    public void SetTags(IReadOnlyList<string> tags) => throw new NotImplementedException();
+    public void SetTags(IReadOnlyList<string> tags)
+    {
+        var normalizedTags = tags.Select(Tag.TryFold)
+            .Where(t => t != null)
+            .Distinct()
+            .Cast<Tag>()
+            .Select(t => t.Name)
+            .ToList();
+        if (normalizedTags.ToHashSet().SetEquals(Tags)) return;
+
+        Tags = normalizedTags;
+        Raise(new FindingTagsChanged(Id, normalizedTags, CreatedAt));
+    }
 
     /// <summary>
     ///     Announces that this finding is gone (issue #77), raising <see cref="FindingRemoved" />
@@ -120,7 +132,7 @@ public sealed class Finding : AggregateRoot
     ///     still counts — is nobody's decision yet and no state here records it; this is the seam
     ///     the tag namespace needs, and the ticket that gives Findings a removal will grow it.
     /// </summary>
-    public void Remove() => throw new NotImplementedException();
+    public void Remove() => Raise(new FindingRemoved(Id));
 
     // method exposed for seeding purpose only.
     public void UpdateCommentCount(int commentCount) => CommentCount = commentCount;

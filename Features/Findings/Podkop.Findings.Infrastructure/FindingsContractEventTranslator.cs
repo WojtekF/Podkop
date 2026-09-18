@@ -25,5 +25,20 @@ namespace Podkop.Findings.Infrastructure;
 /// </summary>
 public sealed class FindingsContractEventTranslator : IContractEventTranslator
 {
-    public object? Translate(IDomainEvent domainEvent) => throw new NotImplementedException();
+    public object? Translate(IDomainEvent domainEvent) =>
+        domainEvent switch
+        {
+            FindingRemoved removed => new TaggedContentRemoved(
+                Guid.CreateVersion7(),
+                TaggedContentTypes.Finding,
+                removed.FindingId),
+
+            FindingTagsChanged tagsChanged => new TaggedContentAnnounced(
+                Guid.CreateVersion7(),
+                TaggedContentTypes.Finding,
+                tagsChanged.FindingId,
+                tagsChanged.Tags,
+                tagsChanged.CreatedAt),
+            _ => null
+        };
 }
