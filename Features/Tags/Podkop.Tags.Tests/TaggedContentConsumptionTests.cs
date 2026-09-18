@@ -166,7 +166,7 @@ public class TaggedContentConsumptionTests(TagsPostgresDatabase database) : IAsy
         var index = await IndexAsync();
         Assert.Equal(2, index.Count);
         Assert.Equal(
-            [TaggedContentType.Entry, TaggedContentType.Finding],
+            [TaggedContentType.Finding, TaggedContentType.Entry],
             index.Select(row => row.ContentType).Order().ToArray());
     }
 

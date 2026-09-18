@@ -1,5 +1,6 @@
 using MediatR;
 using Podkop.Tags.Contracts;
+using Podkop.Tags.Domain;
 
 namespace Podkop.Tags.Application;
 
@@ -24,6 +25,37 @@ public sealed class TaggedContentAnnouncedHandler(
     IInbox inbox)
     : INotificationHandler<TaggedContentAnnounced>
 {
-    public Task Handle(TaggedContentAnnounced notification, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task Handle(TaggedContentAnnounced notification, CancellationToken cancellationToken)
+    {
+        if (await inbox.AlreadyConsumedAsync(notification.EventId, cancellationToken)) return;
+
+        var taggedContentType = TaggedContentTypeExtensions.FromApiString(notification.ContentType);
+        if (!taggedContentType.HasValue) return;
+
+        var normalizedIncomingTags = notification.Tags
+            .Select(Tag.TryFold)
+            .Where(tag => tag != null)
+            .Distinct()
+            .Cast<Tag>()
+            .ToList();
+
+        var alreadyExistingTags =
+            await memberships.GetForContentAsync(taggedContentType.Value, notification.ContentId, cancellationToken);
+
+        var removedTags = alreadyExistingTags
+            .Where(tag => normalizedIncomingTags.All(normalizedTag => normalizedTag.Name != tag.Tag))
+            .ToList();
+
+        var newTags = normalizedIncomingTags
+            .Where(tag => alreadyExistingTags.All(existingTag => existingTag.Tag != tag.Name))
+            .Select(tag =>
+                new TagMembership(tag.Name, taggedContentType.Value, notification.ContentId, notification.CreatedAt));
+
+        foreach (var tag in newTags) memberships.Add(tag);
+
+        memberships.RemoveRange(removedTags);
+
+        await inbox.RecordConsumedAsync(notification.EventId, cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
+    }
 }

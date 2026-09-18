@@ -48,6 +48,24 @@ public sealed record TaggedContentRef(string Type, Guid Id);
 public sealed class GetTagPageHandler(ITagMembershipRepository memberships)
     : IRequestHandler<GetTagPage, TagPage?>
 {
-    public Task<TagPage?> Handle(GetTagPage request, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task<TagPage?> Handle(GetTagPage request, CancellationToken cancellationToken)
+    {
+        var foldedTag = Tag.TryFold(request.Name);
+        if (foldedTag == null || !await memberships.AnyContentCarriesAsync(foldedTag.Name, cancellationToken))
+            return null;
+
+        var tagMemberships = await memberships
+            .GetPageAsync(
+                foldedTag.Name,
+                request.Filter.ToContentType(),
+                request.Page,
+                request.Limit,
+                cancellationToken);
+
+        return new TagPage(
+            tagMemberships.Take(request.Limit)
+                .Select(tag => new TaggedContentRef(tag.ContentType.ToApiString(), tag.ContentId)).ToList(),
+            tagMemberships.Count > request.Limit
+        );
+    }
 }

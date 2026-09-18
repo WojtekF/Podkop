@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Podkop.Tags.Contracts;
 
 /// <summary>
@@ -28,7 +30,10 @@ public sealed record Tag
 
     // Assigning constructor only, and private: every way of getting a Tag goes through the
     // folding below, so no caller can mint one that skipped it.
-    private Tag(string name) => Name = name;
+    private Tag(string name)
+    {
+        Name = name;
+    }
 
     /// <summary>The canonical name, without the leading <c>#</c> — the form URLs and rows carry.</summary>
     public string Name { get; }
@@ -36,7 +41,23 @@ public sealed record Tag
     /// <summary>
     ///     The tag the given input names, or <c>null</c> when the input names no tag at all.
     /// </summary>
-    public static Tag? TryFold(string? input) => throw new NotImplementedException();
+    public static Tag? TryFold(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+
+        input = input
+            .Trim()
+            .Normalize(NormalizationForm.FormD)
+            .Replace("ł", "l")
+            .Replace("Ł", "l")
+            .ToLowerInvariant();
+
+        var folded = new string(input.Where(c => c is >= 'a' and <= 'z' or >= '0' and <= '9').ToArray());
+
+        return string.IsNullOrWhiteSpace(folded) || folded.Length > MaxLength
+            ? null
+            : new Tag(folded);
+    }
 
     public override string ToString() => Name;
 }

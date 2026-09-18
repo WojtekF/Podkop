@@ -21,6 +21,16 @@ public sealed class TaggedContentRemovedHandler(
     IInbox inbox)
     : INotificationHandler<TaggedContentRemoved>
 {
-    public Task Handle(TaggedContentRemoved notification, CancellationToken cancellationToken) =>
-        throw new NotImplementedException();
+    public async Task Handle(TaggedContentRemoved notification, CancellationToken cancellationToken)
+    {
+        if (await inbox.AlreadyConsumedAsync(notification.EventId, cancellationToken)) return;
+
+        var tagMemberships = await memberships.GetForContentAsync(
+            TaggedContentTypeExtensions.FromApiString(notification.ContentType)!.Value, notification.ContentId,
+            cancellationToken);
+        memberships.RemoveRange(tagMemberships);
+
+        await inbox.RecordConsumedAsync(notification.EventId, cancellationToken);
+        await unitOfWork.CommitAsync(cancellationToken);
+    }
 }

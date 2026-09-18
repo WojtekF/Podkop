@@ -22,9 +22,17 @@ public static class SampleFindings
     /// </summary>
     private const string StubUser = "ada_lovelace";
 
+    /// <summary>
+    ///     The instant every sample timestamp is measured back from. Fixed rather than read off
+    ///     the clock: created-at is part of the seed pact too — the Tags index is generated from a
+    ///     separate call (issue #77) and must carry the very instant the finding itself was
+    ///     seeded with, which two readings of the clock can never agree on.
+    /// </summary>
+    private static readonly DateTimeOffset Anchor = new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
+
     public static IReadOnlyList<Finding> Generate(int count = 30)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = Anchor;
         var authorsWithoutStub = SampleData.Authors.Remove(StubUser);
 
         return Enumerable.Range(1, count).Select(index =>
