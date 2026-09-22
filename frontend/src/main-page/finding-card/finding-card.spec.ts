@@ -96,6 +96,15 @@ describe('FindingCard', () => {
     expect(meta?.textContent).toContain('#webdev');
   });
 
+  it('dates an upcoming finding by its createdAt when it has no promotedAt (issue #77)', async () => {
+    // A tag page carries every finding that took the tag, promoted or not; a card with no
+    // promotion time still has to say when the finding appeared, not leave a blank.
+    await createCard({ ...summary, createdAt: '2026-07-01T06:00:00Z', promotedAt: null });
+
+    const meta = element().querySelector('.meta');
+    expect(meta?.textContent).toContain('Jul 1, 2026');
+  });
+
   it('has a Dig button with the dig count — and no Bury control', async () => {
     await createCard(summary);
 

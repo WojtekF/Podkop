@@ -264,6 +264,19 @@ public class TaggedContentConsumptionTests(TagsPostgresDatabase database) : IAsy
     }
 
     [Fact]
+    public async Task A_removal_naming_a_content_type_the_namespace_does_not_carry_changes_nothing_and_does_not_fail()
+    {
+        // The mirror of the announcement case: a content type this namespace has no page for is a
+        // fact to be ignored, not a delivery to be failed forever (ADR 0014) — a throw here would
+        // poison every redelivery of the same event.
+        await Delivered(Announced("e0000000-0000-4000-8000-000000000001", ["dotnet"]));
+
+        await Delivered(Removed("e0000000-0000-4000-8000-000000000002", contentType: "photo"));
+
+        Assert.Equal(["dotnet"], await TagsOf(ContentId));
+    }
+
+    [Fact]
     public async Task A_first_removal_is_remembered_like_any_other_announcement()
     {
         var removal = Removed("e0000000-0000-4000-8000-000000000002");
