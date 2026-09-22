@@ -268,7 +268,8 @@ public class TagPageApiTests(TagsPostgresDatabase database) : IAsyncLifetime
     public async Task Any_spelling_of_the_name_lands_on_the_canonical_tags_page(string spelling)
     {
         // The route value folds through the Tag value type, so /tag/POLSKA is /tag/polska —
-        // one page, not a redirect and not a second index (research doc, section 3).
+        // one page and one index, reached by following the redirect below (research doc,
+        // section 3). A client that follows redirects, as browsers do, never sees the hop.
         await GivenMemberships(Membership("dotnet", 1, "2026-07-08T10:00:00Z"));
         using var factory = CreateFactory();
         using var client = factory.CreateClient();
@@ -276,6 +277,85 @@ public class TagPageApiTests(TagsPostgresDatabase database) : IAsyncLifetime
         var page = await client.GetFromJsonAsync<TagPageResponse>($"/api/tags/{spelling}");
 
         Assert.Equal([Id(1)], Ids(page!));
+    }
+
+    [Theory]
+    [InlineData("POLSKA")]
+    [InlineData("Polska")]
+    [InlineData("pólska")]
+    public async Task A_non_canonical_spelling_redirects_permanently_to_the_canonical_page(string spelling)
+    {
+        // Wykop's /tag/POLSKA ends up at /tag/polska — final URL, canonical link, and heading
+        // all lowercase (research doc, section 3). The API does the same, so the canonical URL
+        // is the one that gets cached, bookmarked, and shown.
+        await GivenMemberships(Membership("polska", 1, "2026-07-08T10:00:00Z"));
+        using var factory = CreateFactory();
+        using var client = CreateNonFollowingClient(factory);
+
+        var response = await client.GetAsync($"/api/tags/{spelling}");
+
+        Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+        Assert.Equal("/api/tags/polska", LocationOf(response));
+    }
+
+    [Fact]
+    public async Task The_redirect_carries_the_query_string_along_unchanged()
+    {
+        // The page, type filter, and limit are the reader's, not the spelling's: a deep link to
+        // page 2 of the findings under POLSKA lands on page 2 of the findings under polska.
+        await GivenMemberships(Membership("polska", 1, "2026-07-08T10:00:00Z"));
+        using var factory = CreateFactory();
+        using var client = CreateNonFollowingClient(factory);
+
+        var response = await client.GetAsync("/api/tags/POLSKA?type=findings&page=2&limit=5");
+
+        Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+        Assert.Equal("/api/tags/polska?type=findings&page=2&limit=5", LocationOf(response));
+    }
+
+    [Fact]
+    public async Task The_canonical_spelling_is_served_directly_rather_than_redirected()
+    {
+        // Otherwise the redirect would chase its own tail: the canonical URL must be the one
+        // place the chain stops.
+        await GivenMemberships(Membership("polska", 1, "2026-07-08T10:00:00Z"));
+        using var factory = CreateFactory();
+        using var client = CreateNonFollowingClient(factory);
+
+        var response = await client.GetAsync("/api/tags/polska");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_non_canonical_spelling_of_a_tag_no_content_carries_still_redirects()
+    {
+        // Folding is one question and existence another: the redirect answers the first, and
+        // the canonical URL answers the second with its 404. A client following along ends up
+        // at the same 404 the canonical spelling gets.
+        using var factory = CreateFactory();
+        using var client = CreateNonFollowingClient(factory);
+
+        var response = await client.GetAsync("/api/tags/QWERTYZXCVBNM");
+
+        Assert.Equal(HttpStatusCode.MovedPermanently, response.StatusCode);
+        Assert.Equal("/api/tags/qwertyzxcvbnm", LocationOf(response));
+    }
+
+    [Theory]
+    [InlineData("dotnet")]
+    [InlineData("DotNet")]
+    public async Task A_tag_page_carries_the_canonical_name_it_resolved_to(string spelling)
+    {
+        // The heading shows the canonical form, never the spelling the reader typed, and the
+        // page is where the frontend learns it — a followed redirect leaves no other trace.
+        await GivenMemberships(Membership("dotnet", 1, "2026-07-08T10:00:00Z"));
+        using var factory = CreateFactory();
+        using var client = factory.CreateClient();
+
+        var page = await client.GetFromJsonAsync<TagPageResponse>($"/api/tags/{spelling}");
+
+        Assert.Equal("dotnet", page!.Name);
     }
 
     [Fact]
@@ -363,7 +443,22 @@ public class TagPageApiTests(TagsPostgresDatabase database) : IAsyncLifetime
         .. Enumerable.Range(1, 5).Select(i => Membership("dotnet", i, $"2026-07-08T{i + 8:00}:00:00Z"))
     ];
 
-    private sealed record TagPageResponse(List<TagPageItem> Items, bool HasNextPage);
+    /// <summary>
+    ///     A client that stops at a redirect instead of following it, so the specs can see the
+    ///     hop a browser would take silently.
+    /// </summary>
+    private static HttpClient CreateNonFollowingClient(WebApplicationFactory<Program> factory) =>
+        factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+    /// <summary>The redirect target as path and query, whether the header spelled it relative or absolute.</summary>
+    private static string? LocationOf(HttpResponseMessage response)
+    {
+        var location = response.Headers.Location;
+        if (location is null) return null;
+        return location.IsAbsoluteUri ? location.PathAndQuery : location.OriginalString;
+    }
+
+    private sealed record TagPageResponse(string? Name, List<TagPageItem> Items, bool HasNextPage);
 
     private sealed record TagPageItem(string Type, Guid Id);
 }

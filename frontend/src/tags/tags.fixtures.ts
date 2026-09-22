@@ -15,7 +15,9 @@ export const ref = (index: number, type: TaggedContentType = 'finding'): TaggedC
 export const tagPage = (
   refs: TaggedContentRefDto[],
   hasNextPage = false,
+  name = 'dotnet',
 ): TagPageDto => ({
+  name,
   items: refs,
   hasNextPage,
 });

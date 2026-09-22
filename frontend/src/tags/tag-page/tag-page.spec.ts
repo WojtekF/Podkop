@@ -104,6 +104,44 @@ describe('TagPage', () => {
     expect(header?.textContent).not.toContain('#');
   });
 
+  it('heads the page with the canonical name the server resolved, not the URL spelling', async () => {
+    // Wykop's /tag/POLSKA is headed "polska" (research doc, section 3). The spelling still goes
+    // out as typed — folding is the server's job — and the answer says what it resolved to.
+    await harness.navigateByUrl('/tag/DotNet', TagPage);
+    expectTagRequest('DotNet', 1).flush(tagPage([], false, 'dotnet'));
+    harness.detectChanges();
+
+    const header = control('.tag-header');
+    expect(header?.textContent).toContain('dotnet');
+    expect(header?.textContent).not.toContain('DotNet');
+  });
+
+  it('rewrites the URL to the canonical spelling once the page resolves, keeping the query', async () => {
+    // Wykop's final URL for /tag/POLSKA is /tag/polska. The rewrite replaces the history entry
+    // rather than adding one — Back must not return the reader to the spelling that just
+    // bounced them — and it does not fetch the page a second time: the canonical answer is
+    // already in hand. jsdom keeps a real session history, so its length is the seam.
+    await harness.navigateByUrl('/tag/DotNet?page=2&type=findings', TagPage);
+    const historyDepth = history.length;
+    expectTagRequest('DotNet', 2).flush(tagPage([], false, 'dotnet'));
+    harness.detectChanges();
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe('/tag/dotnet?page=2&type=findings');
+    expect(history.length).toBe(historyDepth);
+    httpMock.expectNone((r) => r.url.startsWith('/api/tags/'));
+  });
+
+  it('leaves a canonical URL alone', async () => {
+    // No rewrite to make, so no navigation and no second fetch — the one request the landing
+    // made is the only one.
+    await loadedWith('/tag/dotnet?page=2', 'dotnet', 2);
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe('/tag/dotnet?page=2');
+    httpMock.expectNone((r) => r.url.startsWith('/api/tags/'));
+  });
+
   it('renders one finding card per hydrated item', async () => {
     await loadedWith('/tag/dotnet');
 

@@ -18,6 +18,8 @@ export interface TaggedContentRefDto {
 }
 
 export interface TagPageDto {
+  /** The canonical tag the server resolved the URL's spelling to — what the header shows. */
+  name: string;
   items: TaggedContentRefDto[];
   hasNextPage: boolean;
 }

@@ -115,6 +115,16 @@ describe('TagPageStore', () => {
     expect(store.hasNextPage()).toBe(true);
   });
 
+  it('carries the canonical name the server resolved, not the spelling it was asked for', () => {
+    // The request goes out as the URL spelled it; the answer says what tag that really was,
+    // and that is what the page heads itself with.
+    store.load('DotNet', 'all', 1);
+    expectTagRequest(1).flush(tagPage([], false, 'dotnet'));
+
+    expect(store.status()).toBe('loaded');
+    expect(store.name()).toBe('dotnet');
+  });
+
   it('load replaces the previous page instead of appending to it', () => {
     store.load('dotnet', 'all', 1);
     expectTagRequest(1).flush(tagPage([ref(1), ref(2)], true));
