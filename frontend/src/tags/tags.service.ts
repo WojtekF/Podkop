@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, timeout } from 'rxjs';
 
 /** Which content types a tag page lists. Full from day one, per the tag-page spec (issue #77). */
 export type TagContentFilter = 'all' | 'findings' | 'entries';
@@ -34,11 +34,13 @@ export class TagsService {
    * no content carries answers 404, which the caller turns into the page's not-found state.
    */
   getTagPage(name: string, filter: TagContentFilter, page: number): Observable<TagPageDto> {
-    return this.http.get<TagPageDto>(`/api/tags/${name}`, {
-      params: {
-        page,
-        type: filter,
-      },
-    });
+    return this.http
+      .get<TagPageDto>(`/api/tags/${name}`, {
+        params: {
+          page,
+          type: filter,
+        },
+      })
+      .pipe(timeout(5000));
   }
 }

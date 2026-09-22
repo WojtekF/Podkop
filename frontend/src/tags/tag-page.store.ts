@@ -86,10 +86,10 @@ export const TagPageStore = signalStore(
                       } else {
                         patchState(store, {
                           hasNextPage: tagPage.hasNextPage,
-                          items: cards.map((finding) => ({
-                            finding,
-                            type: 'finding',
-                          })),
+                          items: tagPage.items.flatMap((item) => {
+                            const finding = cards.find((c) => c.id === item.id);
+                            return finding ? [{ type: 'finding' as const, finding }] : [];
+                          }),
                           status: 'loaded',
                         });
                       }

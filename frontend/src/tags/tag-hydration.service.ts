@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, timeout } from 'rxjs';
 import { FindingSummaryDto } from '../main-page/main-page-feed.service';
 
 /**
@@ -24,10 +24,14 @@ export class TagHydrationService {
    * page's order is the caller's job.
    */
   getFindingsByIds(ids: readonly string[]): Observable<FindingSummaryDto[]> {
-    return this.http.get<FindingSummaryDto[]>('/api/findings/batch', {
-      params: {
-        ids: ids.join(','),
-      },
-    });
+    return ids.length
+      ? this.http
+          .get<FindingSummaryDto[]>('/api/findings/batch', {
+            params: {
+              ids: ids.join(','),
+            },
+          })
+          .pipe(timeout(5000))
+      : of([]);
   }
 }

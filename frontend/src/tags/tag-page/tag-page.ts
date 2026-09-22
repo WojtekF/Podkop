@@ -1,9 +1,11 @@
 import { Component, inject } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TagPageStore } from '../tag-page.store';
-import { TagContentFilter } from '../tags.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { combineLatest } from 'rxjs/internal/observable/combineLatest';
+import { MatButton } from '@angular/material/button';
+import { MatProgressSpinner } from '@angular/material/progress-spinner';
+import { FindingCard } from '../../main-page/finding-card/finding-card';
 
 /**
  * The Tag Page (issue #77): one tag's combined stream at /tag/:name.
@@ -15,7 +17,7 @@ import { combineLatest } from 'rxjs/internal/observable/combineLatest';
  */
 @Component({
   selector: 'app-tag-page',
-  imports: [],
+  imports: [MatButton, MatProgressSpinner, RouterLink, FindingCard],
   providers: [TagPageStore],
   templateUrl: './tag-page.html',
   styleUrl: './tag-page.scss',
@@ -36,9 +38,11 @@ export class TagPage {
       .pipe(takeUntilDestroyed())
       .subscribe(([params, query]) => {
         const name = params.get('name') as string;
-        const type = query.get('type') as TagContentFilter;
 
-        const rawPage = params.get('name');
+        const rawType = query.get('type');
+        const type: TagContentFilter = isTagContentFilter(rawType) ? rawType : 'all';
+
+        const rawPage = query.get('page');
         let page = 1;
         if (rawPage !== null) {
           page = Number.parseInt(rawPage, 10);
@@ -92,4 +96,11 @@ export class TagPage {
   protected retry(): void {
     this.store.retry();
   }
+}
+
+const TAG_CONTENT_FILTERS = ['all', 'findings', 'entries'] as const;
+type TagContentFilter = (typeof TAG_CONTENT_FILTERS)[number];
+
+function isTagContentFilter(value: unknown): value is TagContentFilter {
+  return (TAG_CONTENT_FILTERS as readonly unknown[]).includes(value);
 }
