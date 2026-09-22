@@ -79,10 +79,8 @@ export const TagPageStore = signalStore(
                 return cards$.pipe(
                   tap({
                     next: (cards) => {
-                      if (isNotFound(tagPage)) {
-                        patchState(store, { status: 'notFound', items: [] });
-                      } else if (isLoadFailure(cards)) {
-                        patchState(store, { status: 'error', items: [] });
+                      if (isLoadFailure(cards)) {
+                        patchState(store, { status: 'error', items: [], name: tagPage.name });
                       } else {
                         patchState(store, {
                           hasNextPage: tagPage.hasNextPage,
@@ -91,6 +89,7 @@ export const TagPageStore = signalStore(
                             return finding ? [{ type: 'finding' as const, finding }] : [];
                           }),
                           status: 'loaded',
+                          name: tagPage.name,
                         });
                       }
                     },

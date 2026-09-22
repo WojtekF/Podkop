@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Podkop.Tags.Application;
+using Podkop.Tags.Contracts;
 
 namespace Podkop.Tags.Server;
 
@@ -22,6 +23,7 @@ public static class TagsEndpoints
                 string? type,
                 string? page,
                 int? limit,
+                HttpContext context,
                 CancellationToken cancellationToken) =>
             {
                 var filter = ParseFilter(type);
@@ -49,9 +51,19 @@ public static class TagsEndpoints
                         detail: $"limit must be between 1 and {MaxLimit}.");
                 }
 
-                // The name reaches the handler exactly as the URL spelled it: folding it to the
-                // canonical tag is the query's business, and a name that folds to no tag that
-                // exists comes back as null — the same 404 an unknown tag answers.
+                // Any spelling that folds to a different one is sent, permanently, to the
+                // canonical URL — Wykop's /tag/POLSKA ends at /tag/polska — with the query
+                // string along unchanged. Whether that tag exists is the canonical URL's
+                // question to answer. A name that folds to nothing has no canonical URL and
+                // falls through to the query, which comes back null — the same 404 an unknown
+                // tag answers.
+                var canonical = Tag.TryFold(name);
+                if (canonical is not null && canonical.Name != name)
+                {
+                    return Results.Redirect(
+                        $"/api/tags/{canonical.Name}{context.Request.QueryString}", permanent: true);
+                }
+
                 var result = await sender.Send(
                     new GetTagPage(name, filter.Value, pageNumber, pageSize), cancellationToken);
                 return result is null ? Results.NotFound() : Results.Ok(result);

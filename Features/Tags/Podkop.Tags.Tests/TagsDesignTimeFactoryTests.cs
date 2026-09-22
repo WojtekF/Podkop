@@ -10,8 +10,7 @@ namespace Podkop.Tags.Tests;
 ///     has to be able to build this context with no orchestration running — that is the only way a
 ///     migration gets added — and it has to build it with the same migrations placement the
 ///     running host uses, or a migration added from the command line lands in the wrong assembly
-///     and is recorded in the wrong history table. The last spec is the one that stays red until
-///     the initial migration is generated and checked in.
+///     and is recorded in the wrong history table.
 /// </summary>
 public class TagsDesignTimeFactoryTests
 {

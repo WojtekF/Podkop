@@ -16,7 +16,7 @@ namespace Podkop.Tags.Application;
 ///         this slice's <see cref="IInbox" /> already holds changes nothing, and one it does not
 ///         is acted on and recorded in the same commit, so a redelivery can never re-file content
 ///         a later announcement has already moved. Specified by
-///         <c>TaggedContentAnnouncedConsumptionTests</c>.
+///         <c>TaggedContentConsumptionTests</c>.
 ///     </para>
 /// </summary>
 public sealed class TaggedContentAnnouncedHandler(

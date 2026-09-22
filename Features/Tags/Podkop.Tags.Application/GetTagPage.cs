@@ -38,9 +38,10 @@ public sealed record GetTagPage(string Name, TagContentFilter Filter, int Page, 
 /// <summary>
 ///     One page of typed references, in the index's order (ADR 0011). No card data: the frontend
 ///     hydrates each type through the owning slice's batch-by-ids endpoint and renders in this
-///     order.
+///     order. <paramref name="Name" /> is the canonical tag the query resolved to — the form the
+///     page heads itself with, whatever spelling asked for it.
 /// </summary>
-public sealed record TagPage(IReadOnlyList<TaggedContentRef> Items, bool HasNextPage);
+public sealed record TagPage(string Name, IReadOnlyList<TaggedContentRef> Items, bool HasNextPage);
 
 /// <summary>One reference: what type of content, and which one.</summary>
 public sealed record TaggedContentRef(string Type, Guid Id);
@@ -63,6 +64,7 @@ public sealed class GetTagPageHandler(ITagMembershipRepository memberships)
                 cancellationToken);
 
         return new TagPage(
+            foldedTag.Name,
             tagMemberships.Take(request.Limit)
                 .Select(tag => new TaggedContentRef(tag.ContentType.ToApiString(), tag.ContentId)).ToList(),
             tagMemberships.Count > request.Limit

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, effect, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TagPageStore } from '../tag-page.store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -27,17 +27,23 @@ export class TagPage {
   protected readonly route = inject(ActivatedRoute);
   protected readonly router = inject(Router);
 
-  constructor() {
-    // The URL is the source of truth: read the :name route parameter and the page and type
-    // query parameters, and ask the store to load that tag page whenever any of them changes.
-    // A missing, malformed, or non-positive page is page 1; a missing or unrecognised type is
-    // the combined stream. Left unimplemented — tag-page.spec.ts specifies the behaviour to
-    // satisfy.
+  /**
+   * The canonical name the URL is being rewritten to, while that rewrite is in flight. The
+   * rewrite changes the route parameter, which would otherwise read as the reader going to
+   * another tag and fetch the page a second time — the answer is already in hand.
+   */
+  private pendingCanonicalName: string | null = null;
 
+  constructor() {
     combineLatest([this.route.paramMap, this.route.queryParamMap])
       .pipe(takeUntilDestroyed())
       .subscribe(([params, query]) => {
         const name = params.get('name') as string;
+
+        if (name === this.pendingCanonicalName) {
+          this.pendingCanonicalName = null;
+          return;
+        }
 
         const rawType = query.get('type');
         const type: TagContentFilter = isTagContentFilter(rawType) ? rawType : 'all';
@@ -53,6 +59,23 @@ export class TagPage {
 
         this.store.load(name, type, page);
       });
+
+    // Once the page resolves, the URL takes the canonical spelling the server answered with —
+    // Wykop's /tag/POLSKA ends at /tag/polska. Replacing the history entry keeps Back from
+    // returning the reader to the spelling that just bounced them.
+    effect(() => {
+      if (this.store.status() !== 'loaded') return;
+
+      const canonicalName = this.store.name();
+      const spelledName = this.route.snapshot.paramMap.get('name');
+      if (canonicalName === null || spelledName === null || canonicalName === spelledName) return;
+
+      this.pendingCanonicalName = canonicalName;
+      this.router.navigate(['/tag', canonicalName], {
+        queryParamsHandling: 'preserve',
+        replaceUrl: true,
+      });
+    });
   }
 
   /** Navigates to this page under a different type filter, starting again at page 1. */

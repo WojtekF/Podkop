@@ -28,7 +28,10 @@
             >
           </span>
           &middot;
-          <span class="promoted-at">{{ finding().promotedAt | date: 'medium' }}</span>
+          @if (finding().promotedAt) {
+            <span class="promoted-at">Promoted: {{ finding().promotedAt | date: 'medium' }}</span>
+          }
+          <span class="created-at">Created: {{ finding().createdAt | date: 'medium' }}</span>
           &middot;
           <span [routerLink]="findingLink()" fragment="comments" class="comment-count"
             >{{ finding().commentCount }} comments</span

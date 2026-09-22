@@ -35,17 +35,17 @@ public class FindingsOutboxWriteTests(FindingsPostgresDatabase database) : IAsyn
 
     private static Finding CreateFinding(params string[] tags) =>
         new(
-            id: FindingId,
-            title: "A tagged finding",
-            description: "A tagged finding — description",
-            source: new Uri("https://blog.example.org/posts/42"),
-            thumbnail: null,
-            author: "grace_hopper",
-            tags: tags,
-            createdAt: At("2026-07-01T06:00:00Z"),
-            promotedAt: null,
-            commentCount: 0,
-            votes: null);
+            FindingId,
+            "A tagged finding",
+            "A tagged finding — description",
+            new Uri("https://blog.example.org/posts/42"),
+            null,
+            "grace_hopper",
+            tags,
+            At("2026-07-01T06:00:00Z"),
+            null,
+            0,
+            null);
 
     private async Task GivenFindings(params Finding[] findings)
     {
@@ -142,8 +142,6 @@ public class FindingsOutboxWriteTests(FindingsPostgresDatabase database) : IAsyn
         // Translation, not fabrication: the row exists because the aggregate raised something,
         // never merely because a finding was written. This is also what keeps the migration
         // worker's seed silent — it constructs findings raw.
-        // Holds trivially while the translator is unimplemented (nothing is raised, so it is
-        // never called); kept as a standing guard against the opposite failure.
         await InOneUseCase(async context =>
         {
             context.Findings.Add(CreateFinding("dotnet"));

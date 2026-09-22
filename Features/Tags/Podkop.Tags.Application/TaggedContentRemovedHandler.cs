@@ -12,7 +12,7 @@ namespace Podkop.Tags.Application;
 ///     <para>
 ///         Delivery is at-least-once (ADR 0014), so the work must be idempotent in the same way
 ///         its sibling's is — including for content this slice never indexed, which a removal may
-///         legitimately name. Specified by <c>TaggedContentRemovedConsumptionTests</c>.
+///         legitimately name. Specified by <c>TaggedContentConsumptionTests</c>.
 ///     </para>
 /// </summary>
 public sealed class TaggedContentRemovedHandler(
@@ -25,8 +25,12 @@ public sealed class TaggedContentRemovedHandler(
     {
         if (await inbox.AlreadyConsumedAsync(notification.EventId, cancellationToken)) return;
 
+        var taggedContentType = TaggedContentTypeExtensions.FromApiString(notification.ContentType);
+        if (!taggedContentType.HasValue) return;
+
         var tagMemberships = await memberships.GetForContentAsync(
-            TaggedContentTypeExtensions.FromApiString(notification.ContentType)!.Value, notification.ContentId,
+            taggedContentType.Value,
+            notification.ContentId,
             cancellationToken);
         memberships.RemoveRange(tagMemberships);
 
