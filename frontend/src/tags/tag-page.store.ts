@@ -1,8 +1,11 @@
-import { signalStore, withMethods, withState } from '@ngrx/signals';
+import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
 import { inject } from '@angular/core';
 import { FindingSummaryDto } from '../main-page/main-page-feed.service';
 import { TagContentFilter, TagsService } from './tags.service';
 import { TagHydrationService } from './tag-hydration.service';
+import { rxMethod } from '@ngrx/signals/rxjs-interop';
+import { EMPTY, of, pipe, switchMap, tap } from 'rxjs';
+import { asResult, isLoadFailure, isNotFound } from '../shared/as-result';
 
 export type TagPageStatus = 'loading' | 'loaded' | 'notFound' | 'error';
 
@@ -52,19 +55,63 @@ const initialState: TagPageState = {
 export const TagPageStore = signalStore(
   withState(initialState),
 
-  withMethods((
-    store,
-    tags = inject(TagsService),
-    hydration = inject(TagHydrationService),
-  ) => {
+  withMethods((store, tags = inject(TagsService), hydration = inject(TagHydrationService)) => {
+    type LoadRequest = { name: string; filter: TagContentFilter; page: number };
+
     /** Loads one tag page: the references, then the cards they name. */
+    const loadRequest = rxMethod<LoadRequest>(
+      pipe(
+        tap(({ filter, name, page }) =>
+          patchState(store, { name, filter, page, status: 'loading' }),
+        ),
+        switchMap(({ filter, name, page }) => {
+          return asResult(tags.getTagPage(name, filter, page)).pipe(
+            switchMap((tagPage) => {
+              if (isNotFound(tagPage)) {
+                patchState(store, { status: 'notFound', items: [] });
+              } else if (isLoadFailure(tagPage)) {
+                patchState(store, { status: 'error', items: [] });
+              } else {
+                const ids = tagPage.items.filter((i) => i.type === 'finding').map((i) => i.id);
+
+                const cards$ = ids.length ? asResult(hydration.getFindingsByIds(ids)) : of([]);
+
+                return cards$.pipe(
+                  tap({
+                    next: (cards) => {
+                      if (isNotFound(tagPage)) {
+                        patchState(store, { status: 'notFound', items: [] });
+                      } else if (isLoadFailure(cards)) {
+                        patchState(store, { status: 'error', items: [] });
+                      } else {
+                        patchState(store, {
+                          hasNextPage: tagPage.hasNextPage,
+                          items: cards.map((finding) => ({
+                            finding,
+                            type: 'finding',
+                          })),
+                          status: 'loaded',
+                        });
+                      }
+                    },
+                  }),
+                );
+              }
+
+              return EMPTY;
+            }),
+          );
+        }),
+      ),
+    );
+
     const load = (name: string, filter: TagContentFilter, page: number): void => {
-      throw new Error('not implemented');
+      loadRequest({ name, filter, page });
     };
 
     /** Retries the load the page is currently showing — for the error state only. */
     const retry = (): void => {
-      throw new Error('not implemented');
+      load(store.name()!, store.filter(), store.page());
     };
 
     return { load, retry };

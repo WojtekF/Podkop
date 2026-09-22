@@ -34,6 +34,11 @@ export class TagsService {
    * no content carries answers 404, which the caller turns into the page's not-found state.
    */
   getTagPage(name: string, filter: TagContentFilter, page: number): Observable<TagPageDto> {
-    throw new Error('not implemented');
+    return this.http.get<TagPageDto>(`/api/tags/${name}`, {
+      params: {
+        page,
+        type: filter,
+      },
+    });
   }
 }

@@ -24,6 +24,10 @@ export class TagHydrationService {
    * page's order is the caller's job.
    */
   getFindingsByIds(ids: readonly string[]): Observable<FindingSummaryDto[]> {
-    throw new Error('not implemented');
+    return this.http.get<FindingSummaryDto[]>('/api/findings/batch', {
+      params: {
+        ids: ids.join(','),
+      },
+    });
   }
 }

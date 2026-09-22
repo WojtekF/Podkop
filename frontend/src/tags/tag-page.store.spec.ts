@@ -38,8 +38,10 @@ describe('TagPageStore', () => {
     // The two calls cannot be parallel: the batch's ids are what the first call returned.
     store.load('dotnet', 'all', 1);
 
-    expectTagRequest(1).flush(tagPage([ref(1), ref(2)]));
+    const tagRequest = expectTagRequest(1);
     httpMock.expectNone((r) => r.url.startsWith('/api/findings/batch'));
+
+    tagRequest.flush(tagPage([ref(1), ref(2)]));
     expect(store.status()).toBe('loading');
 
     expectBatchRequest().flush([card(1), card(2)]);
