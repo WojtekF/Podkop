@@ -35,7 +35,9 @@
       <div class="tags">
         <ul>
           @for (tag of finding.tags; track $index) {
-            <li class="tag">#{{ tag }}</li>
+            <li>
+              <a class="tag" [routerLink]="['/tag', tag]"> #{{ tag }} </a>
+            </li>
           }
         </ul>
       </div>

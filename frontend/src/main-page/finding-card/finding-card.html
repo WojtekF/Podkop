@@ -35,7 +35,7 @@
           >
           &middot;
           @for (tag of finding().tags; track tag) {
-            <span class="tag">#{{ tag }}</span>
+            <a class="tag" [routerLink]="['/tag', tag]">#{{ tag }}</a>
           }
         </footer>
       </div>
