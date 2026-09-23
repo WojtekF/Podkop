@@ -24,7 +24,7 @@ Features/Posts/
 
 ### Backend — dependency direction (read the .csproj ProjectReference entries)
 
-1. **Domain references nothing** — no ProjectReference and no NuGet packages beyond primitives. Flag any reference from a `*.Domain` project.
+1. **Domain references almost nothing** — no NuGet packages beyond primitives, and only two sanctioned ProjectReferences: `Shared/Podkop.Shared.Domain` (the shared kernel, ADR 0013) and, for content slices, `Podkop.Tags.Contracts` (ADR 0009). Domain code may use only the `Tag` value type from the latter, never its event records. `MediatR.Contracts` arriving transitively through that reference is accepted, but flag any Domain code that uses MediatR types directly. Flag any other reference from a `*.Domain` project.
 2. **Inward direction only** — Server → Application → Domain. Infrastructure references Application/Domain, never the reverse. Application must not reference Infrastructure or Server.
 3. **Feature isolation** — no project in `Features/X/` references a project in `Features/Y/` except through explicit contracts projects (if any exist). Cross-feature communication goes through contracts or events.
 4. **Composition root only in Podkop.Server** — feature projects must not reference `Podkop.Server` or `Podkop.AppHost`.

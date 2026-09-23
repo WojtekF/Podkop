@@ -66,7 +66,7 @@ The backend is evolving from inline endpoints in `Program.cs` toward a **feature
 ```
 Features/
   Findings/
-    Podkop.Findings.Domain/         # entities, value objects, domain events; depends only on the shared kernel
+    Podkop.Findings.Domain/         # entities, value objects, domain events; depends only on the shared kernel (and, per ADR 0009, `Podkop.Tags.Contracts` for the Tag value type)
     Podkop.Findings.Application/    # commands/queries + handlers + validators for this feature
     Podkop.Findings.Infrastructure/ # EF Core (PostgreSQL), persistence, external services
     Podkop.Findings.Server/         # minimal API endpoints (MapGroup), thin HTTP layer
