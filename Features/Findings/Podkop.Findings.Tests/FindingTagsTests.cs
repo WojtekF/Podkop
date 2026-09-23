@@ -41,6 +41,16 @@ public class FindingTagsTests
     }
 
     [Fact]
+    public void A_finding_created_with_tags_carries_them_folded()
+    {
+        // The constructor is a write path too: a finding built with variant spellings must not
+        // carry tags the index would file under a different name.
+        var finding = CreateFinding("DotNet", "dot-net", "---", "Web-Dev");
+
+        Assert.Equal(["dotnet", "webdev"], finding.Tags);
+    }
+
+    [Fact]
     public void Setting_tags_replaces_the_whole_set_rather_than_adding_to_it()
     {
         var finding = CreateFinding("dotnet", "webdev");

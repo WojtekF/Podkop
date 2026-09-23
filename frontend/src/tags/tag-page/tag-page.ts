@@ -2,10 +2,11 @@ import { Component, effect, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { TagPageStore } from '../tag-page.store';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { combineLatest } from 'rxjs/internal/observable/combineLatest';
 import { MatButton } from '@angular/material/button';
 import { MatProgressSpinner } from '@angular/material/progress-spinner';
 import { FindingCard } from '../../main-page/finding-card/finding-card';
+import { combineLatest } from 'rxjs';
+import { TagContentFilter } from '../tags.service';
 
 /**
  * The Tag Page (issue #77): one tag's combined stream at /tag/:name.
@@ -44,6 +45,8 @@ export class TagPage {
           this.pendingCanonicalName = null;
           return;
         }
+
+        this.pendingCanonicalName = null;
 
         const rawType = query.get('type');
         const type: TagContentFilter = isTagContentFilter(rawType) ? rawType : 'all';
@@ -90,30 +93,37 @@ export class TagPage {
   }
 
   protected goToPreviousPage(): void {
-    let page = null;
+    let page = 1;
     if (this.store.page() - 1 !== 1) {
       page = this.store.page() - 1;
     }
 
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        page,
-        type: this.store.filter(),
-      },
+    this.navigateToPageWithFilter({
+      page,
+      type: this.store.filter(),
+    });
+  }
+
+  protected goToFirstPage(): void {
+    this.navigateToPageWithFilter({
+      type: this.store.filter(),
     });
   }
 
   protected goToNextPage(): void {
     if (this.store.hasNextPage()) {
-      this.router.navigate([], {
-        relativeTo: this.route,
-        queryParams: {
-          page: this.store.page() + 1,
-          type: this.store.filter(),
-        },
+      this.navigateToPageWithFilter({
+        page: this.store.page() + 1,
+        type: this.store.filter(),
       });
     }
+  }
+
+  private navigateToPageWithFilter(queryParams: Partial<{ page: number; type: TagContentFilter }>) {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams,
+    });
   }
 
   protected retry(): void {
@@ -122,7 +132,6 @@ export class TagPage {
 }
 
 const TAG_CONTENT_FILTERS = ['all', 'findings', 'entries'] as const;
-type TagContentFilter = (typeof TAG_CONTENT_FILTERS)[number];
 
 function isTagContentFilter(value: unknown): value is TagContentFilter {
   return (TAG_CONTENT_FILTERS as readonly unknown[]).includes(value);

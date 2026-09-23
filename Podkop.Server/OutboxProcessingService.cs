@@ -10,8 +10,9 @@ namespace Podkop.Server;
 ///     announcements the slices have committed keep becoming published events, one processor
 ///     pass at a time. This lives in the composition root because it is the one place that sees
 ///     every slice: FindingComments announces its posted comments and — since issue #77 — Findings
-///     announces its tag sets, and each producing slice adds its context here rather than growing
-///     a loop of its own.
+///     announces its tag sets, and every producing slice's outbox is drained by this one loop
+///     rather than by a loop of its own (see <see cref="ProducingOutboxes" /> for how the set is
+///     assembled today).
 ///     <para>
 ///         What it must do: pace itself by the configured poll interval — that interval is the
 ///         promised bound on how stale a cross-slice read can be — and give every pass a service
@@ -71,9 +72,11 @@ public sealed class OutboxProcessingService(
     }
 
     /// <summary>
-    ///     The outboxes one pass drains, in the order it drains them. Every slice that announces
-    ///     anything appears here — the one list that has to grow when a slice starts producing,
-    ///     and the only place in the system that knows they are more than one.
+    ///     The outboxes one pass drains, in the order it drains them. Interim, until issue #106:
+    ///     ADR 0014's amendment has each producing slice register its own drain from its
+    ///     <c>AddXPersistence</c> and this service resolve the set, so this hand-maintained list
+    ///     goes away. Until then every slice that announces anything must appear here, or the rows
+    ///     it writes are never delivered.
     /// </summary>
     private static IEnumerable<DbContext> ProducingOutboxes(IServiceProvider scopedServices) =>
     [

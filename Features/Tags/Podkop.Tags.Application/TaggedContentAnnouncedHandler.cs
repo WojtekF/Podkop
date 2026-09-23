@@ -30,30 +30,29 @@ public sealed class TaggedContentAnnouncedHandler(
         if (await inbox.AlreadyConsumedAsync(notification.EventId, cancellationToken)) return;
 
         var taggedContentType = TaggedContentTypeExtensions.FromApiString(notification.ContentType);
-        if (!taggedContentType.HasValue) return;
+        if (taggedContentType.HasValue)
+        {
+            var foldedIncomingTags = Tag.FoldAll(notification.Tags)
+                .ToList();
 
-        var normalizedIncomingTags = notification.Tags
-            .Select(Tag.TryFold)
-            .Where(tag => tag != null)
-            .Distinct()
-            .Cast<Tag>()
-            .ToList();
+            var alreadyExistingTagMemberships =
+                await memberships.GetForContentAsync(taggedContentType.Value, notification.ContentId,
+                    cancellationToken);
 
-        var alreadyExistingTags =
-            await memberships.GetForContentAsync(taggedContentType.Value, notification.ContentId, cancellationToken);
+            var removedTagMemberships = alreadyExistingTagMemberships
+                .Where(tag => foldedIncomingTags.All(normalizedTag => normalizedTag.Name != tag.Tag))
+                .ToList();
 
-        var removedTags = alreadyExistingTags
-            .Where(tag => normalizedIncomingTags.All(normalizedTag => normalizedTag.Name != tag.Tag))
-            .ToList();
+            var newTagMemberships = foldedIncomingTags
+                .Where(tag => alreadyExistingTagMemberships.All(existingTag => existingTag.Tag != tag.Name))
+                .Select(tag =>
+                    new TagMembership(tag.Name, taggedContentType.Value, notification.ContentId,
+                        notification.CreatedAt));
 
-        var newTags = normalizedIncomingTags
-            .Where(tag => alreadyExistingTags.All(existingTag => existingTag.Tag != tag.Name))
-            .Select(tag =>
-                new TagMembership(tag.Name, taggedContentType.Value, notification.ContentId, notification.CreatedAt));
+            foreach (var tagMembership in newTagMemberships) memberships.Add(tagMembership);
 
-        foreach (var tag in newTags) memberships.Add(tag);
-
-        memberships.RemoveRange(removedTags);
+            memberships.RemoveRange(removedTagMemberships);
+        }
 
         await inbox.RecordConsumedAsync(notification.EventId, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);

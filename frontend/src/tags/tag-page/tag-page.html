@@ -52,6 +52,11 @@
     } @else {
       @if (!store.items().length) {
         <h3>Nothing here yet.</h3>
+        @if (store.page() > 1) {
+          <button matButton="outlined" class="first-page" (click)="goToFirstPage()">
+            Go to first page
+          </button>
+        }
       } @else {
         <div class="tag-stream">
           @for (item of store.items(); track item.finding.id) {

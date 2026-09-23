@@ -110,4 +110,27 @@ public class TagTests
     {
         Assert.Equal("polska", Tag.TryFold("POLSKA")!.ToString());
     }
+
+    [Fact]
+    public void Folding_a_set_folds_every_input_in_the_order_given()
+    {
+        Assert.Equal(["dotnet", "webdev"], Tag.FoldAll(["DotNet", "web-dev"]).Select(t => t.Name));
+    }
+
+    [Fact]
+    public void Folding_a_set_drops_inputs_that_name_no_tag()
+    {
+        // The set-level answer to "not a tag": skipped, never thrown, so one stray "---" in a
+        // submission doesn't cost the tags beside it.
+        Assert.Equal(["dotnet"], Tag.FoldAll(["dotnet", "---", "  "]).Select(t => t.Name));
+    }
+
+    [Fact]
+    public void Folding_a_set_collapses_spellings_of_one_tag_into_one()
+    {
+        // What a repeated tag counts as is part of the canonical form every content slice shares
+        // (ADR 0009): the index holds one row per tag and content, so a set carrying one tag
+        // twice would file it twice.
+        Assert.Equal(["dotnet"], Tag.FoldAll(["DotNet", "dotnet", "dot-net"]).Select(t => t.Name));
+    }
 }
