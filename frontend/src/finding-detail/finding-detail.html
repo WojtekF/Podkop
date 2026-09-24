@@ -35,7 +35,9 @@
       <div class="tags">
         <ul>
           @for (tag of finding.tags; track $index) {
-            <li class="tag">#{{ tag }}</li>
+            <li>
+              <a class="tag" [routerLink]="['/tag', tag]"> #{{ tag }} </a>
+            </li>
           }
         </ul>
       </div>
@@ -49,7 +51,7 @@
         </span>
         <br />
         <div class="dates">
-          <span class="created-at">Created: {{ finding.createdAt | date: 'medium' }}</span>
+          <span class="created-at">Submitted: {{ finding.createdAt | date: 'medium' }}</span>
           @if (finding.promotedAt !== null) {
             <span class="promoted-at">Promoted: {{ finding.promotedAt | date: 'medium' }}</span>
           }

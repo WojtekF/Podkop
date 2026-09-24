@@ -1,4 +1,5 @@
 using Podkop.Shared.Domain;
+using Podkop.Tags.Contracts;
 
 namespace Podkop.Findings.Domain;
 
@@ -24,7 +25,7 @@ public sealed class Finding : AggregateRoot
         Source = source;
         Thumbnail = thumbnail;
         Author = author;
-        Tags = tags;
+        Tags = FoldAll(tags);
         CreatedAt = createdAt;
         PromotedAt = promotedAt;
         CommentCount = commentCount;
@@ -43,7 +44,7 @@ public sealed class Finding : AggregateRoot
     public Uri Source { get; }
     public Uri? Thumbnail { get; }
     public string Author { get; }
-    public IReadOnlyList<string> Tags { get; }
+    public IReadOnlyList<string> Tags { get; private set; } = [];
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset? PromotedAt { get; private set; }
     public int DigCount => _votes.Count(vote => vote.Side == FindingVoteSide.Dig);
@@ -93,6 +94,51 @@ public sealed class Finding : AggregateRoot
         _votes.RemoveAll(v => v.Voter == voter);
         return WithdrawOutcome.Applied;
     }
+
+    /// <summary>
+    ///     Sets the finding's tags — the write-time seam every tagged submission and every later
+    ///     edit of the set goes through (issue #77). What the user typed is not what the finding
+    ///     carries: each input folds through <see cref="Tag" />, the one canonical form the whole
+    ///     platform shares (ADR 0009), so the finding joins exactly the tags its tags name and no
+    ///     variant spellings of them. An input that names no tag is dropped rather than carried,
+    ///     and spellings of one tag count once — both part of the canonical form
+    ///     (<see cref="Tag.FoldAll" />, ADR 0009). Folding decides only which tags the inputs
+    ///     name; what to do when they name none is Findings' own call, not the canonical form's.
+    ///     Today the finding accepts that and carries an empty set. Rejecting such a submission,
+    ///     if it comes to that, belongs to the use case that accepts submissions, not to this
+    ///     method. Replacing the set with one that folds to the same tags changes nothing and
+    ///     announces nothing.
+    ///     <para>
+    ///         The resulting set is announced, not just stored: the finding raises
+    ///         <see cref="FindingTagsChanged" />, which infrastructure translates into the public
+    ///         announcement the Tags slice indexes (ADR 0011). The announcement carries the
+    ///         finding's own <see cref="CreatedAt" /> — never the time of the edit — so re-tagging
+    ///         an old finding never jumps it to the top of a tag page.
+    ///     </para>
+    /// </summary>
+    public void SetTags(IReadOnlyList<string> tags)
+    {
+        var foldedTags = FoldAll(tags);
+
+        if (foldedTags.ToHashSet().SetEquals(Tags)) return;
+
+        Tags = foldedTags;
+        Raise(new FindingTagsChanged(Id, foldedTags, CreatedAt));
+    }
+
+    private IReadOnlyList<string> FoldAll(IReadOnlyList<string> tags) =>
+        Tag.FoldAll(tags)
+            .Select(t => t.Name)
+            .ToList();
+
+    /// <summary>
+    ///     Announces that this finding is gone (issue #77), raising <see cref="FindingRemoved" />
+    ///     so the tag namespace stops listing it (ADR 0011). Deliberately narrow: what removal
+    ///     means <i>inside</i> this slice — whether a removed finding still exists, still shows,
+    ///     still counts — is nobody's decision yet and no state here records it; this is the seam
+    ///     the tag namespace needs, and the ticket that gives Findings a removal will grow it.
+    /// </summary>
+    public void Remove() => Raise(new FindingRemoved(Id));
 
     // method exposed for seeding purpose only.
     public void UpdateCommentCount(int commentCount) => CommentCount = commentCount;

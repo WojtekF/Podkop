@@ -1,5 +1,4 @@
 using MediatR;
-using Podkop.Findings.Domain;
 
 namespace Podkop.Findings.Application;
 
@@ -12,6 +11,18 @@ public sealed record GetMainPageFeed(int Page, int Limit) : IRequest<FeedPage>;
 
 public sealed record FeedPage(IReadOnlyList<FindingSummary> Items, bool HasNextPage);
 
+/// <summary>
+///     The card data the Findings slice serves, wherever a finding is shown as a card: the Main
+///     Page feed and — since issue #77 — the batch-by-ids hydration a tag page runs on (ADR
+///     0011). One record for both, because it is literally the same card.
+///     <para>
+///         <see cref="PromotedAt" /> is nullable and <see cref="CreatedAt" /> always present
+///         because of that second caller: the Main Page carries promoted findings only, but a tag
+///         page carries every finding that took the tag, promoted or still upcoming, and an
+///         upcoming finding has no promotion time to show. Created-at is the timestamp every card
+///         can always fall back to.
+///     </para>
+/// </summary>
 public sealed record FindingSummary(
     Guid Id,
     string Title,
@@ -23,7 +34,8 @@ public sealed record FindingSummary(
     IReadOnlyList<string> Tags,
     int DigCount,
     int CommentCount,
-    DateTimeOffset PromotedAt);
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? PromotedAt);
 
 public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository)
     : IRequestHandler<GetMainPageFeed, FeedPage>
@@ -34,24 +46,8 @@ public sealed class GetMainPageFeedHandler(IFindingRepository findingsRepository
         // ADR 0004); the extra finding beyond the limit is the repository's next-page signal.
         var findings = await findingsRepository.GetPromotedPageAsync(
             request.Page, request.Limit, cancellationToken);
-        var findingSummary = findings.Select(MapFindingToFindingSummary).ToList();
+        var findingSummary = findings.Select(FindingExtensions.MapFindingToFindingSummary).ToList();
         return new FeedPage(findingSummary.Take(request.Limit).ToList(),
             findingSummary.Count > request.Limit);
-    }
-
-    private static FindingSummary MapFindingToFindingSummary(Finding finding)
-    {
-        return new FindingSummary(
-            finding.Id,
-            finding.Title,
-            finding.Description,
-            finding.Source.AbsoluteUri,
-            finding.Source.Host,
-            finding.Thumbnail?.AbsoluteUri,
-            finding.Author,
-            finding.Tags,
-            finding.DigCount,
-            finding.CommentCount,
-            finding.PromotedAt!.Value);
     }
 }

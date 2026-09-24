@@ -22,6 +22,7 @@ describe('MainPage', () => {
     tags: ['dotnet'],
     digCount: 100,
     commentCount: 10,
+    createdAt: '2026-07-08T06:00:00Z',
     promotedAt: '2026-07-08T10:00:00Z',
   });
 

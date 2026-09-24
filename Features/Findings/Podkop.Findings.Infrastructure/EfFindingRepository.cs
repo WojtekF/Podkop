@@ -32,4 +32,14 @@ public sealed class EfFindingRepository(FindingsDbContext context) : IFindingRep
 
     public Task<Finding?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         context.Findings.FirstOrDefaultAsync(finding => finding.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<Finding>> GetByIdsAsync(
+        IReadOnlyList<Guid> ids, CancellationToken cancellationToken)
+    {
+        var distinctIds = ids.Distinct().ToList();
+        var findings = await context.Findings
+            .Where(f => distinctIds.Contains(f.Id))
+            .ToListAsync(cancellationToken);
+        return findings;
+    }
 }

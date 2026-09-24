@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Podkop.Tags.Domain\Podkop.Tags.Domain.csproj" />
+    <!-- The slice's own Contracts project, referenced inward for once: ADR 0009 puts the Tag
+         value type there so content slices can fold their input through it, and this slice's
+         use cases fold the route value through the very same type. The consuming handlers take
+         their announce events from here too. -->
+    <ProjectReference Include="..\Podkop.Tags.Contracts\Podkop.Tags.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediatR" Version="12.5.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,60 @@
+/*
+  Styles for the Tag Page — empty by design; the CSS is yours to write. Nothing here is
+  required for the specs to pass.
+
+  For reference, mirror the main-page feed's approach: the loading, empty, not-found, and
+  error states (`.tag-state.loading`, `.tag-state.empty`, `.tag-state.not-found`,
+  `.tag-state.error`) read best centered in the viewport; the header and the type filter
+  sit together above the stream, with the selected filter distinguishable at a glance; and
+  the stream itself wants the same single-column rhythm and page-turner row the Main Page
+  feed already has. The empty state past the last page carries a way back to the first page
+  (`.first-page`), which belongs with the empty message rather than apart from it.
+*/
+@use 'mixins';
+
+.tag-state {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  .content-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  &.empty,
+  &.error {
+    .content-container {
+      @include mixins.in-container-message;
+    }
+  }
+  &.loading {
+    .content-container {
+      @include mixins.viewport-center;
+    }
+  }
+  &.error {
+    .content-container {
+      .retry-button {
+        align-self: center;
+      }
+    }
+  }
+
+  .filter-container {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+  }
+
+  .tag-stream {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .tag-stream-navigation {
+    display: flex;
+    justify-content: space-between;
+  }
+}

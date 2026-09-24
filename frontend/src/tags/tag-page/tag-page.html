@@ -1,0 +1,89 @@
+@if (store.status() === 'notFound') {
+  <div class="tag-state not-found">
+    <h3>Tag not found</h3>
+    <button class="back-link" routerLink="/" matButton="outlined">Main Page</button>
+  </div>
+} @else {
+  <div
+    [class]="{
+      'tag-state': true,
+      empty: store.status() === 'loaded' && !store.items().length,
+      loading: store.status() === 'loading',
+      error: store.status() === 'error',
+    }"
+  >
+    <h1 class="tag-header">{{ store.name() }}</h1>
+    <div class="filter-container">
+      <button
+        [class]="{ 'type-filter': true, 'filter-all': true, selected: store.filter() === 'all' }"
+        [matButton]="store.filter() === 'all' ? 'filled' : 'outlined'"
+        (click)="selectFilter('all')"
+      >
+        All
+      </button>
+      <button
+        [class]="{
+          'type-filter': true,
+          'filter-findings': true,
+          selected: store.filter() === 'findings',
+        }"
+        [matButton]="store.filter() === 'findings' ? 'filled' : 'outlined'"
+        (click)="selectFilter('findings')"
+      >
+        Findings</button
+      ><button
+        [class]="{
+          'type-filter': true,
+          'filter-entries': true,
+          selected: store.filter() === 'entries',
+        }"
+        [matButton]="store.filter() === 'entries' ? 'filled' : 'outlined'"
+        (click)="selectFilter('entries')"
+      >
+        Entries
+      </button>
+    </div>
+    <div class="content-container">
+      @if (store.status() === 'loading') {
+        <mat-spinner />
+      } @else if (store.status() === 'error') {
+        <h2>Couldn't load the tag page.</h2>
+        <button class="retry-button" (click)="retry()" matButton="outlined">Retry</button>
+      } @else {
+        @if (!store.items().length) {
+          <h3>Nothing here yet.</h3>
+          @if (store.page() > 1) {
+            <button matButton="outlined" class="first-page" (click)="goToFirstPage()">
+              Go to first page
+            </button>
+          }
+        } @else {
+          <div class="tag-stream">
+            @for (item of store.items(); track item.finding.id) {
+              <main-page-finding-card [finding]="item.finding" />
+            }
+          </div>
+          <div class="tag-stream-navigation">
+            <button
+              class="previous-page"
+              [disabled]="store.page() === 1"
+              (click)="goToPreviousPage()"
+              matButton="outlined"
+            >
+              Previous
+            </button>
+
+            <button
+              class="next-page"
+              [disabled]="!store.hasNextPage()"
+              (click)="goToNextPage()"
+              matButton="outlined"
+            >
+              Next
+            </button>
+          </div>
+        }
+      }
+    </div>
+  </div>
+}

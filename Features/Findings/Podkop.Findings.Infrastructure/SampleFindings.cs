@@ -22,9 +22,27 @@ public static class SampleFindings
     /// </summary>
     private const string StubUser = "ada_lovelace";
 
-    public static IReadOnlyList<Finding> Generate(int count = 30)
+    /// <summary>
+    ///     The instant every sample timestamp is measured back from. Fixed rather than read off
+    ///     the clock: created-at is part of the seed pact too — the Tags index is generated from a
+    ///     separate call (issue #77) and must carry the very instant the finding itself was
+    ///     seeded with, which two readings of the clock can never agree on.
+    /// </summary>
+    private static readonly DateTimeOffset Anchor = new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
+
+    /// <summary>
+    ///     Picsum ids in the sample's range that answer 404 — picsum's catalogue has gaps. The
+    ///     findings they would illustrate go without a thumbnail instead of rendering a broken one.
+    /// </summary>
+    private static readonly HashSet<int> MissingPicsumIds = [470, 540, 710, 720];
+
+    /// <summary>
+    ///     Enough findings that the busiest sample tags run past one 25-item tag page, so paging
+    ///     is exercisable against the seed alone.
+    /// </summary>
+    public static IReadOnlyList<Finding> Generate(int count = 80)
     {
-        var now = DateTimeOffset.UtcNow;
+        var now = Anchor;
         var authorsWithoutStub = SampleData.Authors.Remove(StubUser);
 
         return Enumerable.Range(1, count).Select(index =>
@@ -57,7 +75,9 @@ public static class SampleFindings
                     random.GetItems(SampleData.Lines.AsSpan(), random.Next(1, 4))),
                 source: new Uri(
                     $"https://{SampleData.Hosts[random.Next(SampleData.Hosts.Length)]}/article/{index}"),
-                thumbnail: index % 5 == 0 ? null : new Uri($"https://picsum.photos/id/{index * 10}/220/142"),
+                thumbnail: index % 5 == 0 || MissingPicsumIds.Contains(index * 10)
+                    ? null
+                    : new Uri($"https://picsum.photos/id/{index * 10}/220/142"),
                 author: author,
                 tags: random.GetItems(SampleData.Tags.AsSpan(), random.Next(1, 4)).Distinct().ToArray(),
                 createdAt: createdAt,
