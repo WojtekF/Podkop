@@ -51,7 +51,7 @@
         </span>
         <br />
         <div class="dates">
-          <span class="created-at">Created: {{ finding.createdAt | date: 'medium' }}</span>
+          <span class="created-at">Submitted: {{ finding.createdAt | date: 'medium' }}</span>
           @if (finding.promotedAt !== null) {
             <span class="promoted-at">Promoted: {{ finding.promotedAt | date: 'medium' }}</span>
           }

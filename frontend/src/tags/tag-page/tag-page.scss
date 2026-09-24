@@ -7,5 +7,6 @@
   `.tag-state.error`) read best centered in the viewport; the header and the type filter
   sit together above the stream, with the selected filter distinguishable at a glance; and
   the stream itself wants the same single-column rhythm and page-turner row the Main Page
-  feed already has.
+  feed already has. The empty state past the last page carries a way back to the first page
+  (`.first-page`), which belongs with the empty message rather than apart from it.
 */

@@ -31,13 +31,14 @@ export class TagsService {
   private readonly http = inject(HttpClient);
 
   /**
-   * One page of a tag's stream. The name goes out exactly as the URL spelled it — folding it to
+   * One page of a tag's stream. The name goes out exactly as the URL spelled it, encoded as a
+   * single path segment so characters like `#`, `?` or `/` reach the server intact. Folding it to
    * the canonical tag is the server's business, so any casing lands on the same page. A tag that
    * no content carries answers 404, which the caller turns into the page's not-found state.
    */
   getTagPage(name: string, filter: TagContentFilter, page: number): Observable<TagPageDto> {
     return this.http
-      .get<TagPageDto>(`/api/tags/${name}`, {
+      .get<TagPageDto>(`/api/tags/${encodeURIComponent(name)}`, {
         params: {
           page,
           type: filter,

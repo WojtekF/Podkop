@@ -17,7 +17,12 @@ export type TagPageStatus = 'loading' | 'loaded' | 'notFound' | 'error';
 export type TagStreamItem = { type: 'finding'; finding: FindingSummaryDto };
 
 export interface TagPageState {
-  /** The tag exactly as the URL spelled it — the page header shows the canonical form it resolved to. */
+  /**
+   * The tag's name. While a page loads it is the name exactly as the URL spelled it; once the Tags
+   * endpoint answers it becomes the canonical name the server resolved that spelling to, which is
+   * what the header shows. A 404 or a failed Tags call leaves the URL's spelling in place, since
+   * nothing was resolved.
+   */
   name: string | null;
   filter: TagContentFilter;
   page: number;
@@ -62,7 +67,7 @@ export const TagPageStore = signalStore(
     const loadRequest = rxMethod<LoadRequest>(
       pipe(
         tap(({ filter, name, page }) =>
-          patchState(store, { name, filter, page, status: 'loading' }),
+          patchState(store, { name, filter, page, status: 'loading', hasNextPage: false }),
         ),
         switchMap(({ filter, name, page }) => {
           return asResult(tags.getTagPage(name, filter, page)).pipe(
@@ -80,12 +85,18 @@ export const TagPageStore = signalStore(
                   tap({
                     next: (cards) => {
                       if (isLoadFailure(cards)) {
-                        patchState(store, { status: 'error', items: [], name: tagPage.name });
+                        patchState(store, {
+                          status: 'error',
+                          items: [],
+                          name: tagPage.name,
+                        });
                       } else {
                         patchState(store, {
                           hasNextPage: tagPage.hasNextPage,
                           items: tagPage.items.flatMap((item) => {
-                            const finding = cards.find((c) => c.id === item.id);
+                            const finding = cards.find(
+                              (c) => c.id === item.id && item.type === 'finding',
+                            );
                             return finding ? [{ type: 'finding' as const, finding }] : [];
                           }),
                           status: 'loaded',

@@ -39,11 +39,7 @@ public static class SampleTagMemberships
         var contentType = TaggedContentTypeExtensions.FromApiString(item.ContentType);
         if (contentType is null) return [];
 
-        return item.Tags
-            .Select(Tag.TryFold)
-            .OfType<Tag>()
-            .Select(tag => tag.Name)
-            .Distinct()
-            .Select(tag => new TagMembership(tag, contentType.Value, item.ContentId, item.CreatedAt));
+        return Tag.FoldAll(item.Tags)
+            .Select(tag => new TagMembership(tag.Name, contentType.Value, item.ContentId, item.CreatedAt));
     }
 }

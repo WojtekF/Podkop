@@ -73,6 +73,21 @@ describe('TagPageStore', () => {
     expect(ids()).toEqual([contentId(1), contentId(3)]);
   });
 
+  it('a ref hydrates only from its own content type’s answer', () => {
+    // ADR 0011: a reference is a type and an id, and each content type's ids belong to the slice
+    // that owns it. An entry that happens to share an id with a finding is not that finding, so
+    // the finding batch answers for the finding ref alone, and the entry ref, which nothing
+    // hydrates until the Microblog slice lands, hydrates to nothing and is dropped.
+    store.load('dotnet', 'all', 1);
+    expectTagRequest(1).flush(tagPage([ref(1), ref(1, 'entry')]));
+
+    expectBatchRequest().flush([card(1)]);
+
+    expect(store.status()).toBe('loaded');
+    expect(store.items().map((item) => item.type)).toEqual(['finding']);
+    expect(ids()).toEqual([contentId(1)]);
+  });
+
   it('a page whose references all hydrate to nothing is loaded and empty, not an error', () => {
     store.load('dotnet', 'all', 1);
     expectTagRequest(1).flush(tagPage([ref(1)]));

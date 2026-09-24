@@ -25,7 +25,7 @@ public sealed class Finding : AggregateRoot
         Source = source;
         Thumbnail = thumbnail;
         Author = author;
-        Tags = tags;
+        Tags = FoldAll(tags);
         CreatedAt = createdAt;
         PromotedAt = promotedAt;
         CommentCount = commentCount;
@@ -100,9 +100,14 @@ public sealed class Finding : AggregateRoot
     ///     edit of the set goes through (issue #77). What the user typed is not what the finding
     ///     carries: each input folds through <see cref="Tag" />, the one canonical form the whole
     ///     platform shares (ADR 0009), so the finding joins exactly the tags its tags name and no
-    ///     variant spellings of them. What a submission that names no usable tag at all should
-    ///     leave the finding carrying, and what a repeated tag should count as, are part of the
-    ///     same decision.
+    ///     variant spellings of them. An input that names no tag is dropped rather than carried,
+    ///     and spellings of one tag count once — both part of the canonical form
+    ///     (<see cref="Tag.FoldAll" />, ADR 0009). Folding decides only which tags the inputs
+    ///     name; what to do when they name none is Findings' own call, not the canonical form's.
+    ///     Today the finding accepts that and carries an empty set. Rejecting such a submission,
+    ///     if it comes to that, belongs to the use case that accepts submissions, not to this
+    ///     method. Replacing the set with one that folds to the same tags changes nothing and
+    ///     announces nothing.
     ///     <para>
     ///         The resulting set is announced, not just stored: the finding raises
     ///         <see cref="FindingTagsChanged" />, which infrastructure translates into the public
@@ -113,17 +118,18 @@ public sealed class Finding : AggregateRoot
     /// </summary>
     public void SetTags(IReadOnlyList<string> tags)
     {
-        var normalizedTags = tags.Select(Tag.TryFold)
-            .Where(t => t != null)
-            .Distinct()
-            .Cast<Tag>()
+        var foldedTags = FoldAll(tags);
+
+        if (foldedTags.ToHashSet().SetEquals(Tags)) return;
+
+        Tags = foldedTags;
+        Raise(new FindingTagsChanged(Id, foldedTags, CreatedAt));
+    }
+
+    private IReadOnlyList<string> FoldAll(IReadOnlyList<string> tags) =>
+        Tag.FoldAll(tags)
             .Select(t => t.Name)
             .ToList();
-        if (normalizedTags.ToHashSet().SetEquals(Tags)) return;
-
-        Tags = normalizedTags;
-        Raise(new FindingTagsChanged(Id, normalizedTags, CreatedAt));
-    }
 
     /// <summary>
     ///     Announces that this finding is gone (issue #77), raising <see cref="FindingRemoved" />

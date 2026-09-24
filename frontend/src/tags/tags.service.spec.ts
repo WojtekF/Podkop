@@ -42,6 +42,21 @@ describe('TagsService', () => {
     expect(received).toEqual(body);
   });
 
+  it.each([
+    ['c#', '/api/tags/c%23'],
+    ['what?', '/api/tags/what%3F'],
+    ['a/b', '/api/tags/a%2Fb'],
+  ])('sends a spelling carrying URL syntax (%s) whole, as one path segment', (name, url) => {
+    // The route hands the name over decoded. Folding is the server's job, so whatever the
+    // reader typed must reach it intact — a raw "#" or "?" would cut the path short and ask
+    // for a different tag, and a raw "/" would ask for a route that doesn't exist.
+    service.getTagPage(name, 'all', 1).subscribe();
+
+    const req = expectTagRequest();
+    expect(req.request.url).toBe(url);
+    req.flush(tagPage([]));
+  });
+
   it('always names the page, even for page 1', () => {
     service.getTagPage('dotnet', 'all', 1).subscribe();
 

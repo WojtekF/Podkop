@@ -26,13 +26,14 @@ public sealed class TaggedContentRemovedHandler(
         if (await inbox.AlreadyConsumedAsync(notification.EventId, cancellationToken)) return;
 
         var taggedContentType = TaggedContentTypeExtensions.FromApiString(notification.ContentType);
-        if (!taggedContentType.HasValue) return;
-
-        var tagMemberships = await memberships.GetForContentAsync(
-            taggedContentType.Value,
-            notification.ContentId,
-            cancellationToken);
-        memberships.RemoveRange(tagMemberships);
+        if (taggedContentType.HasValue)
+        {
+            var tagMemberships = await memberships.GetForContentAsync(
+                taggedContentType.Value,
+                notification.ContentId,
+                cancellationToken);
+            memberships.RemoveRange(tagMemberships);
+        }
 
         await inbox.RecordConsumedAsync(notification.EventId, cancellationToken);
         await unitOfWork.CommitAsync(cancellationToken);

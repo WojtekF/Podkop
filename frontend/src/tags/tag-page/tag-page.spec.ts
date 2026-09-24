@@ -132,6 +132,24 @@ describe('TagPage', () => {
     httpMock.expectNone((r) => r.url.startsWith('/api/tags/'));
   });
 
+  it('a canonical rewrite the reader outran does not swallow a later visit to that tag', async () => {
+    // The page skips the one route change its own rewrite causes. If the reader navigates away
+    // before that rewrite lands, the rewrite is cancelled and never arrives — so the page must
+    // stop waiting for it, or the reader's own later visit to the canonical tag is mistaken for
+    // the rewrite and never fetched.
+    await harness.navigateByUrl('/tag/DotNet', TagPage);
+    expectTagRequest('DotNet', 1).flush(tagPage([], false, 'dotnet'));
+    harness.detectChanges();
+    void router.navigateByUrl('/tag/rust');
+    await harness.fixture.whenStable();
+    expectTagRequest('rust', 1).flush(tagPage([], false, 'rust'));
+    harness.detectChanges();
+
+    await harness.navigateByUrl('/tag/dotnet', TagPage);
+
+    expectTagRequest('dotnet', 1);
+  });
+
   it('leaves a canonical URL alone', async () => {
     // No rewrite to make, so no navigation and no second fetch — the one request the landing
     // made is the only one.
@@ -164,6 +182,35 @@ describe('TagPage', () => {
     harness.detectChanges();
 
     expect(control('.tag-state.empty')?.textContent).toContain('Nothing here yet.');
+  });
+
+  it('an empty page 1 explains itself without a first-page action', async () => {
+    // On page 1 an empty stream means the filter matched nothing (Entries before the Microblog
+    // slice lands, say) — there is no earlier page to send the reader to.
+    await harness.navigateByUrl('/tag/dotnet', TagPage);
+    expectTagRequest('dotnet', 1).flush(tagPage([]));
+    harness.detectChanges();
+
+    expect(control('.tag-state.empty')?.textContent).toContain('Nothing here yet.');
+    expect(control('.first-page')).toBeNull();
+  });
+
+  it('a stale deep link past the end offers Go to first page, keeping the filter', async () => {
+    // ADR 0004: a page past the end answers empty rather than 404 so stale links degrade
+    // gracefully — the Main Page's way out, not a silent redirect, since the API names no last
+    // page to redirect to. The filter is part of what the link meant, so it survives.
+    await harness.navigateByUrl('/tag/dotnet?page=9&type=findings', TagPage);
+    expectTagRequest('dotnet', 9).flush(tagPage([]));
+    harness.detectChanges();
+
+    const firstPage = control('.first-page');
+    expect(firstPage?.textContent).toContain('Go to first page');
+
+    firstPage?.click();
+    await harness.fixture.whenStable();
+
+    expect(router.url).toBe('/tag/dotnet?type=findings');
+    expectTagRequest('dotnet', 1);
   });
 
   it('offers all three type filters with the combined stream selected by default', async () => {

@@ -59,5 +59,18 @@ public sealed record Tag
             : new Tag(folded);
     }
 
+    /// <summary>
+    ///     The tags a set of inputs names, in the order they were given: each input folds through
+    ///     <see cref="TryFold" />, inputs that name no tag are dropped, and spellings of one tag
+    ///     collapse into its first occurrence. What a repeated tag counts as is part of the
+    ///     canonical form, not behavior beside it (ADR 0009), because every content slice must
+    ///     answer it the same way: the Tags index holds one row per tag and content.
+    /// </summary>
+    public static IEnumerable<Tag> FoldAll(IEnumerable<string> tags) =>
+        tags.Select(TryFold)
+            .Where(t => t != null)
+            .Distinct()
+            .Cast<Tag>();
+
     public override string ToString() => Name;
 }
